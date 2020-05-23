@@ -25,7 +25,7 @@ struct MyAboutView: View {
 
                     Button(action: {
                         UIApplication.shared.open(URL(string: "https://github.com/billpugh/GAEN_Explorer")!)
-                }) { Text("https://github.com/billpugh/ExposureNotification").font(.footnote) }
+                }) { Text("https://github.com/billpugh/GAEN_Explorer").font(.footnote) }
 
                     Text("You must have the special entitlements that Apple is giving out in order to be able to run this code, and they are only giving out those entitlements to developers working with public health organizations. I can't help you get those entitlements. The app uses a special entitlement that allows it to get the diagnosis key for the current day.").font(.footnote)
 
