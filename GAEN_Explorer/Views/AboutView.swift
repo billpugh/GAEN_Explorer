@@ -24,7 +24,7 @@ struct MyAboutView: View {
                     Text("This app is designed to allow you to experiment with the Google/Apple Exposure Notification (GAEN) framework. Even without looking inside the code, you can can have several people install the app on their phone, go through an encounter, and then exchange diagnosis keys and find out the charactertistics of the encounters that were reported by the framework. If you want to use this app, it is very helpful if you understand how the framework works (e.g., you know what a diagnosis key is).")
 
                     Button(action: {
-                        UIApplication.shared.open(URL(string: "https://github.com/billpugh/ExposureNotification")!)
+                        UIApplication.shared.open(URL(string: "https://github.com/billpugh/GAEN_Explorer")!)
                 }) { Text("https://github.com/billpugh/ExposureNotification").font(.footnote) }
 
                     Text("You must have the special entitlements that Apple is giving out in order to be able to run this code, and they are only giving out those entitlements to developers working with public health organizations. I can't help you get those entitlements. The app uses a special entitlement that allows it to get the diagnosis key for the current day.").font(.footnote)
