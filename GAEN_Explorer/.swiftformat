@@ -1,0 +1,7 @@
+# format options
+--allman false
+--indent 4
+--self init-only
+
+# file options
+--exclude Pods
