@@ -2,6 +2,10 @@
 
 This is code I wrote to explore and experiment with the Google+Apple Exposure Notification framework. It is intended to show how the framework can actually be invoked, and to testing of how the exposure detection system works. It is also the first non-trivial app I wrote in Swift. 
 
+\<p align="center"\> 
+\<img src=“Documentation/screenShots/all.png” with=“80%”/\>
+\</p\>
+
 In particular, I wrote the code to figure out two things:
 * the details of how things such as [ENExposureInfo.attenuationvalue ][1] is computed, which isn’t entirely clear from the documentation
 * To do experiments where I could put two iPhones a specific distance apart for 20 minutes, then have the devices exchange diagnosis keys and see what they reported about the encounter
