@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16097" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -12,31 +12,38 @@
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" image="GAEN-Explorer" translatesAutoresizingMaskIntoConstraints="NO" id="hYF-s4-32Y">
-                                <rect key="frame" x="0.0" y="141" width="414" height="411"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="GAEN-Explorer" translatesAutoresizingMaskIntoConstraints="NO" id="hYF-s4-32Y">
+                                <rect key="frame" x="0.0" y="20" width="375" height="411"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="411" id="aSA-4b-Bn0"/>
+                                </constraints>
                             </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="GAEN Explorer" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7YT-7G-YSe">
-                                <rect key="frame" x="61.5" y="642" width="291" height="55"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="46"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="by Bill Pugh" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mw2-ho-5U3">
+                                <rect key="frame" x="142.5" y="566" width="90" height="20.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="by Bill Pugh" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mw2-ho-5U3">
-                                <rect key="frame" x="162" y="712" width="90" height="21"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="GAEN Explorer" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7YT-7G-YSe">
+                                <rect key="frame" x="42" y="471" width="291" height="55"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="46"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
                         <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                         <constraints>
-                            <constraint firstItem="hYF-s4-32Y" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="BPl-MU-pkC"/>
-                            <constraint firstItem="7YT-7G-YSe" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="C9k-4v-eFZ"/>
-                            <constraint firstItem="hYF-s4-32Y" firstAttribute="width" secondItem="6Tk-OE-BBY" secondAttribute="width" id="Fhf-1V-mOW"/>
-                            <constraint firstItem="mw2-ho-5U3" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="iuw-zb-FBp"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="mw2-ho-5U3" secondAttribute="bottom" constant="50" id="0Ly-4B-Ocn"/>
+                            <constraint firstItem="hYF-s4-32Y" firstAttribute="centerX" secondItem="7YT-7G-YSe" secondAttribute="centerX" id="8fj-ud-C2e"/>
+                            <constraint firstItem="mw2-ho-5U3" firstAttribute="top" secondItem="7YT-7G-YSe" secondAttribute="bottom" priority="800" constant="40" id="NAX-Dm-3UG"/>
+                            <constraint firstItem="hYF-s4-32Y" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="20" id="UP5-YY-FfG"/>
+                            <constraint firstItem="hYF-s4-32Y" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="dIq-Du-emw"/>
+                            <constraint firstItem="7YT-7G-YSe" firstAttribute="centerX" secondItem="mw2-ho-5U3" secondAttribute="centerX" id="hWJ-gI-RRs"/>
+                            <constraint firstItem="7YT-7G-YSe" firstAttribute="top" secondItem="hYF-s4-32Y" secondAttribute="bottom" priority="800" constant="40" id="snC-Da-t6u"/>
+                            <constraint firstItem="hYF-s4-32Y" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="x8z-oZ-etP"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
