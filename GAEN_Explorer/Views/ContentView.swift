@@ -81,7 +81,7 @@ struct StatusView: View {
                     Text(manager.exposureNotificationStatus.description).font(.headline)
                     Spacer()
                     Text(manager.authorizationStatus.description).font(.headline)
-                }.padding(.horizontal).foregroundColor(self.manager.feasible ? .black : .red)
+                }.padding(.horizontal).foregroundColor(self.manager.feasible ?  .primary : .red)
             }
             Section(header: Text("Actions").font(.title)) {
                 Button(action: {

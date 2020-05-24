@@ -8,13 +8,14 @@ import Foundation
 import SwiftUI
 
 struct ExposureDetailView: View {
+    var day : BatchExposureInfo
     var info: CodableExposureInfo
     var body: some View {
         VStack {
             GeometryReader { geometry in
                 Image("GAEN-Explorer").resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: geometry.size.width * 0.8)
+                    .frame(width: geometry.size.width * 0.5, height: geometry.size.width * 0.5)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(Color.black, lineWidth: 4))
@@ -22,8 +23,12 @@ struct ExposureDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dateFr)")
+                    Text("From batch \(day.userName) sent \(day.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)")
+                    Text("processed \(day.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)")
+                    Text("memo: \(day.memo  ?? "")")
                     Text("")
+                    Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dateFr)")
+                    
                     Group { Text("The exposure lasted \(info.duration) minutes")
                         Text("The antenuationValue was \(info.attenuationValue) ")
                         Text("Transmission risk was \(info.transmissionRiskLevel)")
@@ -43,10 +48,11 @@ struct ExposureDetailView: View {
 }
 
 struct ExposureInfoView: View {
+    var day : BatchExposureInfo
     var info: CodableExposureInfo
     var width: CGFloat
     var body: some View {
-        NavigationLink(destination: ExposureDetailView(info: info)) {
+        NavigationLink(destination: ExposureDetailView(day : day, info: info)) {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dateFr)").frame(width: width / 5, alignment: .leading)
                 Spacer()
@@ -69,13 +75,16 @@ struct ExposuresView: View {
         GeometryReader { geometry in
             VStack { List {
                 ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
-                    Section(header: VStack {
+                    Section(header: HStack { VStack {
                         Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)").font(.headline)
                         Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)").font(.subheadline)
 
-                }.padding(.vertical)) {
+                        }
+                        Spacer()
+                        Text(d.memo ?? "")
+                    }.padding(.vertical)) {
                         ForEach(d.exposures, id: \.id) { info in
-                            ExposureInfoView(info: info, width: geometry.size.width)
+                            ExposureInfoView(day : d, info: info, width: geometry.size.width)
                         }
                     }
                 }

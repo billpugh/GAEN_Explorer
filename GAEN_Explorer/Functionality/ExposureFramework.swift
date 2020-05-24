@@ -11,6 +11,28 @@ import ExposureNotification
 import Foundation
 import LinkPresentation
 
+private  let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
+ 
+func getAttenuationDurationThresholds(_ config : ENExposureConfiguration ) -> NSArray?  {
+    return config.value(forKey: attenuationDurationThresholdsKey) as? NSArray
+}
+
+func setAttenuationDurationThresholds(_ config : ENExposureConfiguration, to: NSArray? )  {
+    return config.setValue(to, forKey: attenuationDurationThresholdsKey )
+}
+
+extension ENExposureConfiguration {
+    
+    var attenuationDurationThresholds : NSArray? {
+        get {
+            return getAttenuationDurationThresholds(self)
+        }
+        set (levels) {
+            setAttenuationDurationThresholds(self, to: levels)
+        }
+    }
+}
+
 class ExposureFramework: ObservableObject {
     let objectWillChange = ObservableObjectPublisher()
 
@@ -49,14 +71,16 @@ class ExposureFramework: ObservableObject {
     let dateFr = DateFormatter()
     let dateTimeFr = DateFormatter()
 
-    func resetManager() {
-        print("I presume we don't have to reset the manager anymore")
-        // manager = ENManager()
+    func doneAnalyzingKeys() {
+        print("done analyzing keys")
+        
     }
 
     var callGetTestDiagnosisKeys = false
     init() {
         print("ENManager init'd")
+        print(getExposureConfigurationString())
+        let config = CodableExposureConfiguration.shared
         if let path = Bundle.main.path(forResource: "GAEN_Explorer", ofType: ".entitlements"),
             let nsDictionary = NSDictionary(contentsOfFile: path),
             let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool {
@@ -65,7 +89,7 @@ class ExposureFramework: ObservableObject {
                 self.callGetTestDiagnosisKeys = true
             }
         }
-
+        
         dateF.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
         dateFr.dateFormat = "MMM d"
         dateTimeFr.timeStyle = .short
@@ -258,7 +282,7 @@ class ExposureFramework: ObservableObject {
                 completionHandler?(success)
             }
 
-            let config = getExposureConfiguration()
+            let config = CodableExposureConfiguration.shared
             let URLS = [localBinURL, localSigURL]
             print("Checking for keys in \(URLS)")
             print("Got config")
@@ -266,9 +290,9 @@ class ExposureFramework: ObservableObject {
                 error in
                 if let error = error {
                     print("error description \(error.localizedDescription)")
-                    LocalStore.shared.appendExposure(DayExposureInfo(userName: error.localizedDescription, dateKeysSent: Date(), dateProcessed: Date(), exposures: []))
+                    LocalStore.shared.appendExposure(BatchExposureInfo(userName: error.localizedDescription, dateKeysSent: Date(), dateProcessed: Date(), exposures: []))
 
-                    ExposureFramework.shared.resetManager()
+                    ExposureFramework.shared.doneAnalyzingKeys()
                     finish(.failure(error))
                     return
                 }
@@ -276,11 +300,15 @@ class ExposureFramework: ObservableObject {
                 print("Found exposures \(summary!.daysSinceLastExposure) days ago")
                 print("maximum risk score \(summary!.maximumRiskScore) ")
                 print("attenuationDurations \(summary!.attenuationDurations) ")
-                print("metadata \(summary!.metadata!) ")
+                print("  metadata:")
+                for (key, value) in summary!.metadata! {
+                    print("    \(key) : \(type(of: value)) = \(value)")
+                }
+                
                 let userExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
                 ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
                     if let error = error {
-                        ExposureFramework.shared.resetManager()
+                        ExposureFramework.shared.doneAnalyzingKeys()
                         finish(.failure(error))
                         return
                     }
@@ -299,8 +327,13 @@ class ExposureFramework: ObservableObject {
                         print()
                     }
                     let newExposures = exposures!.map { exposure in CodableExposureInfo(exposure) }.sorted { $0.date > $1.date }
-                    LocalStore.shared.appendExposure(DayExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), exposures: newExposures))
-                    ExposureFramework.shared.resetManager()
+                    LocalStore.shared.appendExposure(
+                        BatchExposureInfo(userName: packagedKeys.userName,
+                                        dateKeysSent: packagedKeys.date,
+                                        dateProcessed: Date(),
+                                        memo: "adt: \(config.attenuationDurationThresholds![0])/\(config.attenuationDurationThresholds![1])",
+                            exposures: newExposures))
+                    ExposureFramework.shared.doneAnalyzingKeys()
                     finish(.success(newExposures))
                 }
             } // detectExposures
