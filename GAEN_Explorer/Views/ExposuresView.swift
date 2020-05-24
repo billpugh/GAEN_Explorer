@@ -8,7 +8,7 @@ import Foundation
 import SwiftUI
 
 struct ExposureDetailView: View {
-    var day : BatchExposureInfo
+    var day: BatchExposureInfo
     var info: CodableExposureInfo
     var body: some View {
         VStack {
@@ -25,10 +25,10 @@ struct ExposureDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("From batch \(day.userName) sent \(day.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)")
                     Text("processed \(day.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)")
-                    Text("memo: \(day.memo  ?? "")")
+                    Text("memo: \(day.memoConfig)")
                     Text("")
                     Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dateFr)")
-                    
+
                     Group { Text("The exposure lasted \(info.duration) minutes")
                         Text("The antenuationValue was \(info.attenuationValue) ")
                         Text("Transmission risk was \(info.transmissionRiskLevel)")
@@ -48,11 +48,11 @@ struct ExposureDetailView: View {
 }
 
 struct ExposureInfoView: View {
-    var day : BatchExposureInfo
+    var day: BatchExposureInfo
     var info: CodableExposureInfo
     var width: CGFloat
     var body: some View {
-        NavigationLink(destination: ExposureDetailView(day : day, info: info)) {
+        NavigationLink(destination: ExposureDetailView(day: day, info: info)) {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dateFr)").frame(width: width / 5, alignment: .leading)
                 Spacer()
@@ -78,13 +78,12 @@ struct ExposuresView: View {
                     Section(header: HStack { VStack {
                         Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)").font(.headline)
                         Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)").font(.subheadline)
-
                         }
                         Spacer()
-                        Text(d.memo ?? "")
+                        Text(d.memoConfig)
                     }.padding(.vertical)) {
                         ForEach(d.exposures, id: \.id) { info in
-                            ExposureInfoView(day : d, info: info, width: geometry.size.width)
+                            ExposureInfoView(day: d, info: info, width: geometry.size.width)
                         }
                     }
                 }
@@ -105,8 +104,13 @@ struct ExposuresView: View {
             }.alert(isPresented: self.$showingDeleteAlert) {
                 Alert(title: Text("Really Erase all?"),
                       message: Text("Are you sure you want to delete the information on all of the exposures?"),
-                      primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures() },
-                      secondaryButton: .cancel())
+                      primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
+                          self.showingDeleteAlert = false
+                      },
+                      secondaryButton: .cancel {
+                          self.showingDeleteAlert = false
+
+                    })
             } // Erase button
             }
         }

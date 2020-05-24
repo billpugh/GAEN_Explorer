@@ -11,16 +11,15 @@ import ExposureNotification
 import Foundation
 import LinkPresentation
 
-private  let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
+private let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
 
 extension ENExposureConfiguration {
-    
-    var attenuationDurationThresholds : NSArray? {
+    var attenuationDurationThresholds: NSArray? {
         get {
-            return self.value(forKey: attenuationDurationThresholdsKey) as? NSArray
+            value(forKey: attenuationDurationThresholdsKey) as? NSArray
         }
-        set (levels) {
-            self.setValue(levels, forKey: attenuationDurationThresholdsKey )
+        set(levels) {
+            setValue(levels, forKey: attenuationDurationThresholdsKey)
         }
     }
 }
@@ -65,14 +64,11 @@ class ExposureFramework: ObservableObject {
 
     func doneAnalyzingKeys() {
         print("done analyzing keys")
-        
     }
 
     var callGetTestDiagnosisKeys = false
     init() {
         print("ENManager init'd")
-        print(getExposureConfigurationString())
-        let config = CodableExposureConfiguration.shared
         if let path = Bundle.main.path(forResource: "GAEN_Explorer", ofType: ".entitlements"),
             let nsDictionary = NSDictionary(contentsOfFile: path),
             let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool {
@@ -81,7 +77,7 @@ class ExposureFramework: ObservableObject {
                 self.callGetTestDiagnosisKeys = true
             }
         }
-        
+
         dateF.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
         dateFr.dateFormat = "MMM d"
         dateTimeFr.timeStyle = .short
@@ -278,7 +274,7 @@ class ExposureFramework: ObservableObject {
             let URLS = [localBinURL, localSigURL]
             print("Checking for keys in \(URLS)")
             print("Got config")
-            ExposureFramework.shared.manager.detectExposures(configuration: config, diagnosisKeyURLs: URLS) { summary,
+            ExposureFramework.shared.manager.detectExposures(configuration: config.asExposureConfiguration(), diagnosisKeyURLs: URLS) { summary,
                 error in
                 if let error = error {
                     print("error description \(error.localizedDescription)")
@@ -296,7 +292,7 @@ class ExposureFramework: ObservableObject {
                 for (key, value) in summary!.metadata! {
                     print("    \(key) : \(type(of: value)) = \(value)")
                 }
-                
+
                 let userExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
                 ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
                     if let error = error {
@@ -321,10 +317,10 @@ class ExposureFramework: ObservableObject {
                     let newExposures = exposures!.map { exposure in CodableExposureInfo(exposure) }.sorted { $0.date > $1.date }
                     LocalStore.shared.appendExposure(
                         BatchExposureInfo(userName: packagedKeys.userName,
-                                        dateKeysSent: packagedKeys.date,
-                                        dateProcessed: Date(),
-                                        memo: "adt: \(config.attenuationDurationThresholds![0])/\(config.attenuationDurationThresholds![1])",
-                            exposures: newExposures))
+                                          dateKeysSent: packagedKeys.date,
+                                          dateProcessed: Date(),
+                                          config: config,
+                                          exposures: newExposures))
                     ExposureFramework.shared.doneAnalyzingKeys()
                     finish(.success(newExposures))
                 }

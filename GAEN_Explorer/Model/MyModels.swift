@@ -15,7 +15,7 @@ struct CodableExposureInfo: Codable {
     let date: Date
     let duration: Int8 // minutes
     let totalRiskScore: ENRiskScore
-    
+
     let transmissionRiskLevel: ENRiskLevel
     let attenuationValue: Int8 // attenuation risk level
     let attenuationDurations: [Int16] // minutes
@@ -60,12 +60,11 @@ struct CodableExposureInfo: Codable {
 
         print("  attenuationValue \(attenuationValue)")
         print("  attenuationDurations \(attenuationDurations)")
-        print("  attenuationLevels \(CodableExposureConfiguration.shared.attenuationLevelValues) ")
 
         print("  attenuationWeightedTime \(attenuationWeightedTime)")
         print("  durationSum \(durationSum)")
         print("  calculatedAttenuationValue \(calculatedAttenuationValue)")
-        if (info.metadata != nil) {
+        if info.metadata != nil {
             print("  metadata:")
             for (key, value) in info.metadata! {
                 print("    \(key) : \(type(of: value)) = \(value)")
@@ -106,7 +105,7 @@ struct CodableDiagnosisKey: Codable, Equatable {
         self.rollingPeriod = key.rollingPeriod
         self.rollingStartNumber = key.rollingStartNumber
         self.transmissionRiskLevel = tRiskLevel
-        //self.republicationSecret = UInt64.random(in: UInt64.min ... UInt64.max)
+        // self.republicationSecret = UInt64.random(in: UInt64.min ... UInt64.max)
     }
 
     static func exportToURL(package: PackagedKeys) -> URL? {
@@ -132,12 +131,6 @@ struct CodableDiagnosisKey: Codable, Equatable {
     }
 }
 
-struct PackagedKeys: Codable {
-    var userName: String
-    var date: Date
-    var keys: [CodableDiagnosisKey]
-}
-
 // ENExposureConfiguration
 struct CodableExposureConfiguration: Codable {
     static let attenuationLevelHigh: NSNumber = 0
@@ -148,52 +141,61 @@ struct CodableExposureConfiguration: Codable {
     let daysSinceLastExposureLevelValues: [ENRiskLevelValue]
     let durationLevelValues: [ENRiskLevelValue]
     let transmissionRiskLevelValues: [ENRiskLevelValue]
-    let attenuationDurationThresholds : [Int]
+    let attenuationDurationThresholds: [Int]
 
-    static let shared = getExposureConfiguration()
+    static func getExposureConfigurationString() -> String {
+        """
+        {"minimumRiskScore":0,
+        "attenuationLevelValues":[\(CodableExposureConfiguration.attenuationLevelHigh), \(CodableExposureConfiguration.attenuationLevelHigh),
+            \(CodableExposureConfiguration.attenuationLevelMedium), \(CodableExposureConfiguration.attenuationLevelMedium),
+            \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow),
+            \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow)],
+        "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "durationLevelValues":[1, 1, 1, 5, 5, 5, 5, 5],
+        "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "attenuationDurationThresholds": [\(CodableExposureConfiguration.cutoff0), \(CodableExposureConfiguration.cutoff1)]}
+        """
+    }
+
+    static func getCodableExposureConfiguration() -> CodableExposureConfiguration {
+        let dataFromServer = getExposureConfigurationString().data(using: .utf8)!
+
+        let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataFromServer)
+        return codableExposureConfiguration
+    }
+
+    static let shared = getCodableExposureConfiguration()
     static let cutoff0 = 50
     static let cutoff1 = 60
     static let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
-}
 
-func getExposureConfigurationString() -> String {
-  return """
-    {"minimumRiskScore":0,
-    "attenuationLevelValues":[\(CodableExposureConfiguration.attenuationLevelHigh), \(CodableExposureConfiguration.attenuationLevelHigh),
-        \(CodableExposureConfiguration.attenuationLevelMedium), \(CodableExposureConfiguration.attenuationLevelMedium),
-        \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow),
-        \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow)],
-    "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-    "durationLevelValues":[1, 1, 1, 5, 5, 5, 5, 5],
-    "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-    "attenuationDurationThresholds": [\(CodableExposureConfiguration.cutoff0), \(CodableExposureConfiguration.cutoff1)]}
-    """
-}
-func getExposureConfiguration() -> ENExposureConfiguration {
-    
-    let dataFromServer = getExposureConfigurationString().data(using: .utf8)!
-    
-    let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataFromServer)
-    let exposureConfiguration = ENExposureConfiguration()
-    exposureConfiguration.minimumRiskScore = codableExposureConfiguration.minimumRiskScore
-    exposureConfiguration.attenuationLevelValues = codableExposureConfiguration.attenuationLevelValues as [NSNumber]
-    exposureConfiguration.daysSinceLastExposureLevelValues = codableExposureConfiguration.daysSinceLastExposureLevelValues as [NSNumber]
+    func asExposureConfiguration() -> ENExposureConfiguration {
+        let exposureConfiguration = ENExposureConfiguration()
+        exposureConfiguration.minimumRiskScore = minimumRiskScore
+        exposureConfiguration.attenuationLevelValues = attenuationLevelValues as [NSNumber]
+        exposureConfiguration.daysSinceLastExposureLevelValues = daysSinceLastExposureLevelValues as [NSNumber]
 
-    exposureConfiguration.durationLevelValues = codableExposureConfiguration.durationLevelValues as [NSNumber]
-    exposureConfiguration.transmissionRiskLevelValues = codableExposureConfiguration.transmissionRiskLevelValues as [NSNumber]
-    
-    
-    exposureConfiguration.attenuationDurationThresholds = [codableExposureConfiguration.attenuationDurationThresholds[0], codableExposureConfiguration.attenuationDurationThresholds[1]]
-    
-    print("exposureConfiguration = \(exposureConfiguration)")
-    print("  exposureConfiguration.attenuationDurationThresholds  : \(type(of:exposureConfiguration.attenuationDurationThresholds)) = \(exposureConfiguration.attenuationDurationThresholds)")
-      
-    if exposureConfiguration.metadata != nil {print("  metadata:")
-           for (key, value) in exposureConfiguration.metadata! {
-               print("    \(key) : \(type(of: value)) = \(value)")
-           }
+        exposureConfiguration.durationLevelValues = durationLevelValues as [NSNumber]
+        exposureConfiguration.transmissionRiskLevelValues = transmissionRiskLevelValues as [NSNumber]
+
+        exposureConfiguration.attenuationDurationThresholds = [attenuationDurationThresholds[0], attenuationDurationThresholds[1]]
+
+        print("exposureConfiguration = \(exposureConfiguration)")
+        print("exposureConfiguration.attenuationDurationThresholds  : \(type(of: exposureConfiguration.attenuationDurationThresholds)) = \(exposureConfiguration.attenuationDurationThresholds)")
+
+        if exposureConfiguration.metadata != nil { print("  metadata:")
+            for (key, value) in exposureConfiguration.metadata! {
+                print("    \(key) : \(type(of: value)) = \(value)")
+            }
+        }
+        return exposureConfiguration
     }
-    return exposureConfiguration
+}
+
+struct PackagedKeys: Codable {
+    var userName: String
+    var date: Date
+    var keys: [CodableDiagnosisKey]
 }
 
 struct BatchExposureInfo: Codable {
@@ -213,10 +215,21 @@ struct BatchExposureInfo: Codable {
     let userName: String
     let dateKeysSent: Date
     let dateProcessed: Date
-    var memo : String?
+    var memo: String?
+    var config: CodableExposureConfiguration?
     let exposures: [CodableExposureInfo]
+    var memoConfig: String {
+        if memo != nil {
+            return memo!
+        }
+        if config != nil {
+            return "ADT: \(config!.attenuationDurationThresholds[0])/\(config!.attenuationDurationThresholds[1])"
+        }
+        return ""
+    }
 
-    static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: Date(timeIntervalSinceNow: -3 * 24 * 60 * 60), dateProcessed: Date(), memo: "adt: 40/60", exposures: CodableExposureInfo.testData)
+    static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: Date(timeIntervalSinceNow: -3 * 24 * 60 * 60), dateProcessed: Date(),
+                                            config: CodableExposureConfiguration.shared, exposures: CodableExposureInfo.testData)
 }
 
 class LocalStore: ObservableObject {
