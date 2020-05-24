@@ -12,23 +12,15 @@ import Foundation
 import LinkPresentation
 
 private  let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
- 
-func getAttenuationDurationThresholds(_ config : ENExposureConfiguration ) -> NSArray?  {
-    return config.value(forKey: attenuationDurationThresholdsKey) as? NSArray
-}
-
-func setAttenuationDurationThresholds(_ config : ENExposureConfiguration, to: NSArray? )  {
-    return config.setValue(to, forKey: attenuationDurationThresholdsKey )
-}
 
 extension ENExposureConfiguration {
     
     var attenuationDurationThresholds : NSArray? {
         get {
-            return getAttenuationDurationThresholds(self)
+            return self.value(forKey: attenuationDurationThresholdsKey) as? NSArray
         }
         set (levels) {
-            setAttenuationDurationThresholds(self, to: levels)
+            self.setValue(levels, forKey: attenuationDurationThresholdsKey )
         }
     }
 }
