@@ -61,14 +61,15 @@ struct CodableExposureInfo: Codable {
         print("  attenuationValue \(attenuationValue)")
         print("  attenuationDurations \(attenuationDurations)")
         print("  attenuationLevels \(CodableExposureConfiguration.shared.attenuationLevelValues) ")
-        print("  \(CodableExposureConfiguration.attenuationDurationThresholdsKey) \(CodableExposureConfiguration.shared.metadata![CodableExposureConfiguration.attenuationDurationThresholdsKey]!) ")
+
         print("  attenuationWeightedTime \(attenuationWeightedTime)")
         print("  durationSum \(durationSum)")
         print("  calculatedAttenuationValue \(calculatedAttenuationValue)")
-        
-        print("  metadata:")
-        for (key, value) in info.metadata! {
-            print("    \(key) : \(type(of: value)) = \(value)")
+        if (info.metadata != nil) {
+            print("  metadata:")
+            for (key, value) in info.metadata! {
+                print("    \(key) : \(type(of: value)) = \(value)")
+            }
         }
         print()
     }
