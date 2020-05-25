@@ -30,6 +30,7 @@ struct BatchExposureInfo: Codable {
     let userName: String
     let dateKeysSent: Date
     let dateProcessed: Date
+    let keysChecked : Int?
     var memo: String?
     var config: CodableExposureConfiguration?
     var someConfig: CodableExposureConfiguration {
@@ -61,7 +62,8 @@ struct BatchExposureInfo: Codable {
     }
 
     static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: hoursAgo(2, minutes: 17), dateProcessed: Date(),
-                                            config: CodableExposureConfiguration.shared, exposures: CodableExposureInfo.testData)
+                                            keysChecked: 4, config: CodableExposureConfiguration.shared,
+                                            exposures: CodableExposureInfo.testData)
 }
 
 class LocalStore: ObservableObject {

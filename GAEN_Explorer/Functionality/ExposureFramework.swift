@@ -271,7 +271,7 @@ class ExposureFramework: ObservableObject {
                 error in
                 if let error = error {
                     print("error description \(error.localizedDescription)")
-                    LocalStore.shared.appendExposure(BatchExposureInfo(userName: error.localizedDescription, dateKeysSent: Date(), dateProcessed: Date(), exposures: []))
+                    LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
 
                     ExposureFramework.shared.doneAnalyzingKeys()
                     finish(.failure(error))
@@ -290,6 +290,7 @@ class ExposureFramework: ObservableObject {
                 ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
                     if let error = error {
                         ExposureFramework.shared.doneAnalyzingKeys()
+                        LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
                         finish(.failure(error))
                         return
                     }
@@ -311,7 +312,7 @@ class ExposureFramework: ObservableObject {
                     LocalStore.shared.appendExposure(
                         BatchExposureInfo(userName: packagedKeys.userName,
                                           dateKeysSent: packagedKeys.date,
-                                          dateProcessed: Date(),
+                                          dateProcessed: Date(), keysChecked: packagedKeys.keys.count,
                                           config: config,
                                           exposures: newExposures))
                     ExposureFramework.shared.doneAnalyzingKeys()

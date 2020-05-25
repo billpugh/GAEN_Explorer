@@ -81,14 +81,16 @@ struct ExposuresView: View {
                     ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
                         Section(header:
                             VStack(alignment: .leading) {
+                                
+                                Text("\(d.userName) sent \(d.keysChecked ?? -1) keys \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline).padding(.top)
                                 HStack {
-                                    VStack {
-                                        Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
-                                        Text("processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
-                                    }
+                                    Spacer()
+                                    Text("processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
                                     Spacer()
                                     Text(d.shortMemoConfig)
-                                }.padding(.vertical, 8)
+                                }.font(.subheadline)
+                               
+                                
                                 HStack {
                                     Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
 
@@ -131,7 +133,10 @@ struct ExposuresView: View {
                 } // Erase button
                 }
             }
-            .navigationBarTitle("Exposures for \(localStore.userName)", displayMode: .inline)
+            .navigationBarTitle(self.localStore.allExposures.count == 0 ?
+                
+                "No Exposures for \(localStore.userName)" :
+                "Exposures for \(localStore.userName)", displayMode: .inline)
             .navigationBarItems(trailing:
 
                 /// Export BUTTON
