@@ -166,7 +166,7 @@ struct CodableExposureConfiguration: Codable {
 
     static let shared = getCodableExposureConfiguration()
     static let cutoff0 = 50
-    static let cutoff1 = 60
+    static let cutoff1 = 55
     static let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
 
     func asExposureConfiguration() -> ENExposureConfiguration {
@@ -180,14 +180,6 @@ struct CodableExposureConfiguration: Codable {
 
         exposureConfiguration.attenuationDurationThresholds = [attenuationDurationThresholds[0], attenuationDurationThresholds[1]]
 
-        print("exposureConfiguration = \(exposureConfiguration)")
-        print("exposureConfiguration.attenuationDurationThresholds  : \(type(of: exposureConfiguration.attenuationDurationThresholds)) = \(exposureConfiguration.attenuationDurationThresholds)")
-
-        if exposureConfiguration.metadata != nil { print("  metadata:")
-            for (key, value) in exposureConfiguration.metadata! {
-                print("    \(key) : \(type(of: value)) = \(value)")
-            }
-        }
         return exposureConfiguration
     }
 }
