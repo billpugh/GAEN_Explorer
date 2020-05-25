@@ -71,19 +71,6 @@
 			</array>
 		</dict>
 	</dict>
-	<key>UIApplicationShortcutItems</key>
-	<array>
-		<dict>
-			<key>UIApplicationShortcutItemIconType</key>
-			<string>UIApplicationShortcutIconTypeShare</string>
-			<key>UIApplicationShortcutItemSubtitle</key>
-			<string>Share diagnosis keys</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>Share</string>
-			<key>UIApplicationShortcutItemType</key>
-			<string>ShareAction</string>
-		</dict>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array/>
 	<key>UILaunchStoryboardName</key>
