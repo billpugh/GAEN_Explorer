@@ -130,16 +130,13 @@ struct CodableDiagnosisKey: Codable, Equatable {
     }
 }
 
-
 // ENExposureConfiguration
 struct CodableExposureConfiguration: Codable {
     static let attenuationLevelHigh: NSNumber = 0
-    static let attenuationLevelMedium: NSNumber = 6
-    static let attenuationLevelLow: NSNumber = 0
-    static let cutoff0 = 50
-    static let cutoff1 = 51
+    static let attenuationLevelMedium: NSNumber = 3
+    static let attenuationLevelLow: NSNumber = 6
     static let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
-    
+
     let minimumRiskScore: ENRiskScore
     let attenuationLevelValues: [ENRiskLevelValue]
     let daysSinceLastExposureLevelValues: [ENRiskLevelValue]
@@ -157,7 +154,7 @@ struct CodableExposureConfiguration: Codable {
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[1, 1, 1, 5, 5, 5, 5, 5],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [\(CodableExposureConfiguration.cutoff0), \(CodableExposureConfiguration.cutoff1)]}
+        "attenuationDurationThresholds": [50, 55]}
         """
     }
 
@@ -169,7 +166,7 @@ struct CodableExposureConfiguration: Codable {
     }
 
     static let shared = getCodableExposureConfiguration()
-   
+
     func asExposureConfiguration() -> ENExposureConfiguration {
         let exposureConfiguration = ENExposureConfiguration()
         exposureConfiguration.minimumRiskScore = minimumRiskScore

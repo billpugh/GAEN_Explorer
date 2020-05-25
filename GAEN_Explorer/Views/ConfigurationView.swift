@@ -9,24 +9,22 @@
 import SwiftUI
 
 struct ConfigurationView: View {
-    @State var config : CodableExposureConfiguration
+    @State var config: CodableExposureConfiguration
     var body: some View {
         Form {
- 
             Section(header: Text("Attenuation").font(.title)) {
-                
-                
                 HStack {
                     Text("attenuationLevels")
                     Spacer()
-                    Text("[\(config.attenuationLevelValues.map { String($0) }.joined(separator: ", "))]") }
+                    Text("[\(config.attenuationLevelValues.map { String($0) }.joined(separator: ", "))]")
+                }
                 HStack { Text("attenuationDurationThresholds")
                     Spacer()
                     Text("\(config.attenuationDurationThresholds[0]) /  \(config.attenuationDurationThresholds[1])")
                 }
             }
             Section(header: Text("Other").font(.title)) {
-                HStack{
+                HStack {
                     Text("transmissionRiskLevels")
                     Spacer()
                     Text("[\(config.transmissionRiskLevelValues.map { String($0) }.joined(separator: ", "))]")
@@ -42,8 +40,8 @@ struct ConfigurationView: View {
                     Text("[\(config.daysSinceLastExposureLevelValues.map { String($0) }.joined(separator: ", "))]")
                 }
             }
-           
-        }  .navigationBarTitle("Exposure Configuration", displayMode: .inline)
+
+        }.navigationBarTitle("Exposure Configuration", displayMode: .inline)
     }
 }
 

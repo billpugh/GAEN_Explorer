@@ -8,7 +8,7 @@ import Foundation
 import SwiftUI
 
 struct ExposureDetailView: View {
-    var day: BatchExposureInfo
+    var batch: BatchExposureInfo
     var info: CodableExposureInfo
     var body: some View {
         VStack {
@@ -23,11 +23,11 @@ struct ExposureDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("From batch \(day.userName) sent \(day.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)")
-                    Text("processed \(day.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)")
-                    Text("memo: \(day.memoConfig)")
+                    Text("From batch \(batch.userName) sent \(batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("processed \(batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("memo: \(batch.memoConfig)")
                     Text("")
-                    Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dateFr)")
+                    Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dayFormatter)")
 
                     Group { Text("The exposure lasted \(info.duration) minutes")
                         Text("The antenuationValue was \(info.attenuationValue) ")
@@ -36,9 +36,9 @@ struct ExposureDetailView: View {
                         Text("")
                     }
                     Group {
-                        Text("\(info.attenuationDurations[0]) minutes with  attenuation <= \(CodableExposureConfiguration.cutoff0)db")
-                        Text("\(info.attenuationDurations[1]) minutes with \(CodableExposureConfiguration.cutoff0) < attenuation <= \(CodableExposureConfiguration.cutoff1)db")
-                        Text("\(info.attenuationDurations[2]) minutes with \(CodableExposureConfiguration.cutoff1)db < attenuation")
+                        Text("\(info.attenuationDurations[0]) minutes with  attenuation <= \(batch.someConfig.attenuationDurationThresholds[0])db")
+                        Text("\(info.attenuationDurations[1]) minutes with \(batch.someConfig.attenuationDurationThresholds[0]) < attenuation <= \(batch.someConfig.attenuationDurationThresholds[1])db")
+                        Text("\(info.attenuationDurations[2]) minutes with \(batch.someConfig.attenuationDurationThresholds[1])db < attenuation")
                     }
                 }
 
@@ -52,9 +52,9 @@ struct ExposureInfoView: View {
     var info: CodableExposureInfo
     var width: CGFloat
     var body: some View {
-        NavigationLink(destination: ExposureDetailView(day: day, info: info)) {
+        NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
-                Text("\(info.date, formatter: ExposureFramework.shared.dateFr)").frame(width: width / 5, alignment: .leading)
+                Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
                 Spacer()
                 Text("\(info.duration)min").frame(width: width / 6, alignment: .trailing)
                 Spacer()
@@ -74,70 +74,66 @@ struct ExposuresView: View {
     @State private var showingSheet = false
 
     var body: some View {
-         ZStack {
-        GeometryReader { geometry in
-            VStack { List {
-                ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
-                    Section(header: HStack { VStack {
-                        Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.dateTimeFr)").font(.headline)
-                        Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.dateTimeFr)").font(.subheadline)
-                        }
-                        Spacer()
-                        Text(d.memoConfig)
+        ZStack {
+            GeometryReader { geometry in
+                VStack { List {
+                    ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
+                        Section(header: HStack { VStack {
+                            Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
+                            Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
+                            }
+                            Spacer()
+                            Text(d.memoConfig)
                     }.padding(.vertical)) {
-                        ForEach(d.exposures, id: \.id) { info in
-                            ExposureInfoView(day: d, info: info, width: geometry.size.width)
+                            ForEach(d.exposures, id: \.id) { info in
+                                ExposureInfoView(day: d, info: info, width: geometry.size.width)
+                            }
                         }
                     }
-                }
-            } // forEach
+                } // forEach
 
-            .sheet(isPresented: self.$showingSheet, onDismiss: { print("share sheet dismissed") },
-                   content: {
-                       ActivityView(activityItems: [
-                           JsonItem(url: self.localStore.shareExposuresURL!,
-                                    title: "Exposures for \(self.localStore.userName) from GAEN Explorer"),
-                       ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                .sheet(isPresented: self.$showingSheet, onDismiss: { print("share sheet dismissed") },
+                       content: {
+                           ActivityView(activityItems: [
+                               JsonItem(url: self.localStore.shareExposuresURL!,
+                                        title: "Exposures for \(self.localStore.userName) from GAEN Explorer"),
+                           ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
             })
 
-            // Erase button
-            Button(action: { self.showingDeleteAlert = true }) {
-                Text("Erase all exposures").foregroundColor(.red)
+                // Erase button
+                Button(action: { self.showingDeleteAlert = true }) {
+                    Text("Erase all exposures").foregroundColor(.red)
 
-            }.alert(isPresented: self.$showingDeleteAlert) {
-                Alert(title: Text("Really Erase all?"),
-                      message: Text("Are you sure you want to delete the information on all of the exposures?"),
-                      primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
-                          self.showingDeleteAlert = false
-                      },
-                      secondaryButton: .cancel {
-                          self.showingDeleteAlert = false
+                }.alert(isPresented: self.$showingDeleteAlert) {
+                    Alert(title: Text("Really Erase all?"),
+                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
+                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
+                              self.showingDeleteAlert = false
+                          },
+                          secondaryButton: .cancel {
+                              self.showingDeleteAlert = false
 
                     })
-            } // Erase button
+                } // Erase button
+                }
             }
-        }
-        .navigationBarTitle("Exposures for \(localStore.userName)", displayMode: .inline)
-        .navigationBarItems(trailing:
+            .navigationBarTitle("Exposures for \(localStore.userName)", displayMode: .inline)
+            .navigationBarItems(trailing:
 
-            /// Export BUTTON
-            Button(action: {
-                print("Trying to share")
-                self.exportingExposures = true
-                self.localStore.exportExposuresToURL()
-                self.showingSheet = true
-                self.exportingExposures = false
-                print("showingSheet set to true")
+                /// Export BUTTON
+                Button(action: {
+                    print("Trying to share")
+                    self.exportingExposures = true
+                    self.localStore.exportExposuresToURL()
+                    self.showingSheet = true
+                    self.exportingExposures = false
+                    print("showingSheet set to true")
             }) {
-               
-                Image(systemName: "square.and.arrow.up")
-                   
-
-            } // Export button
-        )
-             ActivityIndicatorView(isAnimating: $exportingExposures)
+                    Image(systemName: "square.and.arrow.up")
+                } // Export button
+            )
+            ActivityIndicatorView(isAnimating: $exportingExposures)
         }
-        
     }
 }
 

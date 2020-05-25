@@ -3,11 +3,9 @@
 //  GAEN_Explorer
 //
 //  Created by Bill on 5/24/20.
-//  Copyright © 2020 Ninja Monkey Coders. All rights reserved.
 //
 
 import Foundation
-
 
 struct PackagedKeys: Codable {
     var userName: String
@@ -34,6 +32,13 @@ struct BatchExposureInfo: Codable {
     let dateProcessed: Date
     var memo: String?
     var config: CodableExposureConfiguration?
+    var someConfig: CodableExposureConfiguration {
+        if let c = config {
+            return c
+        }
+        return CodableExposureConfiguration.shared
+    }
+
     let exposures: [CodableExposureInfo]
     var memoConfig: String {
         if memo != nil {

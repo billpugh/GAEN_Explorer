@@ -11,11 +11,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(_: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        print("Open scene with URLs")
-        print(URLContexts)
         if let url = URLContexts.first?.url {
             // Handle URL
-            print("Called open url \(url)")
             guard url.pathExtension == "diagk" else { return }
             _ = ExposureFramework.importData(from: url) {
                 _ in

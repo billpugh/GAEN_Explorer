@@ -10,15 +10,15 @@ import LinkPresentation
 import SwiftUI
 
 struct ActivityIndicatorView: UIViewRepresentable {
-    @Binding var isAnimating : Bool
-    func makeUIView(context: Context) -> UIActivityIndicatorView {
+    @Binding var isAnimating: Bool
+    func makeUIView(context _: Context) -> UIActivityIndicatorView {
         let result = UIActivityIndicatorView()
         result.style = .large
         return result
     }
-    
-    func updateUIView(_ uiView: UIActivityIndicatorView, context: Context) {
-        if (isAnimating) {
+
+    func updateUIView(_ uiView: UIActivityIndicatorView, context _: Context) {
+        if isAnimating {
             uiView.startAnimating()
         } else {
             uiView.stopAnimating()
@@ -87,9 +87,8 @@ struct StatusView: View {
                 Stepper("Transmission risk \(self.localStore.transmissionRiskLevel)", value: self.$localStore.transmissionRiskLevel, in: 0 ... 7, onEditingChanged: { b in if b { self.localStore.save() } })
                     .padding(.horizontal)
             }
-           
+
             Section(header: Text("Actions").font(.title)) {
-                
                 Button(action: {
                     self.computingKeys = true
                     self.manager.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
@@ -99,14 +98,14 @@ struct StatusView: View {
                 }
                 ) {
                     ZStack {
-                    HStack { Text("Share diagnosis keys  \(self.manager.keysExportedMessage)").font(.headline)
-                        Image(systemName: "square.and.arrow.up").font(.headline)
-                    }
+                        HStack { Text("Share diagnosis keys  \(self.manager.keysExportedMessage)").font(.headline)
+                            Image(systemName: "square.and.arrow.up").font(.headline)
+                        }
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
                 }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
-                        content: {
-                            ActivityView(activityItems: DiagnosisKeyItem(self.manager.keyCount, self.localStore.userName, self.manager.keyURL).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                                           content: {
+                                               ActivityView(activityItems: DiagnosisKeyItem(self.manager.keyCount, self.localStore.userName, self.manager.keyURL).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                             })
 
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
@@ -123,16 +122,16 @@ struct StatusView: View {
                 .padding(.vertical)
             } // Group
             Section(header: Text("Framework").font(.title)) {
-                           Toggle(isOn: self.$manager.isEnabled) {
-                               Text("Toggle notifications")
-                           }.padding()
+                Toggle(isOn: self.$manager.isEnabled) {
+                    Text("Toggle notifications")
+                }.padding()
 
-                           HStack {
-                               Text(manager.exposureNotificationStatus.description).font(.headline)
-                               Spacer()
-                               Text(manager.authorizationStatus.description).font(.headline)
-                           }.padding(.horizontal).foregroundColor(self.manager.feasible ? .primary : .red)
-                       }
+                HStack {
+                    Text(manager.exposureNotificationStatus.description).font(.headline)
+                    Spacer()
+                    Text(manager.authorizationStatus.description).font(.headline)
+                }.padding(.horizontal).foregroundColor(self.manager.feasible ? .primary : .red)
+            }
         } // VStack
     } // var body
 } // end status view

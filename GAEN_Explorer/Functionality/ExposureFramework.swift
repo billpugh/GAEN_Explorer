@@ -49,9 +49,10 @@ class ExposureFramework: ObservableObject {
         ENManager.authorizationStatus == .authorized
             && manager.exposureNotificationStatus == .active
     }
-    let dateF = DateFormatter()
-    let dateFr = DateFormatter()
-    let dateTimeFr = DateFormatter()
+
+    let fullDateFormatter = DateFormatter()
+    let dayFormatter = DateFormatter()
+    let shortDateFormatter = DateFormatter()
 
     func doneAnalyzingKeys() {
         print("done analyzing keys")
@@ -69,11 +70,11 @@ class ExposureFramework: ObservableObject {
             }
         }
 
-        dateF.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
-        dateFr.dateFormat = "MMM d"
-        dateTimeFr.timeStyle = .short
-        dateTimeFr.dateStyle = .short
-        dateTimeFr.doesRelativeDateFormatting = true
+        fullDateFormatter.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
+        dayFormatter.dateFormat = "MMM d"
+        shortDateFormatter.timeStyle = .short
+        shortDateFormatter.dateStyle = .short
+        shortDateFormatter.doesRelativeDateFormatting = true
 
         manager.activate { _ in
             print("ENManager activiated")
@@ -263,8 +264,6 @@ class ExposureFramework: ObservableObject {
 
             let config = CodableExposureConfiguration.shared
             let URLS = [localBinURL, localSigURL]
-            print("Checking for keys in \(URLS)")
-            print("Got config")
             ExposureFramework.shared.manager.detectExposures(configuration: config.asExposureConfiguration(), diagnosisKeyURLs: URLS) { summary,
                 error in
                 if let error = error {
@@ -293,9 +292,9 @@ class ExposureFramework: ObservableObject {
                     }
 
                     exposures!.forEach { exposure in
-                        let day = ExposureFramework.shared.dateF.string(from: exposure.date)
+                        let day = ExposureFramework.shared.fullDateFormatter.string(from: exposure.date)
                         print("Exposure \(Int(exposure.duration / 60))on \(day)")
-                        print("was \(ExposureFramework.shared.dateFr.string(from: exposure.date))")
+                        print("was \(ExposureFramework.shared.dayFormatter.string(from: exposure.date))")
                         print("Raw date \(exposure.date.timeIntervalSince1970)")
                         print("attn \(exposure.attenuationValue) ")
                         print("transmission risk \(exposure.transmissionRiskLevel) ")
