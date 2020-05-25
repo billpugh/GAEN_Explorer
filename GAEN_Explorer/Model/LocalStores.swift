@@ -95,10 +95,11 @@ class LocalStore: ObservableObject {
         objectWillChange.send()
     }
 
-    init(userName: String, transmissionRiskLevel: Int) {
+
+    init(userName: String, transmissionRiskLevel: Int, testData: [BatchExposureInfo]) {
         self.userName = userName
         self.transmissionRiskLevel = transmissionRiskLevel
-        self.allExposures = [BatchExposureInfo.testData]
+        self.allExposures = testData
     }
 
     let transmissionRiskLevelKey = "transmissionRiskLevel"

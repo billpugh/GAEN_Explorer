@@ -149,7 +149,7 @@ struct ExposuresView: View {
 
 struct ExposuresView_Previews: PreviewProvider {
     static let models: [String] = ["iPhone SE", "iPhone 11 Pro Max"]
-    static let localStore = LocalStore(userName: "Alice", transmissionRiskLevel: 6)
+    static let localStore = LocalStore(userName: "Alice", transmissionRiskLevel: 6, testData: [BatchExposureInfo.testData])
 
     static var previews: some View {
         NavigationView {
