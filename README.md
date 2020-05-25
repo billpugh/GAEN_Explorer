@@ -6,11 +6,11 @@ This is code I wrote to explore and experiment with the Google+Apple Exposure No
 <img src="Documentation/screenshots/all.png" width="80%">
 </p>
 
-In particular, I wrote the code to figure out two things:
-* the details of how things such as [ENExposureInfo.attenuationvalue ][1] is computed, which isn’t entirely clear from the documentation
-* To do experiments where I could put two iPhones a specific distance apart for 20 minutes, then have the devices exchange diagnosis keys and see what they reported about the encounter
-	* I also did more general experiments, where I installed the app on all of the iPhones in my household, and then exchanged keys every day to see who was reported as having close encounters with each other, and how that corresponded to our actual encounters. My kids were finishing up their college semester at home, and there were days when they were in crunch mode and we barely saw them
-
+I wrote the app for several reasons: 
+* To allow me to figure out the details of how things such as ENExposureInfo.attenuationvalue  is computed, which isn’t entirely clear from the documentation
+* To allow me to do experiments where I could put two iPhones a specific distance apart for 20 minutes, then have the devices exchange diagnosis keys and see what they reported about the encounter
+I also did more general experiments, where I installed the app on all of the iPhones in my household, and then exchanged keys every day to see who was reported as having close encounters with each other, and how that corresponded to our actual encounters. My kids were finishing up their college semester at home, and there were days when they were in crunch mode and we barely saw them
+* Eventually, to be able to use TestFlight, or some distribution outside of the app store, to distribute it to public health authorities, researchers and journalists to allow them to independently conduct experiments of the effectiveness of the GAEN framework. 
 
 This app is not intended for use in alerting anyone to a diagnosis of COVID-19.
 
