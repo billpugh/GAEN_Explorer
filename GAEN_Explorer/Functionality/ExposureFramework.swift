@@ -58,6 +58,10 @@ class ExposureFramework: ObservableObject {
             && (manager.exposureNotificationStatus == .active || manager.exposureNotificationStatus == .unknown)
     }
 
+    var active: Bool {
+        ENManager.authorizationStatus == .authorized
+            && manager.exposureNotificationStatus == .active
+    }
     let dateF = DateFormatter()
     let dateFr = DateFormatter()
     let dateTimeFr = DateFormatter()
