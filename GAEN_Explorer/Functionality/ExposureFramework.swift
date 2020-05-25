@@ -11,19 +11,6 @@ import ExposureNotification
 import Foundation
 import LinkPresentation
 
-private let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
-
-extension ENExposureConfiguration {
-    var attenuationDurationThresholds: NSArray? {
-        get {
-            value(forKey: attenuationDurationThresholdsKey) as? NSArray
-        }
-        set(levels) {
-            setValue(levels, forKey: attenuationDurationThresholdsKey)
-        }
-    }
-}
-
 class ExposureFramework: ObservableObject {
     let objectWillChange = ObservableObjectPublisher()
 
