@@ -41,11 +41,20 @@ struct BatchExposureInfo: Codable {
 
     let exposures: [CodableExposureInfo]
     var memoConfig: String {
-        if memo != nil {
-            return memo!
+        if let m = memo {
+            return "memo: \(m)"
         }
-        if config != nil {
-            return "ADT: \(config!.attenuationDurationThresholds[0])/\(config!.attenuationDurationThresholds[1])"
+        if let c = config {
+            return "attenuationDurationThresholds: \(c.attenuationDurationThresholds[0])/\(c.attenuationDurationThresholds[1])"
+        }
+        return ""
+    }
+    var shortMemoConfig: String {
+        if let m = memo {
+            return m
+        }
+        if let c = config {
+            return "adt: \(c.attenuationDurationThresholds[0])/\(c.attenuationDurationThresholds[1])"
         }
         return ""
     }

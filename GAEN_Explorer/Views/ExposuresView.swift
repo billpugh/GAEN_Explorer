@@ -25,7 +25,7 @@ struct ExposureDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("From batch \(batch.userName) sent \(batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
                     Text("processed \(batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
-                    Text("memo: \(batch.memoConfig)")
+                    Text("\(batch.memoConfig)")
                     Text("")
                     Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dayFormatter)")
 
@@ -55,11 +55,11 @@ struct ExposureInfoView: View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
-                Spacer()
+               
                 Text("\(info.duration)min").frame(width: width / 6, alignment: .trailing)
-                Spacer()
-                Text("\(info.transmissionRiskLevel) tRisk").frame(width: width / 5, alignment: .trailing)
-                Spacer()
+               
+                Text("\(info.transmissionRiskLevel)").frame(width: width / 5, alignment: .trailing)
+                
                 Text("\(info.attenuationDurationsString)").frame(width: width / 4, alignment: .trailing)
             }
         }
@@ -78,13 +78,23 @@ struct ExposuresView: View {
             GeometryReader { geometry in
                 VStack { List {
                     ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
-                        Section(header: HStack { VStack {
-                            Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
-                            Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
-                            }
-                            Spacer()
-                            Text(d.memoConfig)
-                    }.padding(.vertical)) {
+                        Section(header:
+                            VStack { HStack { VStack {
+                                Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
+                                Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
+                                }
+                                Spacer()
+                                Text(d.shortMemoConfig)}.padding(.vertical,8)
+                                HStack {
+                                               Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
+                                               
+                                               Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
+                                               
+                                               Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
+                                               
+                                               Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
+                                }.padding(.bottom, 5).font(.footnote)
+                            }) {
                             ForEach(d.exposures, id: \.id) { info in
                                 ExposureInfoView(day: d, info: info, width: geometry.size.width)
                             }
