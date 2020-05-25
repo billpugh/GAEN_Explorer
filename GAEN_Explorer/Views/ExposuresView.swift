@@ -69,9 +69,12 @@ struct ExposureInfoView: View {
 struct ExposuresView: View {
     @EnvironmentObject var localStore: LocalStore
     @State private var showingDeleteAlert = false
+    @State private var exportingExposures = false
+
     @State private var showingSheet = false
 
     var body: some View {
+         ZStack {
         GeometryReader { geometry in
             VStack { List {
                 ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
@@ -120,13 +123,21 @@ struct ExposuresView: View {
             /// Export BUTTON
             Button(action: {
                 print("Trying to share")
+                self.exportingExposures = true
                 self.localStore.exportExposuresToURL()
                 self.showingSheet = true
+                self.exportingExposures = false
                 print("showingSheet set to true")
             }) {
+               
                 Image(systemName: "square.and.arrow.up")
+                   
+
             } // Export button
         )
+             ActivityIndicatorView(isAnimating: $exportingExposures)
+        }
+        
     }
 }
 

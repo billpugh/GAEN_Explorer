@@ -9,6 +9,23 @@ import ExposureNotification
 import LinkPresentation
 import SwiftUI
 
+struct ActivityIndicatorView: UIViewRepresentable {
+    @Binding var isAnimating : Bool
+    func makeUIView(context: Context) -> UIActivityIndicatorView {
+        let result = UIActivityIndicatorView()
+        result.style = .large
+        return result
+    }
+    
+    func updateUIView(_ uiView: UIActivityIndicatorView, context: Context) {
+        if (isAnimating) {
+            uiView.startAnimating()
+        } else {
+            uiView.stopAnimating()
+        }
+    }
+}
+
 struct ActivityView: UIViewControllerRepresentable {
     let activityItems: [Any]
     let applicationActivities: [UIActivity]?
@@ -58,7 +75,7 @@ struct StatusView: View {
     @State var showsAlert = false
     @State private var shareURL: URL?
     @EnvironmentObject var manager: ExposureFramework
-
+    @State var computingKeys = false
     var body: some View {
         Form {
             Section(header: Text("User Info").font(.title)) {
@@ -70,28 +87,24 @@ struct StatusView: View {
                 Stepper("Transmission risk \(self.localStore.transmissionRiskLevel)", value: self.$localStore.transmissionRiskLevel, in: 0 ... 7, onEditingChanged: { b in if b { self.localStore.save() } })
                     .padding(.horizontal)
             }
-            Section(header: Text("Framework").font(.title)) {
-                Toggle(isOn: self.$manager.isEnabled) {
-                    Text("Toggle notifications")
-                }.padding()
-
-                HStack {
-                    Text(manager.exposureNotificationStatus.description).font(.headline)
-                    Spacer()
-                    Text(manager.authorizationStatus.description).font(.headline)
-                }.padding(.horizontal).foregroundColor(self.manager.feasible ? .primary : .red)
-            }
+           
             Section(header: Text("Actions").font(.title)) {
+                
                 Button(action: {
+                    self.computingKeys = true
                     self.manager.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
                         self.showingSheet = true
+                        self.computingKeys = false
                     }
                 }
                 ) {
+                    ZStack {
                     HStack { Text("Share diagnosis keys  \(self.manager.keysExportedMessage)").font(.headline)
                         Image(systemName: "square.and.arrow.up").font(.headline)
                     }
-                }.sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
+                        ActivityIndicatorView(isAnimating: $computingKeys)
+                    }
+                }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
                         content: {
                             ActivityView(activityItems: DiagnosisKeyItem(self.manager.keyCount, self.localStore.userName, self.manager.keyURL).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                             })
@@ -99,13 +112,27 @@ struct StatusView: View {
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
                     Text("Show exposures").font(.headline)
                 }
+                .padding(.vertical)
                 NavigationLink(destination: ConfigurationView(config: CodableExposureConfiguration.shared), tag: "config", selection: $localStore.viewShown) {
                     Text("Exposure Configuration").font(.headline)
                 }
+                .padding(.vertical)
                 NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
                     Text("About GAEN Explorer").font(.headline)
                 }
+                .padding(.vertical)
             } // Group
+            Section(header: Text("Framework").font(.title)) {
+                           Toggle(isOn: self.$manager.isEnabled) {
+                               Text("Toggle notifications")
+                           }.padding()
+
+                           HStack {
+                               Text(manager.exposureNotificationStatus.description).font(.headline)
+                               Spacer()
+                               Text(manager.authorizationStatus.description).font(.headline)
+                           }.padding(.horizontal).foregroundColor(self.manager.feasible ? .primary : .red)
+                       }
         } // VStack
     } // var body
 } // end status view
