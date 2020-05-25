@@ -59,8 +59,6 @@ struct StatusView: View {
     @State private var shareURL: URL?
     @EnvironmentObject var manager: ExposureFramework
 
-    @State var keyCount = -1
-
     var body: some View {
         Form {
             Section(header: Text("User Info").font(.title)) {
@@ -101,7 +99,9 @@ struct StatusView: View {
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
                     Text("Show exposures").font(.headline)
                 }
-
+                NavigationLink(destination: ConfigurationView(config: CodableExposureConfiguration.shared), tag: "config", selection: $localStore.viewShown) {
+                    Text("Exposure Configuration").font(.headline)
+                }
                 NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
                     Text("About GAEN Explorer").font(.headline)
                 }
