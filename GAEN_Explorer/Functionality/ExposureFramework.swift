@@ -114,8 +114,11 @@ class ExposureFramework: ObservableObject {
                 } else {
                     let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0, tRiskLevel) }
                     print("Got \(temporaryExposureKeys!.count) diagnosis keys")
-                    print("Got \(codableKeys.count) codable keys")
-                    self.package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+                    let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+                    self.package = package
+                    self.keyURL = CodableDiagnosisKey.exportToURL(package: package)
+
+                    self.objectWillChange.send()
                     success()
                 }
             }
@@ -128,7 +131,11 @@ class ExposureFramework: ObservableObject {
                     let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0, tRiskLevel) }
                     print("Got \(temporaryExposureKeys!.count) diagnosis keys")
                     print("Got \(codableKeys.count) codable keys")
-                    self.package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+                    let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+                    self.package = package
+                    self.keyURL = CodableDiagnosisKey.exportToURL(package: package)
+                    print("KeyURL \(self.keyURL!)")
+                    self.objectWillChange.send()
                     success()
                 }
             }
@@ -149,11 +156,7 @@ class ExposureFramework: ObservableObject {
         }
     }
 
-    var keyURL: URL {
-        CodableDiagnosisKey.exportToURL(package: package!)!
-    }
-
-    var showingSheet = false
+    var keyURL: URL?
 
     deinit {
         manager.invalidate()

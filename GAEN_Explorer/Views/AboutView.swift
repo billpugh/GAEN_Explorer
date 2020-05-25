@@ -14,10 +14,10 @@ struct MyAboutView: View {
                 VStack(spacing: 15) {
                     Image("GAEN-Explorer").resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width * 0.8)
+                        .frame(width: geometry.size.width * 0.5)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.black, lineWidth: 4))
+                                .stroke(Color.black, lineWidth: 2))
 
                     Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
                     Text("No information is sent to any server. You need to exchange keys by sharing them via airdrop or email").font(.subheadline).padding(.horizontal)

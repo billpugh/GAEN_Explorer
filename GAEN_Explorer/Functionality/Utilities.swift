@@ -10,7 +10,9 @@ import UIKit
 
 import LinkPresentation
 
-func daysAgo(_ days: Int) -> Date { Date(timeIntervalSinceNow: TimeInterval(-days * 24 * 60 * 60)) }
+func hoursAgo(_ hours: Int, minutes: Int = 0) -> Date { Date(timeIntervalSinceNow: TimeInterval(-hours * 60 * 60 - minutes * 60)) }
+
+func daysAgo(_ days: Int) -> Date { hoursAgo(days * 24) }
 
 func showError(_ error: Error, from viewController: UIViewController) {
     let alert = UIAlertController(title: NSLocalizedString("ERROR", comment: "Title"), message: error.localizedDescription, preferredStyle: .alert)

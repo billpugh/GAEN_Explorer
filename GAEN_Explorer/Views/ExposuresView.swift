@@ -11,38 +11,39 @@ struct ExposureDetailView: View {
     var batch: BatchExposureInfo
     var info: CodableExposureInfo
     var body: some View {
-        VStack {
-            GeometryReader { geometry in
+        GeometryReader { geometry in
+            VStack {
                 Image("GAEN-Explorer").resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: geometry.size.width * 0.5, height: geometry.size.width * 0.5)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.black, lineWidth: 4))
-            }
+                            .stroke(Color.black, lineWidth: 2))
+                    .padding()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("From batch \(batch.userName) sent \(batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
-                    Text("processed \(batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
-                    Text("\(batch.memoConfig)")
-                    Text("")
-                    Text("This exposure occurred on \(info.date, formatter: ExposureFramework.shared.dayFormatter)")
-
-                    Group { Text("The exposure lasted \(info.duration) minutes")
-                        Text("The antenuationValue was \(info.attenuationValue) ")
-                        Text("Transmission risk was \(info.transmissionRiskLevel)")
-                        Text("total risk score is \(info.totalRiskScore)")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("From batch \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
+                        Text("processed \(self.batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
+                        Text("\(self.batch.memoConfig)")
                         Text("")
-                    }
-                    Group {
-                        Text("\(info.attenuationDurations[0]) minutes with  attenuation <= \(batch.someConfig.attenuationDurationThresholds[0])db")
-                        Text("\(info.attenuationDurations[1]) minutes with \(batch.someConfig.attenuationDurationThresholds[0]) < attenuation <= \(batch.someConfig.attenuationDurationThresholds[1])db")
-                        Text("\(info.attenuationDurations[2]) minutes with \(batch.someConfig.attenuationDurationThresholds[1])db < attenuation")
-                    }
-                }
+                        Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
 
-            }.padding(.horizontal)
+                        Group { Text("The exposure lasted \(self.info.duration) minutes")
+                            Text("The antenuationValue was \(self.info.attenuationValue) ")
+                            Text("Transmission risk was \(self.info.transmissionRiskLevel)")
+                            Text("total risk score is \(self.info.totalRiskScore)")
+                            Text("")
+                        }
+                        Group {
+                            Text("\(self.info.attenuationDurations[0]) minutes with  attenuation <= \(self.batch.someConfig.attenuationDurationThresholds[0])db")
+                            Text("\(self.info.attenuationDurations[1]) minutes with \(self.batch.someConfig.attenuationDurationThresholds[0]) < attenuation <= \(self.batch.someConfig.attenuationDurationThresholds[1])db")
+                            Text("\(self.info.attenuationDurations[2]) minutes with \(self.batch.someConfig.attenuationDurationThresholds[1])db < attenuation")
+                        }
+                    }
+
+                }.padding(.horizontal)
+            }.navigationBarTitle("Exposure details", displayMode: .inline)
         }
     }
 }
@@ -55,11 +56,11 @@ struct ExposureInfoView: View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
-               
+
                 Text("\(info.duration)min").frame(width: width / 6, alignment: .trailing)
-               
+
                 Text("\(info.transmissionRiskLevel)").frame(width: width / 5, alignment: .trailing)
-                
+
                 Text("\(info.attenuationDurationsString)").frame(width: width / 4, alignment: .trailing)
             }
         }
@@ -79,22 +80,25 @@ struct ExposuresView: View {
                 VStack { List {
                     ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
                         Section(header:
-                            VStack { HStack { VStack {
-                                Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
-                                Text("recvd \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
-                                }
-                                Spacer()
-                                Text(d.shortMemoConfig)}.padding(.vertical,8)
+                            VStack(alignment: .leading) {
                                 HStack {
-                                               Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
-                                               
-                                               Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
-                                               
-                                               Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
-                                               
-                                               Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
+                                    VStack {
+                                        Text("\(d.userName) sent \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
+                                        Text("processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)").font(.subheadline)
+                                    }
+                                    Spacer()
+                                    Text(d.shortMemoConfig)
+                                }.padding(.vertical, 8)
+                                HStack {
+                                    Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
+
+                                    Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
+
+                                    Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
+
+                                    Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
                                 }.padding(.bottom, 5).font(.footnote)
-                            }) {
+                        }) {
                             ForEach(d.exposures, id: \.id) { info in
                                 ExposureInfoView(day: d, info: info, width: geometry.size.width)
                             }
@@ -147,17 +151,23 @@ struct ExposuresView: View {
     }
 }
 
+struct ExposureDetailView_Previews: PreviewProvider {
+    static let batch = BatchExposureInfo.testData
+
+    static var previews: some View {
+        NavigationView {
+            ExposureDetailView(batch: batch, info: batch.exposures[0])
+        }
+    }
+}
+
 struct ExposuresView_Previews: PreviewProvider {
-    static let models: [String] = ["iPhone SE", "iPhone 11 Pro Max"]
     static let localStore = LocalStore(userName: "Alice", transmissionRiskLevel: 6, testData: [BatchExposureInfo.testData])
 
     static var previews: some View {
         NavigationView {
-            ForEach(models, id: \.self) { name in ExposuresView().environmentObject(localStore)
+            ExposuresView().environmentObject(localStore)
                 .environmentObject(ExposureFramework.shared)
-                .previewDevice(PreviewDevice(rawValue: name))
-                .previewDisplayName(name)
-            }
         }
     }
 }

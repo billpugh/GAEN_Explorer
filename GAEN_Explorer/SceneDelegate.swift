@@ -4,11 +4,13 @@
 //  Created by Bill Pugh on 5/11/20.
 //
 
+import Combine
 import SwiftUI
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+    @State var showingSheet = false
 
     func scene(_: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         if let url = URLContexts.first?.url {
@@ -51,6 +53,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_: UIScene) {
         print("scene did become active")
         ExposureFramework.shared.objectWillChange.send()
+        if let shortcutItem = shortcutItemToProcess {
+            print("Process \(shortcutItem)")
+            shortcutItemToProcess = nil
+        }
         // Called when the scene has moved from an inactive state to an active state.
         // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
     }
@@ -75,6 +81,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func windowScene(_: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler _: @escaping (Bool) -> Void) {
+        shortcutItemToProcess = shortcutItem
         print("Got shortcut \(shortcutItem)")
         // Handle actions based on shortcutItem.type
     }

@@ -49,6 +49,7 @@ struct BatchExposureInfo: Codable {
         }
         return ""
     }
+
     var shortMemoConfig: String {
         if let m = memo {
             return m
@@ -59,7 +60,7 @@ struct BatchExposureInfo: Codable {
         return ""
     }
 
-    static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: Date(timeIntervalSinceNow: -3 * 24 * 60 * 60), dateProcessed: Date(),
+    static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: hoursAgo(2, minutes: 17), dateProcessed: Date(),
                                             config: CodableExposureConfiguration.shared, exposures: CodableExposureInfo.testData)
 }
 
@@ -94,7 +95,6 @@ class LocalStore: ObservableObject {
 
         objectWillChange.send()
     }
-
 
     init(userName: String, transmissionRiskLevel: Int, testData: [BatchExposureInfo]) {
         self.userName = userName

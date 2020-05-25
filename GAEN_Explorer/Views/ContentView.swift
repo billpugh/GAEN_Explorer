@@ -74,7 +74,7 @@ struct StatusView: View {
     @State private var showingSheet = false
     @State var showsAlert = false
     @State private var shareURL: URL?
-    @EnvironmentObject var manager: ExposureFramework
+    @EnvironmentObject var framework: ExposureFramework
     @State var computingKeys = false
     var body: some View {
         Form {
@@ -91,21 +91,22 @@ struct StatusView: View {
             Section(header: Text("Actions").font(.title)) {
                 Button(action: {
                     self.computingKeys = true
-                    self.manager.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
+                    self.framework.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
+                        print("getAndPackageKeys done")
                         self.showingSheet = true
                         self.computingKeys = false
                     }
                 }
                 ) {
                     ZStack {
-                        HStack { Text("Share diagnosis keys  \(self.manager.keysExportedMessage)").font(.headline)
+                        HStack { Text("Share diagnosis keys  \(self.framework.keysExportedMessage)").font(.headline)
                             Image(systemName: "square.and.arrow.up").font(.headline)
                         }
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
                 }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
                                            content: {
-                                               ActivityView(activityItems: DiagnosisKeyItem(self.manager.keyCount, self.localStore.userName, self.manager.keyURL).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                                               ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                             })
 
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
@@ -122,15 +123,15 @@ struct StatusView: View {
                 .padding(.vertical)
             } // Group
             Section(header: Text("Framework").font(.title)) {
-                Toggle(isOn: self.$manager.isEnabled) {
+                Toggle(isOn: self.$framework.isEnabled) {
                     Text("Toggle notifications")
                 }.padding()
 
                 HStack {
-                    Text(manager.exposureNotificationStatus.description).font(.headline)
+                    Text(framework.exposureNotificationStatus.description).font(.headline)
                     Spacer()
-                    Text(manager.authorizationStatus.description).font(.headline)
-                }.padding(.horizontal).foregroundColor(self.manager.feasible ? .primary : .red)
+                    Text(framework.authorizationStatus.description).font(.headline)
+                }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
             }
         } // VStack
     } // var body
