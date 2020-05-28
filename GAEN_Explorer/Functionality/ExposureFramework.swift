@@ -70,6 +70,21 @@ class ExposureFramework: ObservableObject {
             }
         }
 
+        self.signatureInfo = SignatureInfo.with { signatureInfo in
+            signatureInfo.appBundleID = Bundle.main.bundleIdentifier!
+            signatureInfo.verificationKeyVersion = "v1"
+            signatureInfo.verificationKeyID = "310"
+            signatureInfo.signatureAlgorithm = "SHA256withECDSA"
+        }
+        var cfError: Unmanaged<CFError>?
+        let attributes = [
+            kSecAttrKeyType: kSecAttrKeyTypeEC,
+            kSecAttrKeyClass: kSecAttrKeyClassPrivate,
+            kSecAttrKeySizeInBits: 256,
+        ] as CFDictionary
+        self.privateKeyData = privateKeyECData.suffix(65) + privateKeyECData.subdata(in: 36 ..< 68)
+        self.secKey = SecKeyCreateWithData(privateKeyData as CFData, attributes, &cfError)!
+
         fullDateFormatter.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
         dayFormatter.dateFormat = "MMM d"
         shortDateFormatter.timeStyle = .short
@@ -163,84 +178,90 @@ class ExposureFramework: ObservableObject {
     }
 
     // NOTE: The backslash on the end of the first line is not part of the key
-    private static let privateKeyECData = Data(base64Encoded: """
+    private let privateKeyECData = Data(base64Encoded: """
     MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgKJNe9P8hzcbVkoOYM4hJFkLERNKvtC8B40Y/BNpfxMeh\
     RANCAASfuKEs4Z9gHY23AtuMv1PvDcp4Uiz6lTbA/p77if0yO2nXBL7th8TUbdHOsUridfBZ09JqNQYKtaU9BalkyodM
     """)!
 
-    static func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) -> Progress {
+    private var privateKeyData: Data
+    private var signatureInfo: SignatureInfo
+    private var secKey: SecKey
+
+   
+    func getExportData(_ diagnosisKeys: [CodableDiagnosisKey]) throws -> Data {
+        // In a real implementation, the file at remoteURL would be downloaded from a server
+        // This sample generates and saves a binary and signature pair of files based on the locally stored diagnosis keys
+        let export = TemporaryExposureKeyExport.with { export in
+            export.batchNum = 1
+            export.batchSize = 1
+            export.region = "310"
+            export.signatureInfos = [self.signatureInfo]
+            export.keys = diagnosisKeys.shuffled().map { diagnosisKey in
+                TemporaryExposureKey.with { temporaryExposureKey in
+                    temporaryExposureKey.keyData = diagnosisKey.keyData
+                    temporaryExposureKey.transmissionRiskLevel = Int32(diagnosisKey.transmissionRiskLevel)
+                    temporaryExposureKey.rollingStartIntervalNumber = Int32(diagnosisKey.rollingStartNumber)
+                    temporaryExposureKey.rollingPeriod = Int32(diagnosisKey.rollingPeriod)
+                }
+            }
+        }
+        return "EK Export v1    ".data(using: .utf8)! + (try export.serializedData())
+    }
+
+    func getTEKSignatureList(_ exportData: Data) throws -> TEKSignatureList {
+        var exportHash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
+        _ = exportData.withUnsafeBytes { exportDataBuffer in
+            exportHash.withUnsafeMutableBytes { exportHashBuffer in
+                CC_SHA256(exportDataBuffer.baseAddress, CC_LONG(exportDataBuffer.count), exportHashBuffer.bindMemory(to: UInt8.self).baseAddress)
+            }
+        }
+        var cfError: Unmanaged<CFError>?
+
+        guard let signedHash = SecKeyCreateSignature(secKey, .ecdsaSignatureDigestX962SHA256, exportHash as CFData, &cfError) as Data? else {
+            throw cfError!.takeRetainedValue()
+        }
+
+        return TEKSignatureList.with { tekSignatureList in
+            tekSignatureList.signatures = [TEKSignature.with { tekSignature in
+                tekSignature.signatureInfo = signatureInfo
+                tekSignature.signature = signedHash
+                tekSignature.batchNum = 1
+                tekSignature.batchSize = 1
+                          }]
+        }
+    }
+
+    func getURLs(_ exportData: Data, _ tekSignatureList: TEKSignatureList) throws -> [URL] {
+        let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+
+        let localBinURL = cachesDirectory.appendingPathComponent("export.bin")
+        try exportData.write(to: localBinURL)
+
+        let localSigURL = cachesDirectory.appendingPathComponent("export.sig")
+        try tekSignatureList.serializedData().write(to: localSigURL)
+        return [localBinURL, localSigURL]
+    }
+
+    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) -> Progress {
+           do {
+               let data = try Data(contentsOf: url)
+               let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
+               return importData(packagedKeys: packagedKeys, completionHandler: completionHandler)
+           } catch {
+               print("Unexpected error: \(error)")
+               completionHandler?(false)
+               return Progress()
+           }
+       }
+
+    func importData(packagedKeys: PackagedKeys, completionHandler: ((Bool) -> Void)? = nil) -> Progress {
         let progress = Progress()
         do {
-            let data = try Data(contentsOf: url)
-            let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
-            let diagnosisKeys = packagedKeys.keys
+            let exportData = try getExportData(packagedKeys.keys)
 
-            let attributes = [
-                kSecAttrKeyType: kSecAttrKeyTypeEC,
-                kSecAttrKeyClass: kSecAttrKeyClassPrivate,
-                kSecAttrKeySizeInBits: 256,
-            ] as CFDictionary
+            let tekSignatureList = try getTEKSignatureList(exportData)
 
-            var cfError: Unmanaged<CFError>?
-
-            let privateKeyData = privateKeyECData.suffix(65) + privateKeyECData.subdata(in: 36 ..< 68)
-            guard let secKey = SecKeyCreateWithData(privateKeyData as CFData, attributes, &cfError) else {
-                throw cfError!.takeRetainedValue()
-            }
-
-            let signatureInfo = SignatureInfo.with { signatureInfo in
-                signatureInfo.appBundleID = Bundle.main.bundleIdentifier!
-                signatureInfo.verificationKeyVersion = "v1"
-                signatureInfo.verificationKeyID = "310"
-                signatureInfo.signatureAlgorithm = "SHA256withECDSA"
-            }
-
-            // In a real implementation, the file at remoteURL would be downloaded from a server
-            // This sample generates and saves a binary and signature pair of files based on the locally stored diagnosis keys
-            let export = TemporaryExposureKeyExport.with { export in
-                export.batchNum = 1
-                export.batchSize = 1
-                export.region = "310"
-                export.signatureInfos = [signatureInfo]
-                export.keys = diagnosisKeys.shuffled().map { diagnosisKey in
-                    TemporaryExposureKey.with { temporaryExposureKey in
-                        temporaryExposureKey.keyData = diagnosisKey.keyData
-                        temporaryExposureKey.transmissionRiskLevel = Int32(diagnosisKey.transmissionRiskLevel)
-                        temporaryExposureKey.rollingStartIntervalNumber = Int32(diagnosisKey.rollingStartNumber)
-                        temporaryExposureKey.rollingPeriod = Int32(diagnosisKey.rollingPeriod)
-                    }
-                }
-            }
-
-            let exportData = "EK Export v1    ".data(using: .utf8)! + (try export.serializedData())
-
-            var exportHash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
-            _ = exportData.withUnsafeBytes { exportDataBuffer in
-                exportHash.withUnsafeMutableBytes { exportHashBuffer in
-                    CC_SHA256(exportDataBuffer.baseAddress, CC_LONG(exportDataBuffer.count), exportHashBuffer.bindMemory(to: UInt8.self).baseAddress)
-                }
-            }
-
-            guard let signedHash = SecKeyCreateSignature(secKey, .ecdsaSignatureDigestX962SHA256, exportHash as CFData, &cfError) as Data? else {
-                throw cfError!.takeRetainedValue()
-            }
-
-            let tekSignatureList = TEKSignatureList.with { tekSignatureList in
-                tekSignatureList.signatures = [TEKSignature.with { tekSignature in
-                    tekSignature.signatureInfo = signatureInfo
-                    tekSignature.signature = signedHash
-                    tekSignature.batchNum = 1
-                    tekSignature.batchSize = 1
-                    }]
-            }
-
-            let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-
-            let localBinURL = cachesDirectory.appendingPathComponent("export.bin")
-            try exportData.write(to: localBinURL)
-
-            let localSigURL = cachesDirectory.appendingPathComponent("export.sig")
-            try tekSignatureList.serializedData().write(to: localSigURL)
+            let URLs = try getURLs(exportData, tekSignatureList)
 
             func finish(_ result: Result<[CodableExposureInfo], Error>) {
                 // try? FileManager.default.removeItem(at: localBinURL)
@@ -256,7 +277,7 @@ class ExposureFramework: ObservableObject {
                         print("Got \(newExposures.count) new exposures")
                         success = true
                     case let .failure(error):
-                        print("Got failure 123 \(error)")
+                        print("Got failure \(error)")
 
                         success = false
                     }
@@ -266,8 +287,8 @@ class ExposureFramework: ObservableObject {
             }
 
             let config = CodableExposureConfiguration.shared
-            let URLS = [localBinURL, localSigURL]
-            ExposureFramework.shared.manager.detectExposures(configuration: config.asExposureConfiguration(), diagnosisKeyURLs: URLS) { summary,
+
+            ExposureFramework.shared.manager.detectExposures(configuration: config.asExposureConfiguration(), diagnosisKeyURLs: URLs) { summary,
                 error in
                 if let error = error {
                     print("error description \(error.localizedDescription)")
