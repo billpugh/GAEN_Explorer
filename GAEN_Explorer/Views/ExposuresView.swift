@@ -13,12 +13,7 @@ struct ExposureDetailView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
-                Image("GAEN-Explorer").resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: geometry.size.width * 0.5, height: geometry.size.width * 0.5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.black, lineWidth: 2))
+                GAENExplorerImage(width: geometry.size.width * 0.5)
                     .padding()
 
                 ScrollView {
@@ -28,12 +23,13 @@ struct ExposureDetailView: View {
                         Text("\(self.batch.memoConfig)")
                         Text("")
                         Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
-
-                        Group { Text("The exposure lasted \(self.info.duration) minutes")
+                        Group {
+                            Text("The exposure lasted \(self.info.duration) minutes")
                             Text("The antenuationValue was \(self.info.attenuationValue) ")
                             Text("Transmission risk was \(self.info.transmissionRiskLevel)")
                             Text("total risk score is \(self.info.totalRiskScore)")
-                            Text("")
+                            Text("attenuationValue is \(self.info.attenuationValue)")
+                            Text(self.batch.config == nil ? "" : "calculatedAttenuationValue is \(self.info.calculatedAttenuationValue(config: self.batch.config!))").padding(.bottom)
                         }
                         Group {
                             Text("\(self.info.attenuationDurations[0]) minutes with  attenuation <= \(self.batch.someConfig.attenuationDurationThresholds[0])db")
@@ -57,7 +53,7 @@ struct ExposureInfoView: View {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
 
-                Text("\(info.duration)min").frame(width: width / 6, alignment: .trailing)
+                Text("\(info.dp3tDuration)min").frame(width: width / 6, alignment: .trailing)
 
                 Text("\(info.transmissionRiskLevel)").frame(width: width / 5, alignment: .trailing)
 
@@ -81,7 +77,6 @@ struct ExposuresView: View {
                     ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
                         Section(header:
                             VStack(alignment: .leading) {
-                                
                                 Text("\(d.userName) sent \(d.keysChecked ?? -1) keys \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline).padding(.top)
                                 HStack {
                                     Spacer()
@@ -89,8 +84,7 @@ struct ExposuresView: View {
                                     Spacer()
                                     Text(d.shortMemoConfig)
                                 }.font(.subheadline)
-                               
-                                
+
                                 HStack {
                                     Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
 
@@ -99,7 +93,7 @@ struct ExposuresView: View {
                                     Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
 
                                     Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
-                                }.padding(.bottom, 5).font(.footnote)
+                                }.padding(.vertical, 5).font(.footnote)
                         }) {
                             ForEach(d.exposures, id: \.id) { info in
                                 ExposureInfoView(day: d, info: info, width: geometry.size.width)
@@ -134,7 +128,7 @@ struct ExposuresView: View {
                 }
             }
             .navigationBarTitle(self.localStore.allExposures.count == 0 ?
-                
+
                 "No Exposures for \(localStore.userName)" :
                 "Exposures for \(localStore.userName)", displayMode: .inline)
             .navigationBarItems(trailing:

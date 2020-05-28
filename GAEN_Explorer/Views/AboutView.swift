@@ -7,17 +7,23 @@
 import Foundation
 import SwiftUI
 
+struct GAENExplorerImage: View {
+    var width: CGFloat
+    var body: some View {
+        Image("GAEN-Explorer").resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: width)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.black, lineWidth: 2))
+    }
+}
+
 struct MyAboutView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 15) {
-                    Image("GAEN-Explorer").resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width * 0.5)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.black, lineWidth: 2))
+                    GAENExplorerImage(width: geometry.size.width * 0.5)
 
                     Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
                     Text("No information is sent to any server. You need to exchange keys by sharing them via airdrop or email").font(.subheadline).padding(.horizontal)

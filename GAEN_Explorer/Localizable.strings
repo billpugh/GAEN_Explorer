@@ -318,4 +318,4 @@ This example flow assumes a test for the entirety of the flow, but could be conf
 "BACKGROUND_TIMEOUT" = "Ran out of background time.";
 
 /* User notification */
-"USER_NOTIFICATION_EXPLANATION" = "{Exposure detected from test diagnosis keys you supplied}";
+"USER_NOTIFICATION_EXPLANATION" = "Exposure detected from test diagnosis keys you supplied; this does not represent an actual exposure to covid-19";

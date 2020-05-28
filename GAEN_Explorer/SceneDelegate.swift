@@ -16,7 +16,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let url = URLContexts.first?.url {
             // Handle URL
             guard url.pathExtension == "diagk" else { return }
-            _ = ExposureFramework.importData(from: url) {
+            _ = ExposureFramework.shared.importData(from: url) {
                 _ in
                 LocalStore.shared.viewShown = "exposures"
             }

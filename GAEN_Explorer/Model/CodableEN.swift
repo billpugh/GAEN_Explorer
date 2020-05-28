@@ -22,15 +22,21 @@ struct CodableExposureInfo: Codable {
         attenuationDurations.map { String($0) }.joined(separator: "/")
     }
 
-    var attenuationWeightedTime: Int16 {
+    func attenuationWeightedTime(config: CodableExposureConfiguration) -> Int16 {
         let d0 = attenuationDurations[0]
         let d1 = attenuationDurations[1]
         let d2 = attenuationDurations[2]
-        let v0 = d0 * Int16(truncating: CodableExposureConfiguration.attenuationLevelLow)
-        let v1 = d1 * Int16(truncating: CodableExposureConfiguration.attenuationLevelMedium)
-        let v2 = d2 * Int16(truncating: CodableExposureConfiguration.attenuationLevelHigh)
+        let v0 = d0 * Int16(config.attenuationLevelValues[7])
+        let v1 = d1 * Int16(config.attenuationLevelValues[2])
+        let v2 = d2 * Int16(config.attenuationLevelValues[0])
 
         return v0 + v1 + v2
+    }
+
+    var dp3tDuration: Int16 {
+        let d0 = attenuationDurations[0]
+        let d1 = attenuationDurations[1]
+        return d0 + d1 / 2
     }
 
     var durationSum: Int16 {
@@ -40,8 +46,23 @@ struct CodableExposureInfo: Codable {
         return d0 + d1 + d2
     }
 
-    var calculatedAttenuationValue: Int8 {
-        Int8(attenuationWeightedTime / durationSum)
+    func durationSumCounted(config: CodableExposureConfiguration) -> Int16 {
+        var sum: Int16 = 0
+        if config.attenuationLevelValues[7] > 0 {
+            sum += attenuationDurations[0]
+        }
+        if config.attenuationLevelValues[2] > 0 {
+            sum += attenuationDurations[1]
+        }
+        if config.attenuationLevelValues[0] > 0 {
+            sum += attenuationDurations[2]
+        }
+        if sum == 0 { sum = 1 }
+        return sum
+    }
+
+    func calculatedAttenuationValue(config: CodableExposureConfiguration) -> Int16 {
+        attenuationWeightedTime(config: config) / durationSumCounted(config: config)
     }
 
     init(_ info: ENExposureInfo) {
@@ -157,7 +178,7 @@ struct CodableExposureConfiguration: Codable {
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[1, 1, 1, 5, 5, 5, 5, 5],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [50, 55]}
+        "attenuationDurationThresholds": [33, 63]}
         """
     }
 

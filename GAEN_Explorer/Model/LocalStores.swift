@@ -30,7 +30,7 @@ struct BatchExposureInfo: Codable {
     let userName: String
     let dateKeysSent: Date
     let dateProcessed: Date
-    let keysChecked : Int?
+    let keysChecked: Int?
     var memo: String?
     var config: CodableExposureConfiguration?
     var someConfig: CodableExposureConfiguration {
