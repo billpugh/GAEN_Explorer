@@ -1,6 +1,6 @@
 # GAEN Explorer
 
-This is code I wrote to explore and experiment with the Google+Apple Exposure Notification framework. It is intended to show how the framework can actually be invoked, and to testing of how the exposure detection system works. It is also the first non-trivial app I wrote in Swift. 
+This is code I wrote to explore and experiment with the Google+Apple Exposure Notification (GAEN) framework. It is intended to show how the framework can actually be invoked, and to testing of how the exposure detection system works. It is also the first non-trivial app I wrote in Swift. 
 
 <p align="center"> 
 <img src="Documentation/screenshots/all.png" width="80%">
