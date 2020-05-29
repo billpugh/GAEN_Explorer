@@ -92,8 +92,7 @@ struct ExposureDetailView: View {
                         Text("The exposure lasted \(self.info.duration) minutes")
                         Text("The antenuationValue was \(self.info.attenuationValue) ")
                         Text("Transmission risk was \(self.info.transmissionRiskLevel)")
-                        Text("total risk score is \(self.info.totalRiskScore)")
-                        Text("attenuationValue is \(self.info.attenuationValue)").padding(.bottom)
+                        Text("total risk score is \(self.info.totalRiskScore)").padding(.bottom)
                         Text("durations at different attenuations:")
                     }
                     ForEach(self.info.thresholdData
