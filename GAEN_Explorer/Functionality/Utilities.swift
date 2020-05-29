@@ -33,7 +33,7 @@ class JsonItem: NSObject, UIActivityItemSource {
     }
 
     func activityViewControllerPlaceholderItem(_: UIActivityViewController) -> Any {
-        "Exposure data as json files"
+        "Encounter data as json files"
     }
 
     func activityViewController(_: UIActivityViewController, itemForActivityType _: UIActivity.ActivityType?) -> Any? {

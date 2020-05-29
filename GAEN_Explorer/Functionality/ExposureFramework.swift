@@ -373,7 +373,7 @@ class ExposureFramework: ObservableObject {
 
                     exposures!.forEach { exposure in
                         let day = ExposureFramework.shared.fullDateFormatter.string(from: exposure.date)
-                        print("Exposure \(Int(exposure.duration / 60))on \(day)")
+                        print("Encounter \(Int(exposure.duration / 60))on \(day)")
                         print("was \(ExposureFramework.shared.dayFormatter.string(from: exposure.date))")
                         print("Raw date \(exposure.date.timeIntervalSince1970)")
                         print("attn \(exposure.attenuationValue) ")

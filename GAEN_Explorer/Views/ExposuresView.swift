@@ -28,7 +28,7 @@ struct ExposureDurationViewLarge: View {
         VStack {
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: cornerRadius * scale)
-                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.black)
+                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.primary)
                 RoundedRectangle(cornerRadius: cornerRadius * scale)
                     .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
                     .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
@@ -56,7 +56,7 @@ struct ExposureDurationViewSmall: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             RoundedRectangle(cornerRadius: cornerRadius * scale)
-                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.black)
+                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.primary)
             RoundedRectangle(cornerRadius: cornerRadius * scale)
                 .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
                 .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
@@ -79,6 +79,7 @@ struct ExposureDurationsViewSmall: View {
 struct ExposureDetailView: View {
     var batch: BatchExposureInfo
     var info: CodableExposureInfo
+    @EnvironmentObject var localStore: LocalStore
     var body: some View { VStack {
         ExposureDurationsViewLarge(thresholdData: self.info.thresholdData).padding(.top)
         ScrollView {
@@ -89,9 +90,9 @@ struct ExposureDetailView: View {
                     Text("")
                     Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
                     Group {
-                        Text("The exposure lasted \(self.info.duration) minutes")
-                        Text("The antenuationValue was \(self.info.attenuationValue) ")
-                        Text("Transmission risk was \(self.info.transmissionRiskLevel)")
+                        Text("exposure lasted \(self.info.duration) minutes")
+                        Text("attenuationValue was \(self.info.attenuationValue) ")
+                        Text("transmission risk was \(self.info.transmissionRiskLevel)")
                         Text("total risk score is \(self.info.totalRiskScore)").padding(.bottom)
                         Text("durations at different attenuations:")
                     }
@@ -104,7 +105,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Exposure details", displayMode: .inline)
+    }.navigationBarTitle("Details \(localStore.userName) encounter with \(batch.userName)", displayMode: .inline)
     }
 }
 
@@ -168,7 +169,7 @@ struct ExposuresView: View {
                        content: {
                            ActivityView(activityItems: [
                                JsonItem(url: self.localStore.shareExposuresURL!,
-                                        title: "Exposures for \(self.localStore.userName) from GAEN Explorer"),
+                                        title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
                            ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                     })
 
@@ -191,8 +192,8 @@ struct ExposuresView: View {
             }
             .navigationBarTitle(self.localStore.allExposures.count == 0 ?
 
-                "No Exposures for \(localStore.userName)" :
-                "Exposures for \(localStore.userName)", displayMode: .inline)
+                "No encounters for \(localStore.userName)" :
+                "Encounters for \(localStore.userName)", displayMode: .inline)
             .navigationBarItems(trailing:
 
                 /// Export BUTTON

@@ -52,7 +52,7 @@ class ExposureAnalysis {
     }
 
     func printMe() {
-        print("Exposure analysis for user \(name)")
+        print("Encounter analysis for user \(name)")
 
         for (key, durations) in exposureDurations {
             print(" \(key) \(asString(durations))")
