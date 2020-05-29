@@ -11,10 +11,13 @@ import Foundation
 
 struct ExposureKey: Hashable, CustomStringConvertible {
     var description: String {
-        "\(day) \(attenuationValue)"
+        day
     }
 
-    var attenuationValue: Int8
+    let attenuationValue: Int8
+    let duration: Int8 // minutes
+    let transmissionRiskLevel: ENRiskLevel
+
     var date: Date
     var day: String {
         ExposureFramework.shared.dayFormatter.string(from: date)
@@ -23,23 +26,23 @@ struct ExposureKey: Hashable, CustomStringConvertible {
     init(info: CodableExposureInfo) {
         self.attenuationValue = info.attenuationValue
         self.date = info.date
+        self.duration = info.duration
+        self.transmissionRiskLevel = info.transmissionRiskLevel
     }
 }
 
-let firstBucketStart = 45
-let bucketSize = 3
-let numberAnalysisPasses = 3
+let multipassThresholds = [50, 56, 47, 53, 44, 62]
+let numberAnalysisPasses = multipassThresholds.count / 2
 
 func getAttenuationDurationThresholds(pass: Int) -> [Int] {
-    let firstBucket = firstBucketStart + 2 * pass * bucketSize
-    return [firstBucket, firstBucket + bucketSize]
+    [multipassThresholds[2 * (pass - 1)], multipassThresholds[2 * (pass - 1) + 1]]
 }
 
 class ExposureAnalysis {
     let name: String
-    var exposureDurations: [ExposureKey: [Int: Int16]] = [:]
+    var exposureDurations: [ExposureKey: [Int: Int]] = [:]
 
-    func asString(_ durations: [Int: Int16]) -> String {
+    func asString(_ durations: [Int: Int]) -> String {
         durations.sorted(by: { $0.0 < $1.0 }).map { "\($0): \($1)" }.joined(separator: ", ")
     }
 

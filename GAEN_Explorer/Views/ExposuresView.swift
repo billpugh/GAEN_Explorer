@@ -7,40 +7,105 @@
 import Foundation
 import SwiftUI
 
+struct ThresholdDataView: View {
+    let t: ThresholdData
+    let width: CGFloat
+    var body: some View {
+        HStack {
+            Text(
+                t.prevAttenuation > 0 ? "\(t.prevAttenuation)dB" : "").frame(width: width / 4, alignment: .trailing)
+            Text(t.prevAttenuation > 0 ? " < \(t.thisDuration) min" : "\(t.thisDuration) min").frame(width: width / 4.5, alignment: .trailing)
+            Text(t.attenuation < 90 ? "<= \(t.attenuation)dB" : "").frame(width: width / 4, alignment: .leading)
+        }
+    }
+}
+
+struct ExposureDurationViewLarge: View {
+    let thresholdData: ThresholdData
+    let scale: CGFloat = 6
+    let cornerRadius: CGFloat = 2
+    var body: some View {
+        VStack {
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: cornerRadius * scale)
+                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.black)
+                RoundedRectangle(cornerRadius: cornerRadius * scale)
+                    .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
+            }
+            Text(thresholdData.attenuationLabel)
+        }.padding(.bottom, 8)
+    }
+}
+
+struct ExposureDurationsViewLarge: View {
+    let thresholdData: [ThresholdData]
+    var body: some View {
+        HStack(alignment: .bottom) {
+            ForEach(thresholdData, id: \.self) {
+                ExposureDurationViewLarge(thresholdData: $0)
+            }
+        }
+    }
+}
+
+struct ExposureDurationViewSmall: View {
+    let thresholdData: ThresholdData
+    let scale: CGFloat = 2
+    let cornerRadius: CGFloat = 2
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: cornerRadius * scale)
+                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.black)
+            RoundedRectangle(cornerRadius: cornerRadius * scale)
+                .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
+                .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
+
+        }.padding(.bottom, 8)
+    }
+}
+
+struct ExposureDurationsViewSmall: View {
+    let thresholdData: [ThresholdData]
+    var body: some View {
+        HStack(alignment: .bottom) {
+            ForEach(thresholdData, id: \.self) {
+                ExposureDurationViewSmall(thresholdData: $0)
+            }
+        }
+    }
+}
+
 struct ExposureDetailView: View {
     var batch: BatchExposureInfo
     var info: CodableExposureInfo
-    var body: some View {
-        GeometryReader { geometry in
-            VStack {
-                GAENExplorerImage(width: geometry.size.width * 0.5)
-                    .padding()
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("From batch \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
-                        Text("processed \(self.batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
-                        Text("\(self.batch.memoConfig)")
-                        Text("")
-                        Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
-                        Group {
-                            Text("The exposure lasted \(self.info.duration) minutes")
-                            Text("The antenuationValue was \(self.info.attenuationValue) ")
-                            Text("Transmission risk was \(self.info.transmissionRiskLevel)")
-                            Text("total risk score is \(self.info.totalRiskScore)")
-                            Text("attenuationValue is \(self.info.attenuationValue)")
-                            Text(self.batch.config == nil ? "" : "calculatedAttenuationValue is \(self.info.calculatedAttenuationValue(config: self.batch.config!))").padding(.bottom)
-                        }
-                        Group {
-                            Text("\(self.info.attenuationDurations[0]) minutes with  attenuation <= \(self.batch.someConfig.attenuationDurationThresholds[0])db")
-                            Text("\(self.info.attenuationDurations[1]) minutes with \(self.batch.someConfig.attenuationDurationThresholds[0]) < attenuation <= \(self.batch.someConfig.attenuationDurationThresholds[1])db")
-                            Text("\(self.info.attenuationDurations[2]) minutes with \(self.batch.someConfig.attenuationDurationThresholds[1])db < attenuation")
-                        }
+    var body: some View { VStack {
+        ExposureDurationsViewLarge(thresholdData: self.info.thresholdData).padding(.top)
+        ScrollView {
+            GeometryReader { geometry in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("From batch \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("processed \(self.batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("")
+                    Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
+                    Group {
+                        Text("The exposure lasted \(self.info.duration) minutes")
+                        Text("The antenuationValue was \(self.info.attenuationValue) ")
+                        Text("Transmission risk was \(self.info.transmissionRiskLevel)")
+                        Text("total risk score is \(self.info.totalRiskScore)")
+                        Text("attenuationValue is \(self.info.attenuationValue)").padding(.bottom)
+                        Text("durations at different attenuations:")
                     }
+                    ForEach(self.info.thresholdData
+                        .filter { $0.thisDuration > 0 },
+                            id: \.self) { t in
+                        ThresholdDataView(t: t, width: geometry.size.width)
+                    }
+                }
+            }
 
-                }.padding(.horizontal)
-            }.navigationBarTitle("Exposure details", displayMode: .inline)
-        }
+        }.padding(.horizontal)
+    }.navigationBarTitle("Exposure details", displayMode: .inline)
     }
 }
 
@@ -53,11 +118,8 @@ struct ExposureInfoView: View {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
 
-                Text("\(info.dp3tDuration)min").frame(width: width / 6, alignment: .trailing)
-
-                Text("\(info.transmissionRiskLevel)").frame(width: width / 5, alignment: .trailing)
-
-                Text("\(info.attenuationDurationsString)").frame(width: width / 4, alignment: .trailing)
+                Spacer()
+                ExposureDurationsViewSmall(thresholdData: info.thresholdData)
             }
         }
     }
@@ -77,23 +139,24 @@ struct ExposuresView: View {
                     ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
                         Section(header:
                             VStack(alignment: .leading) {
-                                Text("\(d.userName) sent \(d.keysChecked ?? -1) keys \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline).padding(.top)
                                 HStack {
-                                    Spacer()
-                                    Text("processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
-                                    Spacer()
-                                    Text(d.shortMemoConfig)
-                                }.font(.subheadline)
+                                    Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
 
+                                }.padding(.top)
                                 HStack {
-                                    Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
+                                    Text("  processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
 
-                                    Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
+                                }.font(.subheadline).padding(.bottom)
 
-                                    Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
-
-                                    Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
-                                }.padding(.vertical, 5).font(.footnote)
+//                                HStack {
+//                                    Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
+//
+//                                    Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
+//
+//                                    Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
+//
+//                                    Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
+//                                }.padding(.vertical, 5).font(.footnote)
                         }) {
                             ForEach(d.exposures, id: \.id) { info in
                                 ExposureInfoView(day: d, info: info, width: geometry.size.width)
@@ -108,7 +171,7 @@ struct ExposuresView: View {
                                JsonItem(url: self.localStore.shareExposuresURL!,
                                         title: "Exposures for \(self.localStore.userName) from GAEN Explorer"),
                            ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
-            })
+                    })
 
                 // Erase button
                 Button(action: { self.showingDeleteAlert = true }) {
@@ -123,7 +186,7 @@ struct ExposuresView: View {
                           secondaryButton: .cancel {
                               self.showingDeleteAlert = false
 
-                    })
+                            })
                 } // Erase button
                 }
             }
@@ -141,7 +204,7 @@ struct ExposuresView: View {
                     self.showingSheet = true
                     self.exportingExposures = false
                     print("showingSheet set to true")
-            }) {
+                }) {
                     Image(systemName: "square.and.arrow.up")
                 } // Export button
             )

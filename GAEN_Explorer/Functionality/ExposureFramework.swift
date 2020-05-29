@@ -226,24 +226,19 @@ class ExposureFramework: ObservableObject {
         }
     }
 
-    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
-        do {
-            let data = try Data(contentsOf: url)
-            let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
-            print("Calling packaged keys")
-            do {
-                try analyze(packagedKeys: packagedKeys)
-            } catch {
-                print("error description \(error.localizedDescription)")
+    let standardUserExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
+    let analysisQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.analysis", attributes: .concurrent)
 
+    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
+        analysisQueue.async {
+            do {
+                let data = try Data(contentsOf: url)
+                let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
+                self.importData(packagedKeys: packagedKeys, completionHandler: completionHandler)
+            } catch {
+                print("Unexpected error: \(error)")
                 completionHandler?(false)
-                return
             }
-            completionHandler?(true)
-            // importData(packagedKeys: packagedKeys, completionHandler: completionHandler)
-        } catch {
-            print("Unexpected error: \(error)")
-            completionHandler?(false)
         }
     }
 
@@ -266,18 +261,14 @@ class ExposureFramework: ObservableObject {
         return try getURLs(exportData, tekSignatureList)
     }
 
-    let standardUserExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
-    let analysisQueue = DispatchQueue(label: "org.dpppt.matcher", attributes: .concurrent)
-
     func analyze(packagedKeys: PackagedKeys) {
         print("starting analysis")
-        try analysisQueue.async {
+        analysisQueue.async {
             do {
                 let analysis = ExposureAnalysis(name: packagedKeys.userName)
                 for pass in 0 ..< numberAnalysisPasses {
                     print("pass \(pass)")
-                    let thresholds: [Int] = getAttenuationDurationThresholds(pass: pass)
-                    let config = CodableExposureConfiguration.getCodableExposureConfiguration(attenuationDurationThresholds: thresholds)
+                    let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
 
                     analysis.analyze(pass: pass, exposures: try self.getExposureInfo(packagedKeys: packagedKeys, userExplanation: "Analyzing exposures, pass \(pass) of \(numberAnalysisPasses)", configuration: config))
                 }
@@ -289,16 +280,20 @@ class ExposureFramework: ObservableObject {
     }
 
     func getExposureInfo(packagedKeys: PackagedKeys, userExplanation: String, configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
+        try getExposureInfo(keys: packagedKeys.keys, userName: packagedKeys.userName, date: packagedKeys.date, userExplanation: userExplanation, configuration: configuration)
+    }
+
+    func getExposureInfo(keys: [CodableDiagnosisKey], userName: String, date: Date, userExplanation: String, configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
         let semaphore = DispatchSemaphore(value: 0)
         var result: [CodableExposureInfo]?
         var exposureDetectionError: Error?
-        let URLs = try getURLs(diagnosisKeys: packagedKeys.keys)
+        let URLs = try getURLs(diagnosisKeys: keys)
         print("Calling detect exposures")
         ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
             summary, error in
             if let error = error {
                 print("error description \(error.localizedDescription)")
-                LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
+                LocalStore.shared.appendExposure(BatchExposureInfo(userName: userName, dateKeysSent: date, dateProcessed: Date(), keys: keys, memo: error.localizedDescription, exposures: []))
 
                 exposureDetectionError = error
                 semaphore.signal()
@@ -348,13 +343,13 @@ class ExposureFramework: ObservableObject {
                 completionHandler?(success)
             }
 
-            let config = CodableExposureConfiguration.shared
+            let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: 1)
 
             ExposureFramework.shared.manager.detectExposures(configuration: config.asExposureConfiguration(), diagnosisKeyURLs: URLs) { summary,
                 error in
                 if let error = error {
                     print("error description \(error.localizedDescription)")
-                    LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
+                    LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keys: packagedKeys.keys, memo: error.localizedDescription, exposures: []))
 
                     finish(.failure(error))
                     return
@@ -371,7 +366,7 @@ class ExposureFramework: ObservableObject {
                 let userExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
                 ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
                     if let error = error {
-                        LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
+                        LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keys: packagedKeys.keys, memo: error.localizedDescription, exposures: []))
                         finish(.failure(error))
                         return
                     }
@@ -393,7 +388,7 @@ class ExposureFramework: ObservableObject {
                     LocalStore.shared.appendExposure(
                         BatchExposureInfo(userName: packagedKeys.userName,
                                           dateKeysSent: packagedKeys.date,
-                                          dateProcessed: Date(), keysChecked: packagedKeys.keys.count,
+                                          dateProcessed: Date(), keys: packagedKeys.keys,
                                           config: config,
                                           exposures: newExposures))
 

@@ -83,12 +83,10 @@ struct StatusView: View {
                     Text("User name: ")
                     TextField("User name", text: self.$localStore.userName, onCommit: { self.localStore.save() })
                 }.padding(.horizontal)
-
-                Stepper("Transmission risk \(self.localStore.transmissionRiskLevel)", value: self.$localStore.transmissionRiskLevel, in: 0 ... 7, onEditingChanged: { b in if b { self.localStore.save() } })
-                    .padding(.horizontal)
             }
 
             Section(header: Text("Actions").font(.title)) {
+                // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
                     self.framework.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
@@ -109,14 +107,19 @@ struct StatusView: View {
                                                ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                             })
 
+                // Show exposures
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
                     Text("Show exposures").font(.headline)
                 }
                 .padding(.vertical)
-                NavigationLink(destination: ConfigurationView(config: CodableExposureConfiguration.shared), tag: "config", selection: $localStore.viewShown) {
-                    Text("Exposure Configuration").font(.headline)
+
+                // Go Deeper
+                Button(action: {
+                    LocalStore.shared.goDeeper()
                 }
-                .padding(.vertical)
+                ) { Text("Go deeper") }
+
+                // About
                 NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
                     Text("About GAEN Explorer").font(.headline)
                 }

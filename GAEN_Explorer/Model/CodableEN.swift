@@ -10,6 +10,27 @@ import Foundation
 
 let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
 
+struct ThresholdData: Hashable, CustomStringConvertible {
+    var description: String {
+        "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < 90 ? "<= \(attenuation)dB" : "")"
+    }
+
+    let prevAttenuation: Int
+    let attenuation: Int
+    var attenuationLabel: String {
+        if attenuation == 90 {
+            return "∞"
+        }
+        return String(attenuation)
+    }
+
+    let prevDuration: Int
+    let cumulativeDuration: Int
+    var thisDuration: Int {
+        cumulativeDuration - prevDuration
+    }
+}
+
 // from ENExposureInfo
 struct CodableExposureInfo: Codable {
     let id: UUID
@@ -19,53 +40,36 @@ struct CodableExposureInfo: Codable {
 
     let transmissionRiskLevel: ENRiskLevel
     let attenuationValue: Int8 // attenuation risk level
-    let attenuationDurations: [Int16] // minutes
+    let attenuationDurations: [Int] // minutes
     let attenuationDurationThresholds: [Int]
-    var attenuationDurationsString: String {
-        attenuationDurations.map { String($0) }.joined(separator: "/")
-    }
+    var durations: [Int: Int] // minutes
 
-    func attenuationWeightedTime(config: CodableExposureConfiguration) -> Int16 {
-        let d0 = attenuationDurations[0]
-        let d1 = attenuationDurations[1]
-        let d2 = attenuationDurations[2]
-        let v0 = d0 * Int16(config.attenuationLevelValues[7])
-        let v1 = d1 * Int16(config.attenuationLevelValues[2])
-        let v2 = d2 * Int16(config.attenuationLevelValues[0])
-
-        return v0 + v1 + v2
-    }
-
-    var dp3tDuration: Int16 {
-        let d0 = attenuationDurations[0]
-        let d1 = attenuationDurations[1]
-        return d0 + d1 / 2
-    }
-
-    var durationSum: Int16 {
-        let d0 = attenuationDurations[0]
-        let d1 = attenuationDurations[1]
-        let d2 = attenuationDurations[2]
-        return d0 + d1 + d2
-    }
-
-    func durationSumCounted(config: CodableExposureConfiguration) -> Int16 {
-        var sum: Int16 = 0
-        if config.attenuationLevelValues[7] > 0 {
-            sum += attenuationDurations[0]
+    var thresholdData: [ThresholdData] {
+        var result: [ThresholdData] = []
+        let sortedDurations = durations.sorted(by: { $0.0 < $1.0 })
+        var prev: Int = 0
+        var prevAnt = 0
+        for (key, value) in sortedDurations {
+            let cumulative = min(30, prev + value)
+            result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: key, prevDuration: prev, cumulativeDuration: cumulative))
+            prev = cumulative
+            prevAnt = key
         }
-        if config.attenuationLevelValues[2] > 0 {
-            sum += attenuationDurations[1]
-        }
-        if config.attenuationLevelValues[0] > 0 {
-            sum += attenuationDurations[2]
-        }
-        if sum == 0 { sum = 1 }
-        return sum
+        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: 90, prevDuration: prev, cumulativeDuration: Int(duration)))
+        return result
     }
 
-    func calculatedAttenuationValue(config: CodableExposureConfiguration) -> Int16 {
-        attenuationWeightedTime(config: config) / durationSumCounted(config: config)
+    init(_ base: CodableExposureInfo, merging: CodableExposureInfo) {
+        self.id = base.id
+        self.date = base.date
+
+        self.duration = base.duration
+        self.totalRiskScore = base.totalRiskScore
+        self.transmissionRiskLevel = base.transmissionRiskLevel
+        self.attenuationValue = base.attenuationValue
+        self.attenuationDurations = base.attenuationDurations
+        self.attenuationDurationThresholds = base.attenuationDurations
+        self.durations = base.durations.merging(merging.durations) { old, _ in old }
     }
 
     init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
@@ -76,24 +80,19 @@ struct CodableExposureInfo: Codable {
         self.totalRiskScore = info.totalRiskScore
         self.transmissionRiskLevel = info.transmissionRiskLevel
         self.attenuationValue = Int8(info.attenuationValue)
-        self.attenuationDurations = info.attenuationDurations.map { Int16(truncating: $0) / 60 }
+        self.attenuationDurations = info.attenuationDurations.map { Int(truncating: $0) / 60 }
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
 
+        self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
+                          config.attenuationDurationThresholds[1]: min(30, attenuationDurations[0] + attenuationDurations[1])]
         print("ENExposureInfo:")
         print("  transmissionRiskLevel \(transmissionRiskLevel)")
+        print("  duration \(duration)")
 
         print("  attenuationValue \(attenuationValue)")
         print("  attenuationDurations \(attenuationDurations)")
+        print("  durations \(durations)")
 
-        print("  attenuationWeightedTime \(attenuationWeightedTime)")
-        print("  durationSum \(durationSum)")
-        print("  calculatedAttenuationValue \(calculatedAttenuationValue)")
-        if info.metadata != nil {
-            print("  metadata:")
-            for (key, value) in info.metadata! {
-                print("    \(key) : \(type(of: value)) = \(value)")
-            }
-        }
         print()
     }
 
@@ -103,7 +102,7 @@ struct CodableExposureInfo: Codable {
         totalRiskScore: ENRiskScore,
         transmissionRiskLevel: ENRiskLevel,
         attenuationValue: Int8,
-        attenuationDurations: [Int16]
+        attenuationDurations: [Int]
     ) {
         self.id = UUID()
         self.date = date
@@ -112,11 +111,14 @@ struct CodableExposureInfo: Codable {
         self.transmissionRiskLevel = transmissionRiskLevel
         self.attenuationValue = attenuationValue
         self.attenuationDurations = attenuationDurations
-        self.attenuationDurationThresholds = CodableExposureConfiguration.shared.attenuationDurationThresholds
+        let config = CodableExposureConfiguration.shared
+        self.attenuationDurationThresholds = config.attenuationDurationThresholds
+        self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
+                          config.attenuationDurationThresholds[1]: attenuationDurations[1]]
     }
 
     static let testData = [
-        CodableExposureInfo(date: daysAgo(3), duration: 25, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 5, attenuationDurations: [5, 10, 10]),
+        CodableExposureInfo(date: daysAgo(3), duration: 25, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 4, attenuationDurations: [5, 10, 10]),
         CodableExposureInfo(date: daysAgo(4), duration: 20, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 5, attenuationDurations: [10, 5, 5]),
     ]
 }
@@ -170,7 +172,7 @@ struct CodableExposureConfiguration: Codable {
     let daysSinceLastExposureLevelValues: [ENRiskLevelValue]
     let durationLevelValues: [ENRiskLevelValue]
     let transmissionRiskLevelValues: [ENRiskLevelValue]
-    let attenuationDurationThresholds: [Int]
+    var attenuationDurationThresholds: [Int]
 
     static func getExposureConfigurationString() -> String {
         """
@@ -183,30 +185,17 @@ struct CodableExposureConfiguration: Codable {
         """
     }
 
-    static func getExposureConfigurationString(attenuationDurationThresholds: [Int]) -> String {
-        """
-        {"minimumRiskScore":0,
-        "attenuationLevelValues":[1,2,3,4,5,6,7,8],
-        "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [\(attenuationDurationThresholds[0]), \(attenuationDurationThresholds[1])]}
-        """
-    }
-
-    static func getCodableExposureConfiguration() -> CodableExposureConfiguration {
+    private static func getCodableExposureConfiguration() -> CodableExposureConfiguration {
         let dataFromServer = getExposureConfigurationString().data(using: .utf8)!
 
         let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataFromServer)
         return codableExposureConfiguration
     }
 
-    static func getCodableExposureConfiguration(attenuationDurationThresholds: [Int]) -> CodableExposureConfiguration {
-        let dataFromServer = getExposureConfigurationString(attenuationDurationThresholds: attenuationDurationThresholds)
-        let dataRaw = dataFromServer.data(using: .utf8)!
-
-        let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataRaw)
-        return codableExposureConfiguration
+    static func getCodableExposureConfiguration(pass: Int) -> CodableExposureConfiguration {
+        var config = getCodableExposureConfiguration()
+        config.attenuationDurationThresholds = getAttenuationDurationThresholds(pass: pass)
+        return config
     }
 
     static let shared = getCodableExposureConfiguration()

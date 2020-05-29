@@ -13,6 +13,8 @@ struct PackagedKeys: Codable {
     var keys: [CodableDiagnosisKey]
 }
 
+private let goDeeperQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.goDeeper", attributes: .concurrent)
+
 struct BatchExposureInfo: Codable {
     static let exposureDateFormat: DateFormatter = {
         let formatter = DateFormatter()
@@ -30,8 +32,13 @@ struct BatchExposureInfo: Codable {
     let userName: String
     let dateKeysSent: Date
     let dateProcessed: Date
-    let keysChecked: Int?
+    let keys: [CodableDiagnosisKey]
+    var keysChecked: Int {
+        keys.count
+    }
+
     var memo: String?
+    var analysisPasses = 1
     var config: CodableExposureConfiguration?
     var someConfig: CodableExposureConfiguration {
         if let c = config {
@@ -40,7 +47,7 @@ struct BatchExposureInfo: Codable {
         return CodableExposureConfiguration.shared
     }
 
-    let exposures: [CodableExposureInfo]
+    var exposures: [CodableExposureInfo]
     var memoConfig: String {
         if let m = memo {
             return "memo: \(m)"
@@ -61,8 +68,50 @@ struct BatchExposureInfo: Codable {
         return ""
     }
 
+    func goDeeper() -> BatchExposureInfo {
+        if analysisPasses == numberAnalysisPasses {
+            print("Already at \(analysisPasses) passes")
+            return self
+        }
+
+        do {
+            let pass = analysisPasses + 1
+            print("starting analysis pass \(pass)")
+
+            let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
+            let newResults = try ExposureFramework.shared.getExposureInfo(keys: keys,
+                                                                          userName: userName,
+                                                                          date: Date(),
+                                                                          userExplanation: "Analyzing exposures, pass \(pass)", configuration: config)
+            print("Got new results")
+            var dict: [ExposureKey: CodableExposureInfo] = [:]
+            for info in newResults {
+                dict[ExposureKey(info: info)] = info
+            }
+            let result: [CodableExposureInfo] = exposures.map { exposureInfo in
+                let key = ExposureKey(info: exposureInfo)
+
+                if let newValue = dict[key] {
+                    return CodableExposureInfo(exposureInfo, merging: newValue)
+                }
+                return exposureInfo
+            }
+
+            return BatchExposureInfo(userName: userName,
+                                     dateKeysSent: dateKeysSent,
+                                     dateProcessed: Date(), keys: keys,
+                                     analysisPasses: pass,
+                                     config: self.config,
+                                     exposures: result)
+
+        } catch {
+            print("\(error)")
+            return self
+        }
+    }
+
     static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: hoursAgo(2, minutes: 17), dateProcessed: Date(),
-                                            keysChecked: 4, config: CodableExposureConfiguration.shared,
+                                            keys: [], config: CodableExposureConfiguration.shared,
                                             exposures: CodableExposureInfo.testData)
 }
 
@@ -96,6 +145,16 @@ class LocalStore: ObservableObject {
         }
 
         objectWillChange.send()
+    }
+
+    func exposuresUpdated(newExposures: [BatchExposureInfo]) {
+        if let encoded = try? JSONEncoder().encode(newExposures) {
+            UserDefaults.standard.set(encoded, forKey: allExposuresKey)
+        }
+        DispatchQueue.main.async {
+            self.allExposures = newExposures
+            self.objectWillChange.send()
+        }
     }
 
     init(userName: String, transmissionRiskLevel: Int, testData: [BatchExposureInfo]) {
@@ -144,6 +203,12 @@ class LocalStore: ObservableObject {
         } catch {
             print(error.localizedDescription)
             return
+        }
+    }
+
+    func goDeeper() {
+        goDeeperQueue.async {
+            self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
         }
     }
 
