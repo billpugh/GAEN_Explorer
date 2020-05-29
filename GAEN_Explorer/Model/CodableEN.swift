@@ -8,6 +8,8 @@
 import ExposureNotification
 import Foundation
 
+let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
+
 // from ENExposureInfo
 struct CodableExposureInfo: Codable {
     let id: UUID
@@ -18,6 +20,7 @@ struct CodableExposureInfo: Codable {
     let transmissionRiskLevel: ENRiskLevel
     let attenuationValue: Int8 // attenuation risk level
     let attenuationDurations: [Int16] // minutes
+    let attenuationDurationThresholds: [Int]
     var attenuationDurationsString: String {
         attenuationDurations.map { String($0) }.joined(separator: "/")
     }
@@ -65,7 +68,7 @@ struct CodableExposureInfo: Codable {
         attenuationWeightedTime(config: config) / durationSumCounted(config: config)
     }
 
-    init(_ info: ENExposureInfo) {
+    init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
         self.id = UUID()
         self.date = info.date
 
@@ -74,6 +77,7 @@ struct CodableExposureInfo: Codable {
         self.transmissionRiskLevel = info.transmissionRiskLevel
         self.attenuationValue = Int8(info.attenuationValue)
         self.attenuationDurations = info.attenuationDurations.map { Int16(truncating: $0) / 60 }
+        self.attenuationDurationThresholds = config.attenuationDurationThresholds
 
         print("ENExposureInfo:")
         print("  transmissionRiskLevel \(transmissionRiskLevel)")
@@ -108,6 +112,7 @@ struct CodableExposureInfo: Codable {
         self.transmissionRiskLevel = transmissionRiskLevel
         self.attenuationValue = attenuationValue
         self.attenuationDurations = attenuationDurations
+        self.attenuationDurationThresholds = CodableExposureConfiguration.shared.attenuationDurationThresholds
     }
 
     static let testData = [
@@ -159,7 +164,6 @@ struct CodableExposureConfiguration: Codable {
     static let attenuationLevelHigh: NSNumber = 0
     static let attenuationLevelMedium: NSNumber = 3
     static let attenuationLevelLow: NSNumber = 6
-    static let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
 
     let minimumRiskScore: ENRiskScore
     let attenuationLevelValues: [ENRiskLevelValue]
@@ -171,14 +175,22 @@ struct CodableExposureConfiguration: Codable {
     static func getExposureConfigurationString() -> String {
         """
         {"minimumRiskScore":0,
-        "attenuationLevelValues":[\(CodableExposureConfiguration.attenuationLevelHigh), \(CodableExposureConfiguration.attenuationLevelHigh),
-            \(CodableExposureConfiguration.attenuationLevelMedium), \(CodableExposureConfiguration.attenuationLevelMedium),
-            \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow),
-            \(CodableExposureConfiguration.attenuationLevelLow), \(CodableExposureConfiguration.attenuationLevelLow)],
+        "attenuationLevelValues":[1,2,3,4,5,6,7,8],
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "durationLevelValues":[1, 1, 1, 5, 5, 5, 5, 5],
+        "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [33, 63]}
+        "attenuationDurationThresholds": [50, 55]}
+        """
+    }
+
+    static func getExposureConfigurationString(attenuationDurationThresholds: [Int]) -> String {
+        """
+        {"minimumRiskScore":0,
+        "attenuationLevelValues":[1,2,3,4,5,6,7,8],
+        "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "attenuationDurationThresholds": [\(attenuationDurationThresholds[0]), \(attenuationDurationThresholds[1])]}
         """
     }
 
@@ -186,6 +198,14 @@ struct CodableExposureConfiguration: Codable {
         let dataFromServer = getExposureConfigurationString().data(using: .utf8)!
 
         let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataFromServer)
+        return codableExposureConfiguration
+    }
+
+    static func getCodableExposureConfiguration(attenuationDurationThresholds: [Int]) -> CodableExposureConfiguration {
+        let dataFromServer = getExposureConfigurationString(attenuationDurationThresholds: attenuationDurationThresholds)
+        let dataRaw = dataFromServer.data(using: .utf8)!
+
+        let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataRaw)
         return codableExposureConfiguration
     }
 

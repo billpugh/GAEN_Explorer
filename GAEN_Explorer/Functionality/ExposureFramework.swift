@@ -54,10 +54,6 @@ class ExposureFramework: ObservableObject {
     let dayFormatter = DateFormatter()
     let shortDateFormatter = DateFormatter()
 
-    func doneAnalyzingKeys() {
-        print("done analyzing keys")
-    }
-
     var callGetTestDiagnosisKeys = false
     init() {
         print("ENManager init'd")
@@ -187,7 +183,6 @@ class ExposureFramework: ObservableObject {
     private var signatureInfo: SignatureInfo
     private var secKey: SecKey
 
-   
     func getExportData(_ diagnosisKeys: [CodableDiagnosisKey]) throws -> Data {
         // In a real implementation, the file at remoteURL would be downloaded from a server
         // This sample generates and saves a binary and signature pair of files based on the locally stored diagnosis keys
@@ -227,7 +222,28 @@ class ExposureFramework: ObservableObject {
                 tekSignature.signature = signedHash
                 tekSignature.batchNum = 1
                 tekSignature.batchSize = 1
-                          }]
+                }]
+        }
+    }
+
+    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
+        do {
+            let data = try Data(contentsOf: url)
+            let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
+            print("Calling packaged keys")
+            do {
+                try analyze(packagedKeys: packagedKeys)
+            } catch {
+                print("error description \(error.localizedDescription)")
+
+                completionHandler?(false)
+                return
+            }
+            completionHandler?(true)
+            // importData(packagedKeys: packagedKeys, completionHandler: completionHandler)
+        } catch {
+            print("Unexpected error: \(error)")
+            completionHandler?(false)
         }
     }
 
@@ -242,26 +258,75 @@ class ExposureFramework: ObservableObject {
         return [localBinURL, localSigURL]
     }
 
-    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) -> Progress {
-           do {
-               let data = try Data(contentsOf: url)
-               let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
-               return importData(packagedKeys: packagedKeys, completionHandler: completionHandler)
-           } catch {
-               print("Unexpected error: \(error)")
-               completionHandler?(false)
-               return Progress()
-           }
-       }
+    func getURLs(diagnosisKeys: [CodableDiagnosisKey]) throws -> [URL] {
+        let exportData = try getExportData(diagnosisKeys)
 
-    func importData(packagedKeys: PackagedKeys, completionHandler: ((Bool) -> Void)? = nil) -> Progress {
-        let progress = Progress()
+        let tekSignatureList = try getTEKSignatureList(exportData)
+
+        return try getURLs(exportData, tekSignatureList)
+    }
+
+    let standardUserExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
+    let analysisQueue = DispatchQueue(label: "org.dpppt.matcher", attributes: .concurrent)
+
+    func analyze(packagedKeys: PackagedKeys) {
+        print("starting analysis")
+        try analysisQueue.async {
+            do {
+                let analysis = ExposureAnalysis(name: packagedKeys.userName)
+                for pass in 0 ..< numberAnalysisPasses {
+                    print("pass \(pass)")
+                    let thresholds: [Int] = getAttenuationDurationThresholds(pass: pass)
+                    let config = CodableExposureConfiguration.getCodableExposureConfiguration(attenuationDurationThresholds: thresholds)
+
+                    analysis.analyze(pass: pass, exposures: try self.getExposureInfo(packagedKeys: packagedKeys, userExplanation: "Analyzing exposures, pass \(pass) of \(numberAnalysisPasses)", configuration: config))
+                }
+                analysis.printMe()
+            } catch {
+                print("\(error)")
+            }
+        }
+    }
+
+    func getExposureInfo(packagedKeys: PackagedKeys, userExplanation: String, configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: [CodableExposureInfo]?
+        var exposureDetectionError: Error?
+        let URLs = try getURLs(diagnosisKeys: packagedKeys.keys)
+        print("Calling detect exposures")
+        ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
+            summary, error in
+            if let error = error {
+                print("error description \(error.localizedDescription)")
+                LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
+
+                exposureDetectionError = error
+                semaphore.signal()
+                return
+            }
+            print("Calling getExposureInfo")
+            ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
+                if let error = error {
+                    print("error description \(error.localizedDescription)")
+                    exposureDetectionError = error
+                    semaphore.signal()
+                    return
+                }
+                result = exposures!.map { exposure in CodableExposureInfo(exposure, config: configuration) }.sorted { $0.date > $1.date }
+                semaphore.signal()
+            }
+        } // detectExposures
+        semaphore.wait()
+        if let error = exposureDetectionError {
+            print("getExposureInfo failed error:  \(error.localizedDescription)")
+            throw error
+        }
+        return result!
+    }
+
+    func importData(packagedKeys: PackagedKeys, completionHandler: ((Bool) -> Void)? = nil) {
         do {
-            let exportData = try getExportData(packagedKeys.keys)
-
-            let tekSignatureList = try getTEKSignatureList(exportData)
-
-            let URLs = try getURLs(exportData, tekSignatureList)
+            let URLs = try getURLs(diagnosisKeys: packagedKeys.keys)
 
             func finish(_ result: Result<[CodableExposureInfo], Error>) {
                 // try? FileManager.default.removeItem(at: localBinURL)
@@ -269,18 +334,15 @@ class ExposureFramework: ObservableObject {
 
                 print("finish called")
                 let success: Bool
-                if progress.isCancelled {
-                    success = false
-                } else {
-                    switch result {
-                    case let .success(newExposures):
-                        print("Got \(newExposures.count) new exposures")
-                        success = true
-                    case let .failure(error):
-                        print("Got failure \(error)")
 
-                        success = false
-                    }
+                switch result {
+                case let .success(newExposures):
+                    print("Got \(newExposures.count) new exposures")
+                    success = true
+                case let .failure(error):
+                    print("Got failure \(error)")
+
+                    success = false
                 }
 
                 completionHandler?(success)
@@ -294,7 +356,6 @@ class ExposureFramework: ObservableObject {
                     print("error description \(error.localizedDescription)")
                     LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
 
-                    ExposureFramework.shared.doneAnalyzingKeys()
                     finish(.failure(error))
                     return
                 }
@@ -310,7 +371,6 @@ class ExposureFramework: ObservableObject {
                 let userExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
                 ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
                     if let error = error {
-                        ExposureFramework.shared.doneAnalyzingKeys()
                         LocalStore.shared.appendExposure(BatchExposureInfo(userName: packagedKeys.userName, dateKeysSent: packagedKeys.date, dateProcessed: Date(), keysChecked: packagedKeys.keys.count, memo: error.localizedDescription, exposures: []))
                         finish(.failure(error))
                         return
@@ -329,14 +389,14 @@ class ExposureFramework: ObservableObject {
 
                         print()
                     }
-                    let newExposures = exposures!.map { exposure in CodableExposureInfo(exposure) }.sorted { $0.date > $1.date }
+                    let newExposures = exposures!.map { exposure in CodableExposureInfo(exposure, config: config) }.sorted { $0.date > $1.date }
                     LocalStore.shared.appendExposure(
                         BatchExposureInfo(userName: packagedKeys.userName,
                                           dateKeysSent: packagedKeys.date,
                                           dateProcessed: Date(), keysChecked: packagedKeys.keys.count,
                                           config: config,
                                           exposures: newExposures))
-                    ExposureFramework.shared.doneAnalyzingKeys()
+
                     finish(.success(newExposures))
                 }
             } // detectExposures
@@ -344,7 +404,6 @@ class ExposureFramework: ObservableObject {
         } catch {
             print("Unexpected error: \(error)")
         }
-        return progress
     }
 }
 
@@ -426,7 +485,7 @@ class DiagnosisKeyItem: NSObject, UIActivityItemSource {
         self.keyCount = k
         self.userName = user
         self.url = url
-        self.title = keyCount == 1 ? "a diagnositic key for \(userName) from GAEN Explorer" : "\(keyCount) diagnositic keys for \(userName) from GAEN Explorer"
+        self.title = keyCount == 1 ? "a diagnosis key for \(userName) from GAEN Explorer" : "\(keyCount) diagnosis keys for \(userName) from GAEN Explorer"
     }
 
     func itemsToShare() -> [Any] {
