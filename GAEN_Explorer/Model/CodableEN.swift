@@ -36,6 +36,7 @@ struct CodableExposureInfo: Codable {
     let id: UUID
     let date: Date
     let duration: Int8 // minutes
+    let extendedDuration: Int8 // minutes
     let totalRiskScore: ENRiskScore
 
     let transmissionRiskLevel: ENRiskLevel
@@ -64,23 +65,25 @@ struct CodableExposureInfo: Codable {
         self.date = base.date
 
         self.duration = base.duration
+        self.extendedDuration = max(base.extendedDuration, merging.extendedDuration)
         self.totalRiskScore = base.totalRiskScore
         self.transmissionRiskLevel = base.transmissionRiskLevel
         self.attenuationValue = base.attenuationValue
         self.attenuationDurations = base.attenuationDurations
         self.attenuationDurationThresholds = base.attenuationDurations
-        self.durations = base.durations.merging(merging.durations) { old, _ in old }
+        self.durations = base.durations.merging(merging.durations) { _, new in new }
     }
 
     init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
         self.id = UUID()
         self.date = info.date
 
-        self.duration = Int8(info.duration / 60)
         self.totalRiskScore = info.totalRiskScore
         self.transmissionRiskLevel = info.transmissionRiskLevel
         self.attenuationValue = Int8(info.attenuationValue)
         self.attenuationDurations = info.attenuationDurations.map { Int(truncating: $0) / 60 }
+        self.duration = Int8(info.duration / 60)
+        self.extendedDuration = Int8(self.attenuationDurations[0]+self.attenuationDurations[1]+self.attenuationDurations[2])
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
 
         self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
@@ -96,6 +99,7 @@ struct CodableExposureInfo: Codable {
         print()
     }
 
+    // testdata
     init(
         date: Date,
         duration: Int8,
@@ -115,6 +119,8 @@ struct CodableExposureInfo: Codable {
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
         self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
                           config.attenuationDurationThresholds[1]: attenuationDurations[1]]
+        self.extendedDuration = Int8(attenuationDurations[0]+attenuationDurations[1]+attenuationDurations[2])
+              
     }
 
     static let testData = [
@@ -177,7 +183,7 @@ struct CodableExposureConfiguration: Codable {
     static func getExposureConfigurationString() -> String {
         """
         {"minimumRiskScore":0,
-        "attenuationLevelValues":[1,2,3,4,5,6,7,8],
+        "attenuationLevelValues":[2,7,1,8, 3,6,5,4],
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],

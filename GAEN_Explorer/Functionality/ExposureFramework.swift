@@ -332,7 +332,7 @@ class ExposureFramework: ObservableObject {
 
                 switch result {
                 case let .success(newExposures):
-                    print("Got \(newExposures.count) new exposures")
+                    print("Got \(newExposures.count) new encounters")
                     success = true
                 case let .failure(error):
                     print("Got failure \(error)")
@@ -354,8 +354,8 @@ class ExposureFramework: ObservableObject {
                     finish(.failure(error))
                     return
                 }
-                print("Found exposures \(summary!.matchedKeyCount)")
-                print("Found exposures \(summary!.daysSinceLastExposure) days ago")
+                print("Found encounters \(summary!.matchedKeyCount)")
+                print("Found encounters \(summary!.daysSinceLastExposure) days ago")
                 print("maximum risk score \(summary!.maximumRiskScore) ")
                 print("attenuationDurations \(summary!.attenuationDurations) ")
                 print("  metadata:")

@@ -81,16 +81,16 @@ struct ExposureDetailView: View {
     var info: CodableExposureInfo
     @EnvironmentObject var localStore: LocalStore
     var body: some View { VStack {
-        ExposureDurationsViewLarge(thresholdData: self.info.thresholdData).padding(.top)
+        ExposureDurationsViewLarge(thresholdData: self.info.thresholdData).padding(.vertical)
         ScrollView {
             GeometryReader { geometry in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("From batch \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("From keys \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
                     Text("processed \(self.batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
                     Text("")
-                    Text("This exposure occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
+                    Text("This encounter occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
                     Group {
-                        Text("exposure lasted \(self.info.duration) minutes")
+                        Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
                         Text("attenuationValue was \(self.info.attenuationValue) ")
                         Text("transmission risk was \(self.info.transmissionRiskLevel)")
                         Text("total risk score is \(self.info.totalRiskScore)").padding(.bottom)
@@ -105,7 +105,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Details \(localStore.userName) encounter with \(batch.userName)", displayMode: .inline)
+    }.navigationBarTitle("Details of encounter with \(batch.userName)  \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)", displayMode: .inline)
     }
 }
 
@@ -175,7 +175,7 @@ struct ExposuresView: View {
 
                 // Erase button
                 Button(action: { self.showingDeleteAlert = true }) {
-                    Text("Erase all exposures").foregroundColor(.red)
+                    Text("Erase all encounters").foregroundColor(.red)
 
                 }.alert(isPresented: self.$showingDeleteAlert) {
                     Alert(title: Text("Really Erase all?"),

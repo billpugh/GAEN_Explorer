@@ -109,7 +109,7 @@ struct StatusView: View {
 
                 // Show exposures
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                    Text("Show exposures").font(.headline)
+                    Text("Show encounters").font(.headline)
                 }
                 .padding(.vertical)
 
@@ -117,7 +117,7 @@ struct StatusView: View {
                 Button(action: {
                     LocalStore.shared.goDeeper()
                 }
-                ) { Text("Go deeper") }
+                ) { Text("Do deeper analysis of encounters") }.padding(.vertical)
 
                 // About
                 NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {

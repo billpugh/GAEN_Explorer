@@ -60,7 +60,7 @@ class ExposureAnalysis {
     }
 
     func analyze(pass: Int, exposures: [CodableExposureInfo]) {
-        print("analysis pass \(pass),  have \(exposures.count) exposures")
+        print("analysis pass \(pass),  have \(exposures.count) encounters")
 
         allExposures.append(exposures)
 

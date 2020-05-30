@@ -130,7 +130,7 @@ class LocalStore: ObservableObject {
     @Published
     var allExposures: [BatchExposureInfo] = []
     func deleteAllExposures() {
-        print("Deleting all exposures")
+        print("Deleting all encounters")
         allExposures = []
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: allExposuresKey)
