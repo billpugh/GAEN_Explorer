@@ -11,14 +11,16 @@ import Foundation
 let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
 
 struct ThresholdData: Hashable, CustomStringConvertible {
+    static let maxAttenuation = 90
     var description: String {
+        thisDuration == 0 ? "" :
         "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < 90 ? "<= \(attenuation)dB" : "")"
     }
 
     let prevAttenuation: Int
     let attenuation: Int
     var attenuationLabel: String {
-        if attenuation == 90 {
+        if attenuation == ThresholdData.maxAttenuation {
             return "∞"
         }
         return String(attenuation)
@@ -51,12 +53,11 @@ struct CodableExposureInfo: Codable {
         var prev: Int = 0
         var prevAnt = 0
         for (key, value) in sortedDurations {
-            let cumulative = min(30, prev + value)
-            result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: key, prevDuration: prev, cumulativeDuration: cumulative))
-            prev = cumulative
+            result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: key, prevDuration: prev, cumulativeDuration: value))
+            prev = value
             prevAnt = key
         }
-        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: 90, prevDuration: prev, cumulativeDuration: Int(duration)))
+        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: ThresholdData.maxAttenuation, prevDuration: prev, cumulativeDuration: Int(duration)))
         return result
     }
 
