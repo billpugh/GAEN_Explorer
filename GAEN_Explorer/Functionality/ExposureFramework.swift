@@ -10,6 +10,9 @@ import CommonCrypto
 import ExposureNotification
 import Foundation
 import LinkPresentation
+import os.log
+
+let pointsOfInterest = OSLog(subsystem: "com.ninjamonkeycoders.gaen", category: .pointsOfInterest)
 
 class ExposureFramework: ObservableObject {
     let objectWillChange = ObservableObjectPublisher()
@@ -184,6 +187,10 @@ class ExposureFramework: ObservableObject {
     private var secKey: SecKey
 
     func getExportData(_ diagnosisKeys: [CodableDiagnosisKey]) throws -> Data {
+        os_signpost(.begin, log: pointsOfInterest, name: "getExportData")
+        defer {
+            os_signpost(.end, log: pointsOfInterest, name: "getExportData")
+        }
         // In a real implementation, the file at remoteURL would be downloaded from a server
         // This sample generates and saves a binary and signature pair of files based on the locally stored diagnosis keys
         let export = TemporaryExposureKeyExport.with { export in
@@ -204,6 +211,10 @@ class ExposureFramework: ObservableObject {
     }
 
     func getTEKSignatureList(_ exportData: Data) throws -> TEKSignatureList {
+        os_signpost(.begin, log: pointsOfInterest, name: "getSignatures")
+        defer {
+            os_signpost(.end, log: pointsOfInterest, name: "getSignatures")
+        }
         var exportHash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
         _ = exportData.withUnsafeBytes { exportDataBuffer in
             exportHash.withUnsafeMutableBytes { exportHashBuffer in
@@ -245,6 +256,10 @@ class ExposureFramework: ObservableObject {
     }
 
     func getURLs(_ exportData: Data, _ tekSignatureList: TEKSignatureList) throws -> [URL] {
+        os_signpost(.begin, log: pointsOfInterest, name: "createFiles")
+        defer {
+            os_signpost(.end, log: pointsOfInterest, name: "createFiles")
+        }
         let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
 
         let localBinURL = cachesDirectory.appendingPathComponent("export.bin")
@@ -287,8 +302,11 @@ class ExposureFramework: ObservableObject {
         var exposureDetectionError: Error?
         let URLs = try getURLs(diagnosisKeys: keys)
         print("Calling detect exposures")
+        os_signpost(.begin, log: pointsOfInterest, name: "detectExposures")
+
         ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
             summary, error in
+            os_signpost(.end, log: pointsOfInterest, name: "detectExposures")
             if let error = error {
                 print("error description \(error.localizedDescription)")
                 exposureDetectionError = error
@@ -296,7 +314,10 @@ class ExposureFramework: ObservableObject {
                 return
             }
             print("Calling getExposureInfo")
+            os_signpost(.begin, log: pointsOfInterest, name: "getExposureInfo")
+
             ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
+                os_signpost(.end, log: pointsOfInterest, name: "getExposureInfo")
                 if let error = error {
                     print("error description \(error.localizedDescription)")
                     exposureDetectionError = error
