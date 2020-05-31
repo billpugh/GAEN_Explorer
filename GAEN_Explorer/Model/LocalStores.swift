@@ -87,27 +87,29 @@ class LocalStore: ObservableObject {
     var positions: [String: Int] = [:]
 
     func analyze() {
-        viewShown = "exposures"
+        print("analyze \(allExposures.count)")
+        let pass = allExposures.map(\.analysisPasses).min()!
+
         if allExposures.count == 0 {
+            print("Nothing to do")
             return
         }
+        if pass + 1 > numberAnalysisPasses {
+            print("alread completed pass \(numberAnalysisPasses)")
+            return
+        }
+        viewShown = "exposures"
 
         goDeeperQueue.async {
-            self.analyzeOffMainThread()
+            self.analyzeOffMainThread(pass)
         }
     }
 
-    func analyzeOffMainThread() {
-        if allExposures.count == 0 {
-            return
-        }
-        let pass = allExposures.map(\.analysisPasses).min()!
-        if pass + 1 == numberAnalysisPasses {
-            return
-        }
-        print("Doing analyis passes \(pass + 1)")
+    func analyzeOffMainThread(_ pass: Int) {
+        print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
+
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
-        print("Have \(allKeys) keys")
+        print("Have \(allKeys.count) keys")
         let exposures = try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
                                                                       userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
                                                                       configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
@@ -145,18 +147,17 @@ class LocalStore: ObservableObject {
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
-        if let encoded = try? JSONEncoder().encode(self.positions) {
-                                          UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
-                           }
+        if let encoded = try? JSONEncoder().encode(positions) {
+            UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+        }
         objectWillChange.send()
     }
 
     func addKeysFromUser(_ e: PackagedKeys) {
-
         if let i = positions[e.userName] {
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
             DispatchQueue.main.async {
-                        LocalStore.shared.viewShown = "exposures"
+                LocalStore.shared.viewShown = "exposures"
                 self.allExposures[i] = extractedExpr
                 if let encoded = try? JSONEncoder().encode(self.allExposures) {
                     UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
@@ -166,7 +167,7 @@ class LocalStore: ObservableObject {
             let lastIndex = allExposures.count
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
             DispatchQueue.main.async {
-                        LocalStore.shared.viewShown = "exposures"
+                LocalStore.shared.viewShown = "exposures"
                 self.positions[e.userName] = lastIndex
                 print("positions = \(self.positions)")
                 self.allExposures.append(extractedExpr)
@@ -174,8 +175,8 @@ class LocalStore: ObservableObject {
                     UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
                 }
                 if let encoded = try? JSONEncoder().encode(self.positions) {
-                                   UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
-                    }
+                    UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+                }
             }
         }
 
@@ -208,7 +209,7 @@ class LocalStore: ObservableObject {
             self.allExposures = loadedExposures
         }
         if let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
-            let positions = try? JSONDecoder().decode([String:Int].self, from: data) {
+            let positions = try? JSONDecoder().decode([String: Int].self, from: data) {
             print("Set positons to \(positions)")
             self.positions = positions
         }
