@@ -93,8 +93,6 @@ struct ExposureDetailView: View {
                         Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
                         Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
                         Text("attenuationValue was \(self.info.attenuationValue) ")
-                        Text("transmission risk was \(self.info.transmissionRiskLevel)")
-                        Text("total risk score is \(self.info.totalRiskScore)").padding(.bottom)
                         Text("durations at different attenuations:")
                     }
                     ForEach(self.info.thresholdData
@@ -106,7 +104,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Details of encounter with \(batch.userName)  \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)", displayMode: .inline)
+    }.navigationBarTitle("Encounter with \(batch.userName)  \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)", displayMode: .inline)
     }
 }
 
