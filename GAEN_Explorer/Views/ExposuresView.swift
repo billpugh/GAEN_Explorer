@@ -86,7 +86,7 @@ struct ExposureDetailView: View {
             GeometryReader { geometry in
                 VStack(alignment: .leading, spacing: 6) {
                     Text("From keys \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
-                    Text("processed \(self.batch.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("analyzed \(self.batch.dateAnalyzed, formatter: ExposureFramework.shared.shortDateFormatter)")
                     Text("")
                     Text("This encounter occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
                     Group {
@@ -181,7 +181,7 @@ struct ExposuresView: View {
 
                                 }.padding(.top)
                                 HStack {
-                                    Text("  processed \(d.dateProcessed, formatter: ExposureFramework.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
+                                    Text("  analyzed \(d.dateAnalyzed, formatter: ExposureFramework.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
 
                                 }.font(.subheadline).padding(.bottom)
 

@@ -33,7 +33,7 @@ struct EncountersWithUser: Codable {
 
     let userName: String
     let dateKeysSent: Date
-    let dateProcessed: Date
+    var dateAnalyzed: Date
     let transmissionRiskLevel: ENRiskLevel
     var keys: [CodableDiagnosisKey]
     var keysChecked: Int {
@@ -43,7 +43,7 @@ struct EncountersWithUser: Codable {
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel) {
         self.userName = packedKeys.userName
         self.dateKeysSent = packedKeys.date
-        self.dateProcessed = Date()
+        self.dateAnalyzed = Date()
         self.keys = packedKeys.keys
         self.transmissionRiskLevel = transmissionRiskLevel
         for i in 0 ..< keys.count {
@@ -60,6 +60,7 @@ struct EncountersWithUser: Codable {
         for info in newAnalysis {
             dict[ExposureKey(info: info)] = info
         }
+        self.dateAnalyzed = Date()
         for i in 0 ..< exposures.count {
             let key = ExposureKey(info: exposures[i])
             if let newValue = dict[key] {
