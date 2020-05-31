@@ -141,9 +141,13 @@ class LocalStore: ObservableObject {
     func deleteAllExposures() {
         print("Deleting all encounters")
         allExposures = []
+        positions = [:]
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
+        if let encoded = try? JSONEncoder().encode(self.positions) {
+                                          UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+                           }
         objectWillChange.send()
     }
 
