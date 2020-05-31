@@ -148,17 +148,30 @@ class LocalStore: ObservableObject {
     }
 
     func addKeysFromUser(_ e: PackagedKeys) {
+
         if let i = positions[e.userName] {
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
             DispatchQueue.main.async {
+                        LocalStore.shared.viewShown = "exposures"
                 self.allExposures[i] = extractedExpr
+                if let encoded = try? JSONEncoder().encode(self.allExposures) {
+                    UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+                }
             }
         } else {
             let lastIndex = allExposures.count
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
             DispatchQueue.main.async {
+                        LocalStore.shared.viewShown = "exposures"
                 self.positions[e.userName] = lastIndex
+                print("positions = \(self.positions)")
                 self.allExposures.append(extractedExpr)
+                if let encoded = try? JSONEncoder().encode(self.allExposures) {
+                    UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+                }
+                if let encoded = try? JSONEncoder().encode(self.positions) {
+                                   UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+                    }
             }
         }
 
@@ -189,6 +202,11 @@ class LocalStore: ObservableObject {
         if let e = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
             let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: e) {
             self.allExposures = loadedExposures
+        }
+        if let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
+            let positions = try? JSONDecoder().decode([String:Int].self, from: data) {
+            print("Set positons to \(positions)")
+            self.positions = positions
         }
     }
 

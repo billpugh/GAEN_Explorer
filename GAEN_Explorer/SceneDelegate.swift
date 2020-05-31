@@ -18,7 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             guard url.pathExtension == "diagk" else { return }
             _ = ExposureFramework.shared.importData(from: url) {
                 _ in
-                LocalStore.shared.viewShown = "exposures"
+                
             }
 
             // WXApi.handleOpen(url, delegate: AppDelegate.shared)
