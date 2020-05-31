@@ -16,7 +16,7 @@
 		164D16E1246A10DC00267376 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 164D16DF246A10DC00267376 /* LaunchScreen.storyboard */; };
 		164D16EB246A112600267376 /* ExposureNotification.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 164D16EA246A112600267376 /* ExposureNotification.framework */; };
 		164D16EF246A116F00267376 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 164D16EE246A116F00267376 /* SwiftProtobuf */; };
-		164D16F8246A1CE200267376 /* MyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* MyModels.swift */; };
+		164D16F8246A1CE200267376 /* CodableEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* CodableEN.swift */; };
 		164D16FA246AD19500267376 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
 		168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
@@ -28,6 +28,10 @@
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
 		16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C3E71C2476D14900B4EA2B /* AboutView.swift */; };
 		16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CBDFF72476BE2E009AF285 /* ExposuresView.swift */; };
+		16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F308172480103100BD7DA1 /* ExposureAnalysis.swift */; };
+		16F3083A2481996200BD7DA1 /* CHANGES.md in Resources */ = {isa = PBXBuildFile; fileRef = 16F308392481996000BD7DA1 /* CHANGES.md */; };
+		16F6179D247B1FB000757986 /* ConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F6179C247B1FB000757986 /* ConfigurationView.swift */; };
+		16F6179F247B583700757986 /* LocalStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F6179E247B583700757986 /* LocalStores.swift */; };
 		16FE3363247995720061BEBE /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 16FE3362247995720061BEBE /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -43,7 +47,7 @@
 		164D16E8246A111700267376 /* GAEN_Explorer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GAEN_Explorer.entitlements; sourceTree = "<group>"; };
 		164D16EA246A112600267376 /* ExposureNotification.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ExposureNotification.framework; path = System/Library/Frameworks/ExposureNotification.framework; sourceTree = SDKROOT; };
 		164D16F0246A118200267376 /* ExposureFramework.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposureFramework.swift; sourceTree = "<group>"; };
-		164D16F7246A1CE200267376 /* MyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyModels.swift; sourceTree = "<group>"; };
+		164D16F7246A1CE200267376 /* CodableEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableEN.swift; sourceTree = "<group>"; };
 		164D16F9246AD19500267376 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		164D1721246B357900267376 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TemporaryExposureKeyExport.pb.swift; sourceTree = "<group>"; };
@@ -54,6 +58,10 @@
 		16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = TemporaryExposureKeyExport.proto; sourceTree = "<group>"; };
 		16C3E71C2476D14900B4EA2B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		16CBDFF72476BE2E009AF285 /* ExposuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposuresView.swift; sourceTree = "<group>"; };
+		16F308172480103100BD7DA1 /* ExposureAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposureAnalysis.swift; sourceTree = "<group>"; };
+		16F308392481996000BD7DA1 /* CHANGES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGES.md; sourceTree = "<group>"; };
+		16F6179C247B1FB000757986 /* ConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationView.swift; sourceTree = "<group>"; };
+		16F6179E247B583700757986 /* LocalStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStores.swift; sourceTree = "<group>"; };
 		16FE3362247995720061BEBE /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -82,6 +90,7 @@
 		164D16C8246A10D800267376 = {
 			isa = PBXGroup;
 			children = (
+				16F308392481996000BD7DA1 /* CHANGES.md */,
 				16FE3362247995720061BEBE /* README.md */,
 				164D16D3246A10D800267376 /* GAEN_Explorer */,
 				164D16D2246A10D800267376 /* Products */,
@@ -135,9 +144,11 @@
 		164D16F6246A1BF500267376 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */,
-				164D16F7246A1CE200267376 /* MyModels.swift */,
 				16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */,
+				168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */,
+				164D16F7246A1CE200267376 /* CodableEN.swift */,
+				16F6179E247B583700757986 /* LocalStores.swift */,
+				16F308172480103100BD7DA1 /* ExposureAnalysis.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -159,6 +170,7 @@
 				164D16D8246A10D800267376 /* ContentView.swift */,
 				16C3E71C2476D14900B4EA2B /* AboutView.swift */,
 				16CBDFF72476BE2E009AF285 /* ExposuresView.swift */,
+				16F6179C247B1FB000757986 /* ConfigurationView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -228,6 +240,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				16B4184F24773C670054D622 /* GAEN_Explorer.entitlements in Resources */,
+				16F3083A2481996200BD7DA1 /* CHANGES.md in Resources */,
 				164D16E1246A10DC00267376 /* LaunchScreen.storyboard in Resources */,
 				16A4D83B246C902800A081EF /* keys_64.png in Resources */,
 				164D1722246B357900267376 /* Localizable.strings in Resources */,
@@ -247,6 +260,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */,
 				16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */,
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
@@ -254,9 +268,11 @@
 				164D16D9246A10D800267376 /* ContentView.swift in Sources */,
 				164D16FA246AD19500267376 /* Utilities.swift in Sources */,
 				16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */,
+				16F6179F247B583700757986 /* LocalStores.swift in Sources */,
+				16F6179D247B1FB000757986 /* ConfigurationView.swift in Sources */,
 				168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */,
 				163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */,
-				164D16F8246A1CE200267376 /* MyModels.swift in Sources */,
+				164D16F8246A1CE200267376 /* CodableEN.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
