@@ -14,7 +14,7 @@ struct ThresholdData: Hashable, CustomStringConvertible {
     static let maxAttenuation = 90
     var description: String {
         thisDuration == 0 ? "" :
-        "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < 90 ? "<= \(attenuation)dB" : "")"
+            "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < 90 ? "<= \(attenuation)dB" : "")"
     }
 
     let prevAttenuation: Int
@@ -38,7 +38,7 @@ struct CodableExposureInfo: Codable {
     let id: UUID
     let date: Date
     let duration: Int8 // minutes
-    let extendedDuration: Int8 // minutes
+    var extendedDuration: Int8 // minutes
     let totalRiskScore: ENRiskScore
 
     let transmissionRiskLevel: ENRiskLevel
@@ -46,6 +46,11 @@ struct CodableExposureInfo: Codable {
     let attenuationDurations: [Int] // minutes
     let attenuationDurationThresholds: [Int]
     var durations: [Int: Int] // minutes
+    var meaningfulDuration: Int {
+        let lowAttn = durations[50] ?? 0
+        let mediumAttn = (durations[56] ?? lowAttn) - lowAttn
+        return lowAttn + mediumAttn / 2
+    }
 
     var thresholdData: [ThresholdData] {
         var result: [ThresholdData] = []
@@ -61,18 +66,10 @@ struct CodableExposureInfo: Codable {
         return result
     }
 
-    init(_ base: CodableExposureInfo, merging: CodableExposureInfo) {
-        self.id = base.id
-        self.date = base.date
+    mutating func merge(_ merging: CodableExposureInfo) {
+        extendedDuration = max(extendedDuration, merging.extendedDuration)
 
-        self.duration = base.duration
-        self.extendedDuration = max(base.extendedDuration, merging.extendedDuration)
-        self.totalRiskScore = base.totalRiskScore
-        self.transmissionRiskLevel = base.transmissionRiskLevel
-        self.attenuationValue = base.attenuationValue
-        self.attenuationDurations = base.attenuationDurations
-        self.attenuationDurationThresholds = base.attenuationDurations
-        self.durations = base.durations.merging(merging.durations) { _, new in new }
+        durations.merge(merging.durations) { old, _ in old }
     }
 
     init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
@@ -84,7 +81,7 @@ struct CodableExposureInfo: Codable {
         self.attenuationValue = Int8(info.attenuationValue)
         self.attenuationDurations = info.attenuationDurations.map { Int(truncating: $0) / 60 }
         self.duration = Int8(info.duration / 60)
-        self.extendedDuration = Int8(self.attenuationDurations[0]+self.attenuationDurations[1]+self.attenuationDurations[2])
+        self.extendedDuration = Int8(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
 
         self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
@@ -120,8 +117,7 @@ struct CodableExposureInfo: Codable {
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
         self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
                           config.attenuationDurationThresholds[1]: attenuationDurations[1]]
-        self.extendedDuration = Int8(attenuationDurations[0]+attenuationDurations[1]+attenuationDurations[2])
-              
+        self.extendedDuration = Int8(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
     }
 
     static let testData = [
@@ -135,14 +131,17 @@ struct CodableDiagnosisKey: Codable, Equatable {
     let keyData: Data
     let rollingPeriod: ENIntervalNumber
     let rollingStartNumber: ENIntervalNumber
-    let transmissionRiskLevel: ENRiskLevel
+    var transmissionRiskLevel: ENRiskLevel = 0
     let republicationSecret: UInt64? = nil
-    init(_ key: ENTemporaryExposureKey, tRiskLevel: ENRiskLevel) {
+    init(_ key: ENTemporaryExposureKey) {
         self.keyData = key.keyData
         self.rollingPeriod = key.rollingPeriod
         self.rollingStartNumber = key.rollingStartNumber
-        self.transmissionRiskLevel = tRiskLevel
-        // self.republicationSecret = UInt64.random(in: UInt64.min ... UInt64.max)
+        self.transmissionRiskLevel = key.transmissionRiskLevel
+    }
+
+    mutating func setTransmissionRiskLevel(transmissionRiskLevel: ENRiskLevel) {
+        self.transmissionRiskLevel = transmissionRiskLevel
     }
 
     static func exportToURL(package: PackagedKeys) -> URL? {
@@ -188,7 +187,7 @@ struct CodableExposureConfiguration: Codable {
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [50, 55]}
+        "attenuationDurationThresholds": [50, 56]}
         """
     }
 

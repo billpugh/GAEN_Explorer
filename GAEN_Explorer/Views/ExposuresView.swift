@@ -77,7 +77,7 @@ struct ExposureDurationsViewSmall: View {
 }
 
 struct ExposureDetailView: View {
-    var batch: BatchExposureInfo
+    var batch: EncountersWithUser
     var info: CodableExposureInfo
     @EnvironmentObject var localStore: LocalStore
     var body: some View { VStack {
@@ -91,6 +91,7 @@ struct ExposureDetailView: View {
                     Text("This encounter occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
                     Group {
                         Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
+                        Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
                         Text("attenuationValue was \(self.info.attenuationValue) ")
                         Text("transmission risk was \(self.info.transmissionRiskLevel)")
                         Text("total risk score is \(self.info.totalRiskScore)").padding(.bottom)
@@ -109,15 +110,53 @@ struct ExposureDetailView: View {
     }
 }
 
+struct MeaningfulExposureView: View {
+    var info: CodableExposureInfo
+    var scale: Double = 3
+    var value: Double {
+        Double(info.meaningfulDuration)
+    }
+
+    static let maxValue: Double = 30
+    let significant: Double = 15
+    var maxSize: CGFloat {
+        CGFloat(scale * Self.maxValue)
+    }
+
+    var scaledValue: CGFloat {
+        CGFloat(scale * value)
+    }
+
+    var scaledSignificant: CGFloat {
+        CGFloat(scale * significant)
+    }
+
+    var hue: Double {
+        if value > significant {
+            return 0
+        }
+        return (significant - value) / significant * 0.3
+    }
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Color(hue: hue, saturation: 1, brightness: 1)).frame(width: scaledValue, height: scaledValue)
+            Circle().stroke(Color.primary, lineWidth: CGFloat(scale)).frame(width: scaledSignificant, height: scaledSignificant)
+
+        }.frame(width: maxSize, height: maxSize)
+    }
+}
+
 struct ExposureInfoView: View {
-    var day: BatchExposureInfo
+    var day: EncountersWithUser
     var info: CodableExposureInfo
     var width: CGFloat
     var body: some View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
                 Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
-
+                Spacer()
+                MeaningfulExposureView(info: info, scale: 2)
                 Spacer()
                 ExposureDurationsViewSmall(thresholdData: info.thresholdData)
             }
@@ -136,7 +175,7 @@ struct ExposuresView: View {
         ZStack {
             GeometryReader { geometry in
                 VStack { List {
-                    ForEach(self.localStore.allExposures.reversed(), id: \.dateProcessed) { d in
+                    ForEach(self.localStore.allExposures.reversed(), id: \.userName) { d in
                         Section(header:
                             VStack(alignment: .leading) {
                                 HStack {
@@ -214,7 +253,7 @@ struct ExposuresView: View {
 }
 
 struct ExposureDetailView_Previews: PreviewProvider {
-    static let batch = BatchExposureInfo.testData
+    static let batch = EncountersWithUser.testData
 
     static var previews: some View {
         NavigationView {
@@ -224,7 +263,7 @@ struct ExposureDetailView_Previews: PreviewProvider {
 }
 
 struct ExposuresView_Previews: PreviewProvider {
-    static let localStore = LocalStore(userName: "Alice", transmissionRiskLevel: 6, testData: [BatchExposureInfo.testData])
+    static let localStore = LocalStore(userName: "Alice", testData: [EncountersWithUser.testData])
 
     static var previews: some View {
         NavigationView {

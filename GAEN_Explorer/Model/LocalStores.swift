@@ -5,17 +5,19 @@
 //  Created by Bill on 5/24/20.
 //
 
+import ExposureNotification
 import Foundation
 
 struct PackagedKeys: Codable {
     var userName: String
     var date: Date
     var keys: [CodableDiagnosisKey]
+    static let testData = PackagedKeys(userName: "Bob", date: hoursAgo(26, minutes: 17), keys: [])
 }
 
 private let goDeeperQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.goDeeper", attributes: .concurrent)
 
-struct BatchExposureInfo: Codable {
+struct EncountersWithUser: Codable {
     static let exposureDateFormat: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd HH:mm"
@@ -32,124 +34,142 @@ struct BatchExposureInfo: Codable {
     let userName: String
     let dateKeysSent: Date
     let dateProcessed: Date
-    let keys: [CodableDiagnosisKey]
+    let transmissionRiskLevel: ENRiskLevel
+    var keys: [CodableDiagnosisKey]
     var keysChecked: Int {
         keys.count
     }
 
-    var memo: String?
-    var analysisPasses = 1
-    var config: CodableExposureConfiguration?
-    var someConfig: CodableExposureConfiguration {
-        if let c = config {
-            return c
+    init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel) {
+        self.userName = packedKeys.userName
+        self.dateKeysSent = packedKeys.date
+        self.dateProcessed = Date()
+        self.keys = packedKeys.keys
+        self.transmissionRiskLevel = transmissionRiskLevel
+        for i in 0 ..< keys.count {
+            keys[i].setTransmissionRiskLevel(transmissionRiskLevel: transmissionRiskLevel)
         }
-        return CodableExposureConfiguration.shared
     }
 
-    var exposures: [CodableExposureInfo]
-    var memoConfig: String {
-        if let m = memo {
-            return "memo: \(m)"
-        }
-        if let c = config {
-            return "attenuationDurationThresholds: \(c.attenuationDurationThresholds[0])/\(c.attenuationDurationThresholds[1])"
-        }
-        return ""
-    }
+    var analysisPasses = 0
 
-    var shortMemoConfig: String {
-        if let m = memo {
-            return m
-        }
-        if let c = config {
-            return "adt: \(c.attenuationDurationThresholds[0])/\(c.attenuationDurationThresholds[1])"
-        }
-        return ""
-    }
+    var exposures: [CodableExposureInfo] = []
 
-    func goDeeper() -> BatchExposureInfo {
-        if analysisPasses == numberAnalysisPasses {
-            print("Already at \(analysisPasses) passes")
-            return self
+    mutating func merge(newAnalysis: [CodableExposureInfo]) {
+        var dict: [ExposureKey: CodableExposureInfo] = [:]
+        for info in newAnalysis {
+            dict[ExposureKey(info: info)] = info
         }
-
-        do {
-            let pass = analysisPasses + 1
-            print("starting analysis pass \(pass)")
-
-            let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
-            let newResults = try ExposureFramework.shared.getExposureInfo(keys: keys,
-                                                                          userName: userName,
-                                                                          date: Date(),
-                                                                          userExplanation: "Analyzing exposures, pass \(pass)", configuration: config)
-            print("Got new results")
-            var dict: [ExposureKey: CodableExposureInfo] = [:]
-            for info in newResults {
-                dict[ExposureKey(info: info)] = info
+        for i in 0 ..< exposures.count {
+            let key = ExposureKey(info: exposures[i])
+            if let newValue = dict[key] {
+                exposures[i].merge(newValue)
             }
-            let result: [CodableExposureInfo] = exposures.map { exposureInfo in
-                let key = ExposureKey(info: exposureInfo)
-
-                if let newValue = dict[key] {
-                    return CodableExposureInfo(exposureInfo, merging: newValue)
-                }
-                return exposureInfo
-            }
-
-            return BatchExposureInfo(userName: userName,
-                                     dateKeysSent: dateKeysSent,
-                                     dateProcessed: Date(), keys: keys,
-                                     analysisPasses: pass,
-                                     config: self.config,
-                                     exposures: result)
-
-        } catch {
-            print("\(error)")
-            return self
         }
     }
 
-    static var testData = BatchExposureInfo(userName: "Bob", dateKeysSent: hoursAgo(2, minutes: 17), dateProcessed: Date(),
-                                            keys: [], config: CodableExposureConfiguration.shared,
-                                            exposures: CodableExposureInfo.testData)
+    static var testData = EncountersWithUser(packedKeys: PackagedKeys.testData, transmissionRiskLevel: 0)
 }
 
 class LocalStore: ObservableObject {
     static let shared = LocalStore()
 
-    let userNameKey = "userName"
+    static let userNameKey = "userName"
+    static let allExposuresKey = "allExposures"
+    static let positionsKey = "positions"
 
     @Published
     var userName: String = ""
 
     @Published
     var viewShown: String? = nil
-    let allExposuresKey = "allExposures"
+
+    var positions: [String: Int] = [:]
+
+    func analyze() {
+        viewShown = "exposures"
+        if allExposures.count == 0 {
+            return
+        }
+
+        goDeeperQueue.async {
+            self.analyzeOffMainThread()
+        }
+    }
+
+    func analyzeOffMainThread() {
+        if allExposures.count == 0 {
+            return
+        }
+        let pass = allExposures.map(\.analysisPasses).min()!
+        if pass + 1 == numberAnalysisPasses {
+            return
+        }
+        print("Doing analyis passes \(pass + 1)")
+        let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
+        print("Have \(allKeys) keys")
+        let exposures = try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
+                                                                      userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
+                                                                      configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
+        print("Got \(exposures.count) exposures")
+        DispatchQueue.main.async {
+            self.incorporateResults(exposures, pass: pass)
+        }
+    }
+
+    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int) {
+        print("incorporateResults")
+        viewShown = "exposures"
+        for i in 0 ..< allExposures.count {
+            if allExposures[i].analysisPasses == pass {
+                print("Updating exposures for \(allExposures[i].userName)")
+                allExposures[i].analysisPasses += 1
+                if pass == 0 {
+                    allExposures[i].exposures = exposures.filter { $0.transmissionRiskLevel == allExposures[i].transmissionRiskLevel }
+                } else {
+                    allExposures[i].merge(newAnalysis: exposures.filter { $0.transmissionRiskLevel == allExposures[i].transmissionRiskLevel })
+                }
+            }
+        }
+        if let encoded = try? JSONEncoder().encode(allExposures) {
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+        }
+    }
 
     @Published
-    var allExposures: [BatchExposureInfo] = []
+    var allExposures: [EncountersWithUser] = []
     func deleteAllExposures() {
         print("Deleting all encounters")
         allExposures = []
         if let encoded = try? JSONEncoder().encode(allExposures) {
-            UserDefaults.standard.set(encoded, forKey: allExposuresKey)
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
         objectWillChange.send()
     }
 
-    func appendExposure(_ e: BatchExposureInfo) {
-        allExposures.append(e)
+    func addKeysFromUser(_ e: PackagedKeys) {
+        if let i = positions[e.userName] {
+            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
+            DispatchQueue.main.async {
+                self.allExposures[i] = extractedExpr
+            }
+        } else {
+            let lastIndex = allExposures.count
+            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
+            DispatchQueue.main.async {
+                self.positions[e.userName] = lastIndex
+                self.allExposures.append(extractedExpr)
+            }
+        }
+
         if let encoded = try? JSONEncoder().encode(allExposures) {
-            UserDefaults.standard.set(encoded, forKey: allExposuresKey)
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
-
-        objectWillChange.send()
     }
 
-    func exposuresUpdated(newExposures: [BatchExposureInfo]) {
+    func exposuresUpdated(newExposures: [EncountersWithUser]) {
         if let encoded = try? JSONEncoder().encode(newExposures) {
-            UserDefaults.standard.set(encoded, forKey: allExposuresKey)
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
         DispatchQueue.main.async {
             self.allExposures = newExposures
@@ -157,28 +177,19 @@ class LocalStore: ObservableObject {
         }
     }
 
-    init(userName: String, transmissionRiskLevel: Int, testData: [BatchExposureInfo]) {
+    init(userName: String, testData: [EncountersWithUser]) {
         self.userName = userName
-        self.transmissionRiskLevel = transmissionRiskLevel
         self.allExposures = testData
     }
 
-    let transmissionRiskLevelKey = "transmissionRiskLevel"
-    @Published
-    var transmissionRiskLevel: Int = 5
-
     init() {
-        if let data = UserDefaults.standard.string(forKey: userNameKey) {
+        if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
         }
-        if let e = UserDefaults.standard.object(forKey: allExposuresKey) as? Data,
-            let loadedExposures = try? JSONDecoder().decode([BatchExposureInfo].self, from: e) {
+        if let e = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
+            let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: e) {
             self.allExposures = loadedExposures
         }
-
-        let t = UserDefaults.standard.integer(forKey: transmissionRiskLevelKey)
-
-        transmissionRiskLevel = t == 0 ? 5 : t - 1
     }
 
     var shareExposuresURL: URL?
@@ -208,13 +219,12 @@ class LocalStore: ObservableObject {
 
     func goDeeper() {
         goDeeperQueue.async {
-            self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
+            // self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
         }
     }
 
     func save() {
-        UserDefaults.standard.set(transmissionRiskLevel, forKey: transmissionRiskLevelKey)
-        UserDefaults.standard.set(userName, forKey: userNameKey)
+        UserDefaults.standard.set(userName, forKey: Self.userNameKey)
         print("User default saved")
     }
 }

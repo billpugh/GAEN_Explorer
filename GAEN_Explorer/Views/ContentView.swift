@@ -89,7 +89,7 @@ struct StatusView: View {
                 // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
-                    self.framework.getAndPackageKeys(userName: self.localStore.userName, tRiskLevel: ENRiskLevel(self.localStore.transmissionRiskLevel)) {
+                    self.framework.getAndPackageKeys(userName: self.localStore.userName) {
                         print("getAndPackageKeys done")
                         self.showingSheet = true
                         self.computingKeys = false
@@ -115,9 +115,9 @@ struct StatusView: View {
 
                 // Go Deeper
                 Button(action: {
-                    LocalStore.shared.goDeeper()
+                    LocalStore.shared.analyze()
                 }
-                ) { Text("Do deeper analysis of encounters") }.padding(.vertical)
+                ) { Text("Analyze encounters") }.padding(.vertical)
 
                 // About
                 NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
@@ -150,7 +150,7 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static let models: [String] = ["iPhone SE", "iPhone 11 Pro Max"]
-    static let localStore = LocalStore(userName: "Alice", transmissionRiskLevel: 6, testData: [BatchExposureInfo.testData])
+    static let localStore = LocalStore(userName: "Alice", testData: [EncountersWithUser.testData])
 
     static var previews: some View {
         ForEach(models, id: \.self) { name in ContentView().environmentObject(localStore)
