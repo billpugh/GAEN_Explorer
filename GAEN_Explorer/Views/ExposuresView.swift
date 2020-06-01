@@ -133,13 +133,13 @@ struct MeaningfulExposureView: View {
         if value > significant {
             return 0
         }
-        return (significant - value) / significant * 0.3
+        return ((significant - value) / significant).squareRoot() * 0.3
     }
 
     var body: some View {
         ZStack {
             Circle().fill(Color(hue: hue, saturation: 1, brightness: 1)).frame(width: scaledValue, height: scaledValue)
-            Circle().stroke(Color.primary, lineWidth: CGFloat(scale)).frame(width: scaledSignificant, height: scaledSignificant)
+            Circle().stroke(Color.primary, lineWidth: CGFloat(scale * (value >= significant ? 2.0 : 0.5))).frame(width: scaledSignificant, height: scaledSignificant)
 
         }.frame(width: maxSize, height: maxSize)
     }
