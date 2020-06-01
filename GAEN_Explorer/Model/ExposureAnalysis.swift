@@ -14,8 +14,6 @@ struct ExposureKey: Hashable, CustomStringConvertible {
         day
     }
 
-    let attenuationValue: Int8
-    let duration: Int8 // minutes
     let transmissionRiskLevel: ENRiskLevel
 
     var date: Date
@@ -24,9 +22,7 @@ struct ExposureKey: Hashable, CustomStringConvertible {
     }
 
     init(info: CodableExposureInfo) {
-        self.attenuationValue = info.attenuationValue
         self.date = info.date
-        self.duration = info.duration
         self.transmissionRiskLevel = info.transmissionRiskLevel
     }
 }
