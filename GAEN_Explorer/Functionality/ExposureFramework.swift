@@ -313,6 +313,13 @@ class ExposureFramework: ObservableObject {
                 semaphore.signal()
                 return
             }
+            if (summary?.matchedKeyCount == 0) {
+                print("No keys matched, skipping getExposureInfo")
+                result = []
+                semaphore.signal()
+                return
+                
+            }
             print("Calling getExposureInfo")
             os_signpost(.begin, log: pointsOfInterest, name: "getExposureInfo")
 
