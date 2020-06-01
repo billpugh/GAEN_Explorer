@@ -60,7 +60,7 @@ struct EncountersWithUser: Codable {
         for info in newAnalysis {
             dict[ExposureKey(info: info)] = info
         }
-        self.dateAnalyzed = Date()
+        dateAnalyzed = Date()
         for i in 0 ..< exposures.count {
             let key = ExposureKey(info: exposures[i])
             if let newValue = dict[key] {
@@ -205,14 +205,17 @@ class LocalStore: ObservableObject {
         if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
         }
-        if let e = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
-            let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: e) {
-            self.allExposures = loadedExposures
-        }
-        if let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
+        if let exposureData = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
+            let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: exposureData),
+            let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
             let positions = try? JSONDecoder().decode([String: Int].self, from: data) {
-            print("Set positons to \(positions)")
-            self.positions = positions
+            if loadedExposures.count == loadedExposures.count {
+                self.allExposures = loadedExposures
+                print("Set positons to \(positions)")
+                self.positions = positions
+            } else {
+                print("mismatched count \(loadedExposures.count) \(loadedExposures.count)")
+            }
         }
     }
 
