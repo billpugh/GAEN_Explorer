@@ -37,7 +37,7 @@ struct ThresholdData: Hashable, CustomStringConvertible {
 struct CodableExposureInfo: Codable {
     let id: UUID
     let date: Date
-    let duration: Int8 // minutes
+    var duration: Int8 // minutes
     var extendedDuration: Int8 // minutes
     let totalRiskScore: ENRiskScore
 
@@ -68,7 +68,7 @@ struct CodableExposureInfo: Codable {
 
     mutating func merge(_ merging: CodableExposureInfo) {
         extendedDuration = max(extendedDuration, merging.extendedDuration)
-
+        duration = max(duration, merging.duration)
         durations.merge(merging.durations) { old, _ in old }
     }
 
