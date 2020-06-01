@@ -92,8 +92,8 @@ struct ExposureDetailView: View {
                     Group {
                         Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
                         Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
-                        Text("attenuationValue was \(self.info.attenuationValue) ")
-                        Text("durations at different attenuations:")
+
+                        Text("durations at different attenuations:").padding(.top)
                     }
                     ForEach(self.info.thresholdData
                         .filter { $0.thisDuration > 0 },
