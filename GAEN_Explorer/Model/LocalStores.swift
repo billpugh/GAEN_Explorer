@@ -40,12 +40,13 @@ struct EncountersWithUser: Codable {
         keys.count
     }
 
-    init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel) {
+    init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, exposures :  [CodableExposureInfo] = [] ) {
         self.userName = packedKeys.userName
         self.dateKeysSent = packedKeys.date
         self.dateAnalyzed = Date()
         self.keys = packedKeys.keys
         self.transmissionRiskLevel = transmissionRiskLevel
+        self.exposures = exposures
         for i in 0 ..< keys.count {
             keys[i].setTransmissionRiskLevel(transmissionRiskLevel: transmissionRiskLevel)
         }
@@ -53,7 +54,7 @@ struct EncountersWithUser: Codable {
 
     var analysisPasses = 0
 
-    var exposures: [CodableExposureInfo] = []
+    var exposures: [CodableExposureInfo]
 
     mutating func merge(newAnalysis: [CodableExposureInfo]) {
         var dict: [ExposureKey: CodableExposureInfo] = [:]
@@ -69,7 +70,7 @@ struct EncountersWithUser: Codable {
         }
     }
 
-    static var testData = EncountersWithUser(packedKeys: PackagedKeys.testData, transmissionRiskLevel: 0)
+    static var testData = EncountersWithUser(packedKeys: PackagedKeys.testData, transmissionRiskLevel: 0, exposures: CodableExposureInfo.testData)
 }
 
 class LocalStore: ObservableObject {
