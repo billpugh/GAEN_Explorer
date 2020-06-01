@@ -140,6 +140,23 @@ struct CodableDiagnosisKey: Codable, Equatable {
         self.transmissionRiskLevel = key.transmissionRiskLevel
     }
 
+    static let rollingPeriod: ENIntervalNumber = 144
+    init(randomFromDaysAgo daysAgo: UInt32) {
+        let dNumber = UInt32(Date().timeIntervalSince1970 / 24 / 60 / 60)
+        var keyData = Data(count: 16)
+        let result = keyData.withUnsafeMutableBytes {
+            SecRandomCopyBytes(kSecRandomDefault, 16, $0)
+        }
+        self.keyData = keyData
+        if result != errSecSuccess {
+            print("random failed \(result)")
+        }
+
+        self.rollingPeriod = Self.rollingPeriod
+        self.rollingStartNumber = (dNumber - daysAgo) * Self.rollingPeriod
+        self.transmissionRiskLevel = 0
+    }
+
     mutating func setTransmissionRiskLevel(transmissionRiskLevel: ENRiskLevel) {
         self.transmissionRiskLevel = transmissionRiskLevel
     }

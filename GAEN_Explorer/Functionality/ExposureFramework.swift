@@ -335,6 +335,21 @@ class ExposureFramework: ObservableObject {
         }
         return result!
     }
+
+    func analyzeRandomKeys(numKeys: Int) {
+        print("Calling analyzeRandomKeys \(numKeys)")
+        analysisQueue.async {
+            os_signpost(.begin, log: pointsOfInterest, name: "generateRandomKeys")
+            var keys: [CodableDiagnosisKey] = []
+            for i in 1 ... numKeys {
+                keys.append(CodableDiagnosisKey(randomFromDaysAgo: UInt32(1 + (i % 10))))
+            }
+            print("have \(keys.count) random keys")
+            os_signpost(.end, log: pointsOfInterest, name: "generateRandomKeys")
+            let exposures = try! self.getExposureInfo(keys: keys, userExplanation: "Analyzing random keys", configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: 1))
+            print("Found \(exposures.count) exposures")
+        }
+    }
 }
 
 extension ENStatus: CustomStringConvertible {
