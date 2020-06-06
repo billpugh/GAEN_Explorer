@@ -26,8 +26,9 @@ struct ExposureKey: Hashable, CustomStringConvertible {
         self.transmissionRiskLevel = info.transmissionRiskLevel
     }
 }
+// 44, 47, 50, 53, 56, 59, 62, 65
+let multipassThresholds = [50, 56,   44, 53,   59, 65,  47, 62]
 
-let multipassThresholds = [50, 56, 47, 53, 44, 62]
 let numberAnalysisPasses = multipassThresholds.count / 2
 
 func getAttenuationDurationThresholds(pass: Int) -> [Int] {

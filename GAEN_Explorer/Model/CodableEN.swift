@@ -119,9 +119,33 @@ struct CodableExposureInfo: Codable {
                           config.attenuationDurationThresholds[1]: attenuationDurations[1]]
         self.extendedDuration = Int8(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
     }
+    init(
+           date: Date,
+           duration: Int8,
+           totalRiskScore: ENRiskScore,
+           transmissionRiskLevel: ENRiskLevel,
+           attenuationValue: Int8,
+           durations: [Int:Int]
+       ) {
+           self.id = UUID()
+           self.date = date
+           self.duration = duration
+           self.totalRiskScore = totalRiskScore
+           self.transmissionRiskLevel = transmissionRiskLevel
+           self.attenuationValue = attenuationValue
+           let config = CodableExposureConfiguration.shared
+        let a0 = durations[config.attenuationDurationThresholds[0]]!
+        let a1 =  durations[config.attenuationDurationThresholds[1]]!
+           self.attenuationDurations = [a0, a1-a0 , 30]
+                                      
+            self.attenuationDurationThresholds = config.attenuationDurationThresholds
+           self.durations = durations
+           self.extendedDuration = Int8(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
+       }
 
     static let testData = [
-        CodableExposureInfo(date: daysAgo(3), duration: 25, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 4, attenuationDurations: [5, 10, 10]),
+        CodableExposureInfo(date: daysAgo(3), duration: 30, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 4, durations: [44:0, 47:5, 50:5, 53:15, 56:20, 59:20, 62:25, 65:30]),
+        
         CodableExposureInfo(date: daysAgo(4), duration: 20, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 5, attenuationDurations: [10, 5, 5]),
     ]
 }
