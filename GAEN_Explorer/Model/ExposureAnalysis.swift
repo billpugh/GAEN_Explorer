@@ -18,7 +18,7 @@ struct ExposureKey: Hashable, CustomStringConvertible {
 
     var date: Date
     var day: String {
-        ExposureFramework.shared.dayFormatter.string(from: date)
+        LocalStore.shared.dayFormatter.string(from: date)
     }
 
     init(info: CodableExposureInfo) {
@@ -26,8 +26,9 @@ struct ExposureKey: Hashable, CustomStringConvertible {
         self.transmissionRiskLevel = info.transmissionRiskLevel
     }
 }
-// 44, 47, 50, 53, 56, 59, 62, 65
-let multipassThresholds = [50, 56,   44, 53,   59, 65,  47, 62]
+
+// 50    55    58    61    64    67    70    73
+let multipassThresholds = [50, 55, 61, 70, 58, 67, 64, 73]
 
 let numberAnalysisPasses = multipassThresholds.count / 2
 

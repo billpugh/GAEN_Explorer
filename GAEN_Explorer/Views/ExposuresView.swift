@@ -85,10 +85,10 @@ struct ExposureDetailView: View {
         ScrollView {
             GeometryReader { geometry in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("From keys \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)")
-                    Text("analyzed \(self.batch.dateAnalyzed, formatter: ExposureFramework.shared.shortDateFormatter)")
+                    Text("From keys \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: LocalStore.shared.shortDateFormatter)")
+                    Text("analyzed \(self.batch.dateAnalyzed, formatter: LocalStore.shared.shortDateFormatter)")
                     Text("")
-                    Text("This encounter occurred on \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)")
+                    Text("This encounter occurred on \(self.info.date, formatter: LocalStore.shared.dayFormatter)")
                     Group {
                         Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
                         Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
@@ -104,7 +104,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Encounter with \(batch.userName)  \(self.info.date, formatter: ExposureFramework.shared.dayFormatter)", displayMode: .inline)
+    }.navigationBarTitle("Encounter with \(batch.userName)  \(self.info.date, formatter: LocalStore.shared.dayFormatter)", displayMode: .inline)
     }
 }
 
@@ -152,13 +152,25 @@ struct ExposureInfoView: View {
     var body: some View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
-                Text("\(info.date, formatter: ExposureFramework.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
+                Text("\(info.date, formatter: LocalStore.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
                 Spacer()
                 MeaningfulExposureView(info: info, scale: 2)
                 Spacer()
                 ExposureDurationsViewSmall(thresholdData: info.thresholdData)
             }
         }
+    }
+}
+
+struct ExposureButton: View {
+    let systemName: String
+    let label: String
+    let width: CGFloat
+    var body: some View {
+        VStack {
+            Image(systemName: systemName)
+            Text(label)
+        }.frame(width: width)
     }
 }
 
@@ -169,21 +181,34 @@ struct ExposuresView: View {
 
     @State private var showingSheet = false
 
+    func makeAlert(
+        title: String,
+        message: String,
+        destructiveButton: String,
+        destructiveAction: @escaping () -> Void,
+        cancelAction: @escaping () -> Void
+    ) -> Alert {
+        Alert(title: Text(title), message: Text(message),
+              primaryButton: .destructive(Text(destructiveButton), action: destructiveAction),
+              secondaryButton: .cancel(cancelAction))
+    }
+
     var body: some View {
         ZStack {
             GeometryReader { geometry in
-                VStack { List {
-                    ForEach(self.localStore.allExposures.reversed(), id: \.userName) { d in
-                        Section(header:
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: ExposureFramework.shared.shortDateFormatter)").font(.headline)
+                VStack {
+                    List {
+                        ForEach(self.localStore.allExposures.reversed(), id: \.userName) { d in
+                            Section(header:
+                                VStack(alignment: .leading) {
+                                    HStack {
+                                        Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: LocalStore.shared.shortDateFormatter)").font(.headline)
 
-                                }.padding(.top)
-                                HStack {
-                                    Text("  analyzed \(d.dateAnalyzed, formatter: ExposureFramework.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
+                                    }.padding(.top)
+                                    HStack {
+                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: LocalStore.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
 
-                                }.font(.subheadline).padding(.bottom)
+                                    }.font(.subheadline)
 
 //                                HStack {
 //                                    Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
@@ -195,56 +220,82 @@ struct ExposuresView: View {
 //                                    Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
 //                                }.padding(.vertical, 5).font(.footnote)
                         }) {
-                            ForEach(d.exposures, id: \.id) { info in
-                                ExposureInfoView(day: d, info: info, width: geometry.size.width)
+                                ForEach(d.exposures, id: \.id) { info in
+                                    ExposureInfoView(day: d, info: info, width: geometry.size.width)
+                                }
                             }
                         }
-                    }
-                } // forEach
+                    } // forEach
 
-                .sheet(isPresented: self.$showingSheet, onDismiss: { print("share sheet dismissed") },
-                       content: {
-                           ActivityView(activityItems: [
-                               JsonItem(url: self.localStore.shareExposuresURL!,
-                                        title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
-                           ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                    .sheet(isPresented: self.$showingSheet, onDismiss: { print("share sheet dismissed") },
+                           content: {
+                               ActivityView(activityItems: [
+                                   JsonItem(url: self.localStore.shareExposuresURL!,
+                                            title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
+                               ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                     })
 
-                // Erase button
-                Button(action: { self.showingDeleteAlert = true }) {
-                    Text("Erase all encounters").foregroundColor(.red)
+                    Button(action: { self.localStore.check() }) { Text("Check") }
+                    HStack {
+                        // Erase Analysis
+                        Button(action: { LocalStore.shared.eraseAnalysis() })
+                        { ExposureButton(systemName: "backward.end.alt", label: "reset", width: geometry.size.width * 0.23) }
+                            .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.4)
 
-                }.alert(isPresented: self.$showingDeleteAlert) {
-                    Alert(title: Text("Really Erase all?"),
-                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
-                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
-                              self.showingDeleteAlert = false
-                          },
-                          secondaryButton: .cancel {
-                              self.showingDeleteAlert = false
+                        // Analyze
+                        Button(action: { LocalStore.shared.analyze() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
+                            .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.4)
 
-                            })
-                } // Erase button
+                        // Delete all
+                        Button(action: {
+                            self.showingDeleteAlert = true
+                            LocalStore.shared.deleteAllExposures()
+                        })
+                        { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
+                            .disabled(!self.localStore.canErase).opacity(self.localStore.canErase ? 1 : 0.4)
+                            .alert(isPresented: self.$showingDeleteAlert) {
+                                self.makeAlert(title: "Really Erase all?",
+                                               message: "Are you sure you want to delete all keys and analysis?",
+                                               destructiveButton: "Delete",
+                                               destructiveAction: { self.localStore.deleteAllExposures()
+                                                   self.showingDeleteAlert = false
+                                               },
+                                               cancelAction: { self.showingDeleteAlert = false })
+                            }
+
+                        Button(action: {
+                            print("Trying to share")
+                            self.exportingExposures = true
+                            self.localStore.exportExposuresToURL()
+                            self.showingSheet = true
+                            self.exportingExposures = false
+                            print("showingSheet set to true")
+                       })
+                        { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
+                            .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.4)
+                    }
+                    // Erase button
+//                Button(action: { self.showingDeleteAlert = true }) {
+//                    Text("Erase all encounters").foregroundColor(.red)
+//
+//                }.alert(isPresented: self.$showingDeleteAlert) {
+//                    Alert(title: Text("Really Erase all?"),
+//                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
+//                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
+//                              self.showingDeleteAlert = false
+//                          },
+//                          secondaryButton: .cancel {
+//                              self.showingDeleteAlert = false
+//
+//                            })
+//                } // Erase button
                 }
             }
             .navigationBarTitle(self.localStore.allExposures.count == 0 ?
 
                 "No encounters for \(localStore.userName)" :
                 "Encounters for \(localStore.userName)", displayMode: .inline)
-            .navigationBarItems(trailing:
 
-                /// Export BUTTON
-                Button(action: {
-                    print("Trying to share")
-                    self.exportingExposures = true
-                    self.localStore.exportExposuresToURL()
-                    self.showingSheet = true
-                    self.exportingExposures = false
-                    print("showingSheet set to true")
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                } // Export button
-            )
             ActivityIndicatorView(isAnimating: $exportingExposures)
         }
     }

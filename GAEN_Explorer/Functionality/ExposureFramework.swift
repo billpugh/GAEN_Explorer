@@ -25,7 +25,9 @@ class ExposureFramework: ObservableObject {
         get {
             manager.exposureNotificationEnabled
         }
-        set { setExposureNotificationEnabled(newValue)
+        set {
+            setExposureNotificationEnabled(newValue)
+            LocalStore.shared.addDiaryEntry(.scanningChanged(on: newValue))
         }
     }
 
@@ -52,10 +54,6 @@ class ExposureFramework: ObservableObject {
         ENManager.authorizationStatus == .authorized
             && manager.exposureNotificationStatus == .active
     }
-
-    let fullDateFormatter = DateFormatter()
-    let dayFormatter = DateFormatter()
-    let shortDateFormatter = DateFormatter()
 
     var callGetTestDiagnosisKeys = false
     init() {
@@ -84,23 +82,9 @@ class ExposureFramework: ObservableObject {
         self.privateKeyData = privateKeyECData.suffix(65) + privateKeyECData.subdata(in: 36 ..< 68)
         self.secKey = SecKeyCreateWithData(privateKeyData as CFData, attributes, &cfError)!
 
-        fullDateFormatter.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
-        dayFormatter.dateFormat = "MMM d"
-        shortDateFormatter.timeStyle = .short
-        shortDateFormatter.dateStyle = .short
-        shortDateFormatter.doesRelativeDateFormatting = true
-
         manager.activate { _ in
             print("ENManager activiated")
             self.objectWillChange.send()
-            // Ensure exposure notifications are enabled if the app is authorized. The app
-            // could get into a state where it is authorized, but exposure
-            // notifications are not enabled,  if the user initially denied Exposure Notifications
-            // during onboarding, but then flipped on the "COVID-19 Exposure Notifications" switch
-            // in Settings.
-            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
-                self.setExposureNotificationEnabled(true)
-            }
         }
     }
 
@@ -119,21 +103,21 @@ class ExposureFramework: ObservableObject {
         CodableDiagnosisKey(key)
     }
 
-    func getAndPackageKeys(userName: String, _ success: @escaping () -> Void) {
+    func getAndPackageKeys(userName: String, otherKeys: [PackagedKeys], _ result: @escaping (Bool) -> Void) {
         if callGetTestDiagnosisKeys {
             manager.getTestDiagnosisKeys {
                 temporaryExposureKeys, error in
                 if let error = error {
                     print(error)
+                    result(false)
                 } else {
                     let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
                     print("Got \(temporaryExposureKeys!.count) diagnosis keys")
                     let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
-                    self.package = package
-                    self.keyURL = CodableDiagnosisKey.exportToURL(package: package)
+                    self.keyCount = codableKeys.count
+                    self.keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [package])
 
-                    self.objectWillChange.send()
-                    success()
+                    result(true)
                 }
             }
         } else {
@@ -146,20 +130,17 @@ class ExposureFramework: ObservableObject {
                     print("Got \(temporaryExposureKeys!.count) diagnosis keys")
                     print("Got \(codableKeys.count) codable keys")
                     let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
-                    self.package = package
-                    self.keyURL = CodableDiagnosisKey.exportToURL(package: package)
+                    self.keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [package])
+                    self.keyCount = codableKeys.count
+
                     print("KeyURL \(self.keyURL!)")
-                    self.objectWillChange.send()
-                    success()
+                    result(true)
                 }
             }
         }
     }
 
-    var package: PackagedKeys?
-    var keyCount: Int {
-        package?.keys.count ?? -1
-    }
+    var keyCount: Int = 0
 
     var keysExportedMessage: String {
         switch keyCount {
@@ -240,21 +221,6 @@ class ExposureFramework: ObservableObject {
     let standardUserExplanation = NSLocalizedString("USER_NOTIFICATION_EXPLANATION", comment: "User notification")
     let analysisQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.analysis", attributes: .concurrent)
 
-    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
-        analysisQueue.async {
-            print("got url \(url)")
-            do {
-                let data = try Data(contentsOf: url)
-                let packagedKeys = try JSONDecoder().decode(PackagedKeys.self, from: data)
-
-                LocalStore.shared.addKeysFromUser(packagedKeys)
-            } catch {
-                print("Unexpected error: \(error)")
-                completionHandler?(false)
-            }
-        }
-    }
-
     func getURLs(_ exportData: Data, _ tekSignatureList: TEKSignatureList) throws -> [URL] {
         os_signpost(.begin, log: pointsOfInterest, name: "createFiles")
         defer {
@@ -313,12 +279,11 @@ class ExposureFramework: ObservableObject {
                 semaphore.signal()
                 return
             }
-            if (summary?.matchedKeyCount == 0) {
+            if summary?.matchedKeyCount == 0 {
                 print("No keys matched, skipping getExposureInfo")
                 result = []
                 semaphore.signal()
                 return
-                
             }
             print("Calling getExposureInfo")
             os_signpost(.begin, log: pointsOfInterest, name: "getExposureInfo")

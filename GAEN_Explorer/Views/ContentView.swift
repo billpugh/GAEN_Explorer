@@ -78,6 +78,8 @@ struct StatusView: View {
     @State var computingKeys = false
     var body: some View {
         Form {
+            // MARK: User Info
+
             Section(header: Text("User Info").font(.title)) {
                 HStack {
                     Text("User name: ")
@@ -85,13 +87,18 @@ struct StatusView: View {
                 }.padding(.horizontal)
             }
 
+            // MARK: Actions
+
             Section(header: Text("Actions").font(.title)) {
                 // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
-                    self.framework.getAndPackageKeys(userName: self.localStore.userName) {
+                    self.localStore.getAndPackageKeys { success in
                         print("getAndPackageKeys done")
-                        self.showingSheet = true
+                        if success {
+                            self.showingSheet = true
+                            LocalStore.shared.addDiaryEntry(.keysShared)
+                        }
                         self.computingKeys = false
                     }
                 }
@@ -107,24 +114,30 @@ struct StatusView: View {
                                                ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                             })
 
+//
+//
+                // About
+                NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
+                    Text("About GAEN Explorer").font(.headline)
+                } // Diary
+
+                NavigationLink(destination: StartExperimentView(step: framework.isEnabled ? 1 : 2), tag: "startExperiment", selection: $localStore.viewShown) {
+                    Text("Start Experiment...").font(.headline)
+                }
+
+                NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
+                    Text("Diary").font(.headline)
+                }
                 // Show exposures
                 NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
                     Text("Show encounters").font(.headline)
                 }
-                .padding(.vertical)
 
-                // Go Deeper
-                Button(action: {
-                    LocalStore.shared.analyze()
-                }
-                ) { Text("Analyze encounters") }.padding(.vertical)
-
-                // About
-                NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
-                    Text("About GAEN Explorer").font(.headline)
-                }
                 .padding(.vertical)
             } // Group
+
+            // MARK: Framework
+
             Section(header: Text("Framework").font(.title)) {
                 Toggle(isOn: self.$framework.isEnabled) {
                     Text("Toggle notifications")
