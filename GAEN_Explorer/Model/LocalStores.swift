@@ -120,6 +120,13 @@ class LocalStore: ObservableObject {
     @Published
     var experimentStarted: Date?
 
+    var experimentMessage: String? {
+        if let started = experimentStarted {
+            return "Experiment started \(timeFormatter.string(from: started))"
+        }
+        return nil
+    }
+
     func csvExport() -> String {
         let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
         let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")

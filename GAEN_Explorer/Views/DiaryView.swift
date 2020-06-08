@@ -13,8 +13,7 @@ struct DiaryView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack {
-                Text(self.localStore.experimentStarted == nil ? "No experiment is running" : "Experiment started \(self.localStore.shortDateFormatter.string(from: self.localStore.experimentStarted!))")
-                Text("Is event going? Event time")
+                Text(self.localStore.experimentMessage ?? "No experiment running").padding()
                 List {
                     ForEach(self.localStore.diary, id: \.at) { d in
                         HStack {

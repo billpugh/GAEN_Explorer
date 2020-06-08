@@ -104,9 +104,9 @@ struct StatusView: View {
                 }
                 ) {
                     ZStack {
-                        HStack { Text("Share keys").font(.title)
-                            Image(systemName: "square.and.arrow.up").font(.title)
-                        }
+                        HStack { Text("Share keys")
+                            Image(systemName: "square.and.arrow.up")
+                        }.font(.headline)
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
                 }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
@@ -117,22 +117,22 @@ struct StatusView: View {
 //
 //
                 Group {
-                    // About
-                    NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
-                        Text("About").font(.title).padding(.bottom)
-                    } // Diary
-
                     NavigationLink(destination: ExperimentView(), tag: "startExperiment", selection: $localStore.viewShown) {
-                        Text("Run Experiment").font(.title).padding(.bottom)
+                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStarted == nil ? .headline : .subheadline).padding(.bottom)
                     }
 
                     NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-                        Text("Visit Diary").font(.title).padding(.bottom)
+                        Text("Show Diary").font(.headline).padding(.bottom)
                     }
                     // Show exposures
                     NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                        Text("Show encounters").font(.title).padding(.bottom)
+                        Text("Show encounters").font(.headline).padding(.bottom)
                     }
+
+                    // About
+                    NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
+                        Text("About").font(.headline).padding(.bottom)
+                    } // Diary
                 }
             } // Section
 

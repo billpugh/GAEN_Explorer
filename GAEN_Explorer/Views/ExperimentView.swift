@@ -15,6 +15,7 @@ struct ExperimentView: View {
     @State var computingKeys = false
     @State var showingSheet = false
     @State var showingSheetToShareExposures = false
+    @State var experimentCanEnd = false
 
     var finalButtonTitle: String {
         if !localStore.canAnalyze && localStore.allExposures.count > 0 {
@@ -58,6 +59,7 @@ struct ExperimentView: View {
                     Button(action: {
                         self.localStore.startExperiment(self.framework)
                         self.localStore.viewShown = nil
+                        self.localStore.experimentStarted = Date()
                         self.localStore.experimentStep = 4
                     }) { Text("Start Experiment").font(.title) }.padding(.vertical).disabled(self.localStore.experimentStep != 3)
                     Text("This will resume exposure scanning and start the experiment. When the experiment is over come back to this screen")
@@ -94,13 +96,20 @@ struct ExperimentView: View {
                         self.localStore.exportExposuresToURL()
                         self.showingSheetToShareExposures = true
                         self.showingSheet = true
-                        self.localStore.experimentStep = 1
                         print("showingSheet set to true")
                     }
                 }
                 ) { Text(finalButtonTitle).font(.headline) }
                     .padding(.vertical)
                     .disabled(self.localStore.experimentStep != 5 || self.localStore.allExposures.count == 0)
+
+                Button(action: { self.experimentCanEnd = false
+                    self.localStore.experimentStarted = nil
+                    self.localStore.experimentStep = 1
+                    self.localStore.viewShown = nil
+                }
+                ) { Text(experimentCanEnd ? "End experiment" : "Abort experiment").font(.title) }
+                    .padding(.vertical).disabled(self.localStore.experimentStarted == nil)
 
             }.sheet(isPresented: $showingSheet,
                     onDismiss: { self.showingSheetToShareExposures = false },
@@ -109,7 +118,7 @@ struct ExperimentView: View {
                                      applicationActivities: nil, isPresented: self.$showingSheet)
                     })
         }
-        .padding().navigationBarTitle("Starting experiment", displayMode: .inline)
+        .padding().navigationBarTitle(Text(localStore.experimentMessage ?? "Start experiment"), displayMode: .inline)
     }
 }
 

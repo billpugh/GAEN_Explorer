@@ -102,39 +102,49 @@ class ExposureFramework: ObservableObject {
         CodableDiagnosisKey(key)
     }
 
+    var package: PackagedKeys?
+
+    func exportKeys(_ userName: String, _ temporaryExposureKeys: [ENTemporaryExposureKey]?,
+                    _ error: Error?,
+                    _ otherKeys: [PackagedKeys],
+                    _ result: @escaping (Bool) -> Void) {
+        if let error = error {
+            print(error)
+            result(false)
+        } else {
+            let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
+            print("Got \(temporaryExposureKeys!.count) diagnosis keys")
+            let p = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+            keyCount = codableKeys.count
+            package = p
+            keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
+
+            result(true)
+        }
+    }
+
+    func rollingStartNumber(date: Date) -> Int {
+        Int(date.timeIntervalSince1970 / 600)
+    }
+
     func getAndPackageKeys(userName: String, otherKeys: [PackagedKeys], _ result: @escaping (Bool) -> Void) {
+        if let p = package {
+            if rollingStartNumber(date: p.date) == rollingStartNumber(date: Date()) {
+                print("Reusing existing keys")
+                keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
+                result(true)
+                return
+            }
+        }
         if callGetTestDiagnosisKeys {
             manager.getTestDiagnosisKeys {
                 temporaryExposureKeys, error in
-                if let error = error {
-                    print(error)
-                    result(false)
-                } else {
-                    let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
-                    print("Got \(temporaryExposureKeys!.count) diagnosis keys")
-                    let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
-                    self.keyCount = codableKeys.count
-                    self.keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [package])
-
-                    result(true)
-                }
+                self.exportKeys(userName, temporaryExposureKeys, error, otherKeys, result)
             }
         } else {
             manager.getDiagnosisKeys {
                 temporaryExposureKeys, error in
-                if let error = error {
-                    print(error)
-                } else {
-                    let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
-                    print("Got \(temporaryExposureKeys!.count) diagnosis keys")
-                    print("Got \(codableKeys.count) codable keys")
-                    let package = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
-                    self.keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [package])
-                    self.keyCount = codableKeys.count
-
-                    print("KeyURL \(self.keyURL!)")
-                    result(true)
-                }
+                self.exportKeys(userName, temporaryExposureKeys, error, otherKeys, result)
             }
         }
     }
