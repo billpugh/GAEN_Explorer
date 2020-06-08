@@ -26,7 +26,7 @@ struct DiaryView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button(action: { self.localStore.addDiaryEntry(DiaryKind.memo(txt: "Test")) }) {
+                    Button(action: { self.localStore.addDiaryEntry(DiaryKind.memo, "Test") }) {
                         Text("Memo")
                     }
                     Spacer()

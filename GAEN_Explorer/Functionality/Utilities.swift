@@ -24,7 +24,7 @@ func openSettings(from viewController: UIViewController) {
     viewController.view.window?.windowScene?.open(URL(string: UIApplication.openSettingsURLString)!, options: nil, completionHandler: nil)
 }
 
-class JsonItem: NSObject, UIActivityItemSource {
+class ExposuresItem: NSObject, UIActivityItemSource {
     let url: URL
     let title: String
     init(url: URL, title: String) {
@@ -33,7 +33,7 @@ class JsonItem: NSObject, UIActivityItemSource {
     }
 
     func activityViewControllerPlaceholderItem(_: UIActivityViewController) -> Any {
-        "Encounter data as json files"
+        "Encounter data from GAEN Explorer"
     }
 
     func activityViewController(_: UIActivityViewController, itemForActivityType _: UIActivity.ActivityType?) -> Any? {

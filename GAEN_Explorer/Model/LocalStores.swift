@@ -97,6 +97,10 @@ class LocalStore: ObservableObject {
     static let userNameKey = "userName"
     static let allExposuresKey = "allExposures"
     static let positionsKey = "positions"
+    static let diaryKey = "diary"
+
+    @Published
+    var experimentStep: Int = 1
 
     @Published
     var userName: String = ""
@@ -117,12 +121,13 @@ class LocalStore: ObservableObject {
     var experimentStarted: Date?
 
     func csvExport() -> String {
-        allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
-            + diary.map { $0.csv(user: userName) }.joined(separator: "\n")
+        let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
+        let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
+        return exposuresCSV + diaryCSV
     }
 
-    func addDiaryEntry(_ kind: DiaryKind) {
-        diary.append(DiaryEntry(Date(), kind))
+    func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
+        diary.append(DiaryEntry(Date(), kind, text))
     }
 
     func eraseAnalysis() {
@@ -186,7 +191,7 @@ class LocalStore: ObservableObject {
         }
 
         let pass = allExposures.map(\.analysisPasses).min()!
-        addDiaryEntry(DiaryKind.analysisPerformed(pass: pass))
+        addDiaryEntry(DiaryKind.analysisPerformed, "\(pass)")
         print("Analyzing")
         goDeeperQueue.async {
             self.analyzeOffMainThread(pass)
@@ -258,7 +263,7 @@ class LocalStore: ObservableObject {
             print("Got my own keys back, ignoring")
             return
         }
-        addDiaryEntry(DiaryKind.keysReceived(from: e.userName))
+        addDiaryEntry(DiaryKind.keysReceived, e.userName)
         if let i = positions[e.userName] {
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
             DispatchQueue.main.async {
@@ -322,6 +327,10 @@ class LocalStore: ObservableObject {
 
         if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
+        }
+        if let diaryData = UserDefaults.standard.object(forKey: Self.diaryKey) as? Data,
+            let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData) {
+            self.diary = loadedDiary
         }
         if let exposureData = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
             let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: exposureData),

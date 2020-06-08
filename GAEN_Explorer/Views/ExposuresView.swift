@@ -230,21 +230,20 @@ struct ExposuresView: View {
                     .sheet(isPresented: self.$showingSheet, onDismiss: { print("share sheet dismissed") },
                            content: {
                                ActivityView(activityItems: [
-                                   JsonItem(url: self.localStore.shareExposuresURL!,
-                                            title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
+                                   ExposuresItem(url: self.localStore.shareExposuresURL!,
+                                                 title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
                                ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                     })
 
-                    Button(action: { self.localStore.check() }) { Text("Check") }
                     HStack {
                         // Erase Analysis
                         Button(action: { LocalStore.shared.eraseAnalysis() })
                         { ExposureButton(systemName: "backward.end.alt", label: "reset", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.4)
+                            .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.5)
 
                         // Analyze
                         Button(action: { LocalStore.shared.analyze() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.4)
+                            .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.5)
 
                         // Delete all
                         Button(action: {
@@ -252,7 +251,7 @@ struct ExposuresView: View {
                             LocalStore.shared.deleteAllExposures()
                         })
                         { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.canErase).opacity(self.localStore.canErase ? 1 : 0.4)
+                            .disabled(!self.localStore.canErase).opacity(self.localStore.canErase ? 1 : 0.5)
                             .alert(isPresented: self.$showingDeleteAlert) {
                                 self.makeAlert(title: "Really Erase all?",
                                                message: "Are you sure you want to delete all keys and analysis?",
@@ -272,7 +271,6 @@ struct ExposuresView: View {
                             print("showingSheet set to true")
                        })
                         { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.4)
                     }
                     // Erase button
 //                Button(action: { self.showingDeleteAlert = true }) {

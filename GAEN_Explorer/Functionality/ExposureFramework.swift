@@ -27,7 +27,7 @@ class ExposureFramework: ObservableObject {
         }
         set {
             setExposureNotificationEnabled(newValue)
-            LocalStore.shared.addDiaryEntry(.scanningChanged(on: newValue))
+            LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
         }
     }
 
@@ -47,7 +47,6 @@ class ExposureFramework: ObservableObject {
 
     var feasible: Bool {
         (ENManager.authorizationStatus == .authorized || ENManager.authorizationStatus == .unknown)
-            && (manager.exposureNotificationStatus == .active || manager.exposureNotificationStatus == .unknown)
     }
 
     var active: Bool {

@@ -104,52 +104,46 @@ struct StatusView: View {
                 }
                 ) {
                     ZStack {
-                        HStack { Text("Share diagnosis keys  \(self.framework.keysExportedMessage)").font(.headline)
-                            Image(systemName: "square.and.arrow.up").font(.headline)
+                        HStack { Text("Share keys").font(.title)
+                            Image(systemName: "square.and.arrow.up").font(.title)
                         }
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
                 }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
                                            content: {
                                                ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
-                            })
+                                           })
 
 //
 //
-                // About
-                NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
-                    Text("About GAEN Explorer").font(.headline)
-                } // Diary
+                Group {
+                    // About
+                    NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
+                        Text("About").font(.title).padding(.bottom)
+                    } // Diary
 
-                NavigationLink(destination: StartExperimentView(step: framework.isEnabled ? 1 : 2), tag: "startExperiment", selection: $localStore.viewShown) {
-                    Text("Start Experiment...").font(.headline)
-                }
+                    NavigationLink(destination: ExperimentView(), tag: "startExperiment", selection: $localStore.viewShown) {
+                        Text("Run Experiment").font(.title).padding(.bottom)
+                    }
 
-                NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-                    Text("Diary").font(.headline)
+                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
+                        Text("Visit Diary").font(.title).padding(.bottom)
+                    }
+                    // Show exposures
+                    NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
+                        Text("Show encounters").font(.title).padding(.bottom)
+                    }
                 }
-                // Show exposures
-                NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                    Text("Show encounters").font(.headline)
-                }
-
-                .padding(.vertical)
-            } // Group
+            } // Section
 
             // MARK: Framework
 
-            Section(header: Text("Framework").font(.title)) {
+            Section(header: Text("Scanning for encounters").font(.title)) {
                 Toggle(isOn: self.$framework.isEnabled) {
-                    Text("Toggle notifications")
-                }.padding()
-
-                HStack {
-                    Text(framework.exposureNotificationStatus.description).font(.headline)
-                    Spacer()
-                    Text(framework.authorizationStatus.description).font(.headline)
-                }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
+                    Text("Toggle scanning")
+                }.padding().foregroundColor(self.framework.feasible ? .primary : .red)
             }
-        } // VStack
+        } // Form
     } // var body
 } // end status view
 
