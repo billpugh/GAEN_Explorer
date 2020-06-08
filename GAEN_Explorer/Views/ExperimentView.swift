@@ -99,7 +99,7 @@ struct ExperimentView: View {
                         print("showingSheet set to true")
                     }
                 }
-                ) { Text(finalButtonTitle).font(.headline) }
+                ) { Text(finalButtonTitle).font(.title) }
                     .padding(.vertical)
                     .disabled(self.localStore.experimentStep != 5 || self.localStore.allExposures.count == 0)
 
