@@ -76,7 +76,7 @@ struct CodableExposureInfo: Codable {
             prev = value
             prevAnt = key
         }
-        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: ThresholdData.maxAttenuation, prevDuration: prev, cumulativeDuration: Int(duration)))
+        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: ThresholdData.maxAttenuation, prevDuration: prev, cumulativeDuration: max(prev, Int(duration))))
         return result
     }
 

@@ -100,9 +100,6 @@ class LocalStore: ObservableObject {
     static let diaryKey = "diary"
 
     @Published
-    var experimentStep: Int = 1
-
-    @Published
     var userName: String = ""
 
     @Published
@@ -119,18 +116,39 @@ class LocalStore: ObservableObject {
 
     @Published
     var experimentStarted: Date?
+    @Published
+    var experimentEnded: Date?
+
+    enum ExperimentStatus {
+        case none
+        case started
+        case completed
+    }
+
+    var experimentStatus: ExperimentStatus {
+        if experimentStarted == nil {
+            return .none
+        }
+        if experimentEnded == nil {
+            return .started
+        }
+        return .completed
+    }
 
     var experimentMessage: String? {
-        if let started = experimentStarted {
-            return "Experiment started \(timeFormatter.string(from: started))"
+        switch experimentStatus {
+        case .none: return nil
+        case .started:
+            return "Experiment started \(timeFormatter.string(from: experimentStarted!))"
+        case .completed:
+            return "Experiment ended \(timeFormatter.string(from: experimentEnded!))"
         }
-        return nil
     }
 
     func csvExport() -> String {
         let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
         let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
-        return exposuresCSV + diaryCSV
+        return exposuresCSV + "\n" + diaryCSV
     }
 
     func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
@@ -174,23 +192,6 @@ class LocalStore: ObservableObject {
         print("can reset: \(canResetAnalysis)")
     }
 
-    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
-        print("got url \(url)")
-        do {
-            let data = try Data(contentsOf: url)
-            if let packagedKeys = try? JSONDecoder().decode([PackagedKeys].self, from: data) {
-                packagedKeys.forEach {
-                    addKeysFromUser($0)
-                }
-            } else {
-                addKeysFromUser(try JSONDecoder().decode(PackagedKeys.self, from: data))
-            }
-        } catch {
-            print("Unexpected error: \(error)")
-            completionHandler?(false)
-        }
-    }
-
     func analyze() {
         if !canAnalyze {
             print("No analysis to do")
@@ -210,10 +211,17 @@ class LocalStore: ObservableObject {
 
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
         print("Have \(allKeys.count) keys")
+        let wasEnabled = ExposureFramework.shared.manager.exposureNotificationEnabled
+        if !wasEnabled {
+            ExposureFramework.shared.setExposureNotificationEnabled(true)
+        }
         let exposures = try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
                                                                       userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
                                                                       configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
         print("Got \(exposures.count) exposures")
+        if !wasEnabled {
+            ExposureFramework.shared.setExposureNotificationEnabled(false)
+        }
         DispatchQueue.main.async {
             self.incorporateResults(exposures, pass: pass)
         }
@@ -221,7 +229,9 @@ class LocalStore: ObservableObject {
 
     func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int) {
         print("incorporateResults")
-        viewShown = "exposures"
+        if viewShown != "experiment" {
+            viewShown = "exposures"
+        }
         for i in 0 ..< allExposures.count {
             if allExposures[i].analysisPasses == pass {
                 print("Updating exposures for \(allExposures[i].userName)")
@@ -241,7 +251,6 @@ class LocalStore: ObservableObject {
     func startExperiment(_ framework: ExposureFramework) {
         deleteAllExposures()
         diary = []
-        viewShown = nil
         experimentStarted = Date()
         addDiaryEntry(.startExperiment)
         framework.isEnabled = true
@@ -265,6 +274,32 @@ class LocalStore: ObservableObject {
         ExposureFramework.shared.getAndPackageKeys(userName: userName, otherKeys: keys, result)
     }
 
+    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
+        print("got url \(url)")
+        do {
+            let data = try Data(contentsOf: url)
+            if let packagedKeys = try? JSONDecoder().decode([PackagedKeys].self, from: data) {
+                packagedKeys.forEach {
+                    addKeysFromUser($0)
+                }
+            } else {
+                addKeysFromUser(try JSONDecoder().decode(PackagedKeys.self, from: data))
+            }
+            if LocalStore.shared.viewShown != "experiment" {
+                LocalStore.shared.viewShown = "exposures"
+            }
+            if let encoded = try? JSONEncoder().encode(allExposures) {
+                UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+            }
+            if let encoded = try? JSONEncoder().encode(positions) {
+                UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+            }
+        } catch {
+            print("Unexpected error: \(error)")
+            completionHandler?(false)
+        }
+    }
+
     func addKeysFromUser(_ e: PackagedKeys) {
         if e.userName == userName {
             print("Got my own keys back, ignoring")
@@ -273,32 +308,16 @@ class LocalStore: ObservableObject {
         addDiaryEntry(DiaryKind.keysReceived, e.userName)
         if let i = positions[e.userName] {
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
-            DispatchQueue.main.async {
-                LocalStore.shared.viewShown = "exposures"
-                self.allExposures[i] = extractedExpr
-                if let encoded = try? JSONEncoder().encode(self.allExposures) {
-                    UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-                }
-            }
+            allExposures[i] = extractedExpr
+            print("Have \(extractedExpr.keys.count) keys from \(e.userName)")
         } else {
             let lastIndex = allExposures.count
             let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
-            DispatchQueue.main.async {
-                LocalStore.shared.viewShown = "exposures"
-                self.positions[e.userName] = lastIndex
-                print("positions = \(self.positions)")
-                self.allExposures.append(extractedExpr)
-                if let encoded = try? JSONEncoder().encode(self.allExposures) {
-                    UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-                }
-                if let encoded = try? JSONEncoder().encode(self.positions) {
-                    UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
-                }
-            }
-        }
 
-        if let encoded = try? JSONEncoder().encode(allExposures) {
-            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+            positions[e.userName] = lastIndex
+            print("positions = \(positions)")
+            allExposures.append(extractedExpr)
+            print("Have \(extractedExpr.keys.count) keys from \(e.userName)")
         }
     }
 
