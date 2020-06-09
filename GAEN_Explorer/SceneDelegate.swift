@@ -16,7 +16,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let url = URLContexts.first?.url {
             // Handle URL
             guard url.pathExtension == "diagk" else { return }
-            _ = LocalStore.shared.importData(from: url) {
+            _ = LocalStore.shared.importDiagnosisKeys(from: url) {
                 _ in
             }
 

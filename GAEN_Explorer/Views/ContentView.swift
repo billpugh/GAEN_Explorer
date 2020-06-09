@@ -80,11 +80,19 @@ struct StatusView: View {
         Form {
             // MARK: User Info
 
-            Section(header: Text("User Info").font(.title)) {
+            Section(header: Text("Status").font(.title)) {
                 HStack {
                     Text("User name: ")
-                    TextField("User name", text: self.$localStore.userName, onCommit: { self.localStore.save() })
+                    TextField("User name", text: self.$localStore.userName, onCommit: { self.localStore.saveUserName() })
                 }.padding(.horizontal)
+                Toggle(isOn: self.$framework.isEnabled) {
+                    Text("Scanning for encounters")
+                }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
+
+                // About
+                NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
+                    Text("About").font(.headline).padding(.horizontal)
+                }
             }
 
             // MARK: Actions
@@ -105,44 +113,33 @@ struct StatusView: View {
                 ) {
                     ZStack {
                         HStack { Text("Share keys")
+                            Spacer()
                             Image(systemName: "square.and.arrow.up")
                         }.font(.headline)
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
-                }.padding(.vertical).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
-                                           content: {
-                                               ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                }.padding().sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
+                                  content: {
+                                      ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                                            })
 
 //
 //
                 Group {
+                    // Show exposures
+                    NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
+                        Text("Show encounters").font(.headline).padding()
+                    }
+
                     NavigationLink(destination: ExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
-                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStarted == nil ? .headline : .subheadline).padding(.bottom)
+                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStarted == nil ? .headline : .subheadline).padding()
                     }
 
                     NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-                        Text("Show Diary").font(.headline).padding(.bottom)
+                        Text("Show Diary").font(.headline).padding()
                     }
-                    // Show exposures
-                    NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                        Text("Show encounters").font(.headline).padding(.bottom)
-                    }
-
-                    // About
-                    NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
-                        Text("About").font(.headline).padding(.bottom)
-                    } // Diary
                 }
             } // Section
-
-            // MARK: Framework
-
-            Section(header: Text("Scanning for encounters").font(.title)) {
-                Toggle(isOn: self.$framework.isEnabled) {
-                    Text("Toggle scanning")
-                }.padding().foregroundColor(self.framework.feasible ? .primary : .red)
-            }
         } // Form
     } // var body
 } // end status view

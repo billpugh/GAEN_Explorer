@@ -10,9 +10,9 @@ import Foundation
 
 struct PackagedKeys: Codable {
     var userName: String
-    var date: Date
+    var dateKeysSent: Date
     var keys: [CodableDiagnosisKey]
-    static let testData = PackagedKeys(userName: "Bob", date: hoursAgo(26, minutes: 17), keys: [])
+    static let testData = PackagedKeys(userName: "Bob", dateKeysSent: hoursAgo(26, minutes: 17), keys: [])
 }
 
 private let goDeeperQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.goDeeper", attributes: .concurrent)
@@ -41,7 +41,7 @@ struct EncountersWithUser: Codable {
     }
 
     var packagedKeys: PackagedKeys {
-        PackagedKeys(userName: userName, date: dateKeysSent, keys: keys)
+        PackagedKeys(userName: userName, dateKeysSent: dateKeysSent, keys: keys)
     }
 
     func csvFormat(to: String) -> [String] {
@@ -50,7 +50,7 @@ struct EncountersWithUser: Codable {
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, exposures: [CodableExposureInfo] = []) {
         self.userName = packedKeys.userName
-        self.dateKeysSent = packedKeys.date
+        self.dateKeysSent = packedKeys.dateKeysSent
         self.dateAnalyzed = Date()
         self.keys = packedKeys.keys
         self.transmissionRiskLevel = transmissionRiskLevel
@@ -86,6 +86,8 @@ struct EncountersWithUser: Codable {
     static var testData = EncountersWithUser(packedKeys: PackagedKeys.testData, transmissionRiskLevel: 0, exposures: CodableExposureInfo.testData)
 }
 
+// MARK: - LocalStore
+
 class LocalStore: ObservableObject {
     let fullDateFormatter = DateFormatter()
     let dayFormatter = DateFormatter()
@@ -105,66 +107,18 @@ class LocalStore: ObservableObject {
     @Published
     var viewShown: String? = nil
 
+    func saveUserName() {
+        UserDefaults.standard.set(userName, forKey: Self.userNameKey)
+        print("User default saved")
+    }
+
+    // MARK: - Analysis
+
     @Published
     var positions: [String: Int] = [:]
 
     @Published
     var allExposures: [EncountersWithUser] = []
-
-    @Published
-    var diary: [DiaryEntry] = []
-
-    @Published
-    var experimentStarted: Date?
-    @Published
-    var experimentEnded: Date?
-
-    enum ExperimentStatus {
-        case none
-        case started
-        case completed
-    }
-
-    var experimentStatus: ExperimentStatus {
-        if experimentStarted == nil {
-            return .none
-        }
-        if experimentEnded == nil {
-            return .started
-        }
-        return .completed
-    }
-
-    var experimentMessage: String? {
-        switch experimentStatus {
-        case .none: return nil
-        case .started:
-            return "Experiment started \(timeFormatter.string(from: experimentStarted!))"
-        case .completed:
-            return "Experiment ended \(timeFormatter.string(from: experimentEnded!))"
-        }
-    }
-
-    func csvExport() -> String {
-        let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
-        let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
-        return exposuresCSV + "\n" + diaryCSV
-    }
-
-    func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
-        diary.append(DiaryEntry(Date(), kind, text))
-    }
-
-    func eraseAnalysis() {
-        print("erasing analysis for \(allExposures.count) people")
-        objectWillChange.send()
-        for i in 0 ..< allExposures.count {
-            allExposures[i].reset()
-        }
-        if let encoded = try? JSONEncoder().encode(allExposures) {
-            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-        }
-    }
 
     var canResetAnalysis: Bool {
         if allExposures.count == 0 {
@@ -186,12 +140,6 @@ class LocalStore: ObservableObject {
         allExposures.count > 0
     }
 
-    func check() {
-        print("can analyze: \(canAnalyze)")
-        print("can erase: \(canErase)")
-        print("can reset: \(canResetAnalysis)")
-    }
-
     func analyze() {
         if !canAnalyze {
             print("No analysis to do")
@@ -199,10 +147,16 @@ class LocalStore: ObservableObject {
         }
 
         let pass = allExposures.map(\.analysisPasses).min()!
-        addDiaryEntry(DiaryKind.analysisPerformed, "\(pass)")
+        addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
         print("Analyzing")
         goDeeperQueue.async {
             self.analyzeOffMainThread(pass)
+        }
+    }
+
+    func goDeeper() {
+        goDeeperQueue.async {
+            // self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
         }
     }
 
@@ -248,12 +202,15 @@ class LocalStore: ObservableObject {
         }
     }
 
-    func startExperiment(_ framework: ExposureFramework) {
-        deleteAllExposures()
-        diary = []
-        experimentStarted = Date()
-        addDiaryEntry(.startExperiment)
-        framework.isEnabled = true
+    func eraseAnalysis() {
+        print("erasing analysis for \(allExposures.count) people")
+        objectWillChange.send()
+        for i in 0 ..< allExposures.count {
+            allExposures[i].reset()
+        }
+        if let encoded = try? JSONEncoder().encode(allExposures) {
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+        }
     }
 
     func deleteAllExposures() {
@@ -269,67 +226,79 @@ class LocalStore: ObservableObject {
         objectWillChange.send()
     }
 
-    func getAndPackageKeys(_ result: @escaping (Bool) -> Void) {
-        let keys: [PackagedKeys] = allExposures.map { $0.packagedKeys }
-        ExposureFramework.shared.getAndPackageKeys(userName: userName, otherKeys: keys, result)
+    // MARK: - Experiment
+
+    var fusedData: [FusedData]?
+    var timeSpentInActivity: [Activity: Int]?
+
+    @Published
+    var diary: [DiaryEntry] = []
+
+    @Published
+    var experimentStarted: Date?
+    @Published
+    var experimentEnded: Date?
+
+    enum ExperimentStatus {
+        case none
+        case started
+        case completed
     }
 
-    func importData(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
-        print("got url \(url)")
-        do {
-            let data = try Data(contentsOf: url)
-            if let packagedKeys = try? JSONDecoder().decode([PackagedKeys].self, from: data) {
-                packagedKeys.forEach {
-                    addKeysFromUser($0)
-                }
-            } else {
-                addKeysFromUser(try JSONDecoder().decode(PackagedKeys.self, from: data))
-            }
-            if LocalStore.shared.viewShown != "experiment" {
-                LocalStore.shared.viewShown = "exposures"
-            }
-            if let encoded = try? JSONEncoder().encode(allExposures) {
-                UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-            }
-            if let encoded = try? JSONEncoder().encode(positions) {
-                UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
-            }
-        } catch {
-            print("Unexpected error: \(error)")
-            completionHandler?(false)
+    var experimentStatus: ExperimentStatus {
+        if experimentStarted == nil {
+            return .none
         }
+        if experimentEnded == nil {
+            return .started
+        }
+        return .completed
     }
 
-    func addKeysFromUser(_ e: PackagedKeys) {
-        if e.userName == userName {
-            print("Got my own keys back, ignoring")
-            return
-        }
-        addDiaryEntry(DiaryKind.keysReceived, e.userName)
-        if let i = positions[e.userName] {
-            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
-            allExposures[i] = extractedExpr
-            print("Have \(extractedExpr.keys.count) keys from \(e.userName)")
-        } else {
-            let lastIndex = allExposures.count
-            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
-
-            positions[e.userName] = lastIndex
-            print("positions = \(positions)")
-            allExposures.append(extractedExpr)
-            print("Have \(extractedExpr.keys.count) keys from \(e.userName)")
+    var experimentMessage: String? {
+        switch experimentStatus {
+        case .none: return nil
+        case .started:
+            return "Experiment started \(timeFormatter.string(from: experimentStarted!))"
+        case .completed:
+            return "Experiment ended \(timeFormatter.string(from: experimentEnded!))"
         }
     }
 
-    func exposuresUpdated(newExposures: [EncountersWithUser]) {
-        if let encoded = try? JSONEncoder().encode(newExposures) {
-            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-        }
-        DispatchQueue.main.async {
-            self.allExposures = newExposures
-            self.objectWillChange.send()
+    func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
+        diary.append(DiaryEntry(Date(), kind, text))
+    }
+
+    func startExperiment(_ framework: ExposureFramework) {
+        deleteAllExposures()
+        diary = []
+        fusedData = nil
+        timeSpentInActivity = nil
+        SensorFusion.shared.startAccel()
+        experimentStarted = Date()
+        addDiaryEntry(.startExperiment)
+        framework.eraseKeys()
+        framework.isEnabled = true
+    }
+
+    func endScanningForExperiment(_ framework: ExposureFramework) {
+        framework.isEnabled = false
+        experimentEnded = Date()
+        SensorFusion.shared.getSensorData(from: experimentStarted!, to: experimentEnded!) {
+            fusedData, timeSpentInActivity in
+            self.fusedData = fusedData
+            self.timeSpentInActivity = timeSpentInActivity
         }
     }
+
+    func resetExperiment(_ framework: ExposureFramework) {
+        framework.isEnabled = true
+        viewShown = nil
+        experimentEnded = nil
+        experimentStarted = nil
+    }
+
+    // MARK: - Lifecycle
 
     init(userName: String, testData: [EncountersWithUser], diary: [DiaryEntry] = []) {
         self.userName = userName
@@ -371,7 +340,86 @@ class LocalStore: ObservableObject {
         }
     }
 
+    func exposuresUpdated(newExposures: [EncountersWithUser]) {
+        if let encoded = try? JSONEncoder().encode(newExposures) {
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+        }
+        DispatchQueue.main.async {
+            self.allExposures = newExposures
+            self.objectWillChange.send()
+        }
+    }
+
+    // MARK: - Export/import keys
+
     var shareExposuresURL: URL?
+
+    func getAndPackageKeys(_ result: @escaping (Bool) -> Void) {
+        let keys: [PackagedKeys] = allExposures.map { $0.packagedKeys }
+        ExposureFramework.shared.getAndPackageKeys(userName: userName, otherKeys: keys, result)
+    }
+
+    func importDiagnosisKeys(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {
+        print("got url \(url)")
+        do {
+            let data = try Data(contentsOf: url)
+            if let packagedKeys = try? JSONDecoder().decode([PackagedKeys].self, from: data) {
+                packagedKeys.forEach {
+                    addKeysFromUser($0)
+                }
+            } else {
+                addKeysFromUser(try JSONDecoder().decode(PackagedKeys.self, from: data))
+            }
+            if LocalStore.shared.viewShown != "experiment" {
+                LocalStore.shared.viewShown = "exposures"
+            }
+            if let encoded = try? JSONEncoder().encode(allExposures) {
+                UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+            }
+            if let encoded = try? JSONEncoder().encode(positions) {
+                UserDefaults.standard.set(encoded, forKey: Self.positionsKey)
+            }
+        } catch {
+            print("Unexpected error: \(error)")
+            completionHandler?(false)
+        }
+    }
+
+    func addKeysFromUser(_ e: PackagedKeys) {
+        if e.userName == userName {
+            print("Got my own keys back, ignoring")
+            return
+        }
+        addDiaryEntry(DiaryKind.keysReceived, e.userName)
+        if let i = positions[e.userName] {
+            if allExposures[i].dateKeysSent < e.dateKeysSent {
+                let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
+                allExposures[i] = extractedExpr
+                print("Updated \(extractedExpr.keys.count) keys from \(e.userName)")
+            } else {
+                print("Ignoring older keys from \(e.userName)")
+            }
+        } else {
+            let lastIndex = allExposures.count
+            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
+
+            positions[e.userName] = lastIndex
+            print("positions = \(positions)")
+            allExposures.append(extractedExpr)
+            print("Have \(extractedExpr.keys.count) keys from \(e.userName)")
+        }
+    }
+
+    // MARK: - Export exposures
+
+    func csvExport() -> String {
+        let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
+        let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
+        guard let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value) " }).joined(separator: "\n") else {
+            return exposuresCSV + "\n" + diaryCSV
+        }
+        return exposuresCSV + "\n" + diaryCSV + "\n" + timeSpentCSV
+    }
 
     func exportExposuresToURL() {
         shareExposuresURL = nil
@@ -418,16 +466,5 @@ class LocalStore: ObservableObject {
             print(error.localizedDescription)
             return
         }
-    }
-
-    func goDeeper() {
-        goDeeperQueue.async {
-            // self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
-        }
-    }
-
-    func save() {
-        UserDefaults.standard.set(userName, forKey: Self.userNameKey)
-        print("User default saved")
     }
 }

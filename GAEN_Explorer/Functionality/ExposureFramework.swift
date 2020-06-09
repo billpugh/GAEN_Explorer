@@ -84,6 +84,9 @@ class ExposureFramework: ObservableObject {
         manager.activate { _ in
             print("ENManager activiated")
             self.objectWillChange.send()
+            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
+                self.setExposureNotificationEnabled(true)
+            }
         }
     }
 
@@ -104,6 +107,11 @@ class ExposureFramework: ObservableObject {
 
     var package: PackagedKeys?
 
+    func eraseKeys() {
+        package = nil
+        keyCount = 0
+    }
+
     func exportKeys(_ userName: String, _ temporaryExposureKeys: [ENTemporaryExposureKey]?,
                     _ error: Error?,
                     _ otherKeys: [PackagedKeys],
@@ -114,7 +122,7 @@ class ExposureFramework: ObservableObject {
         } else {
             let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
             print("Got \(temporaryExposureKeys!.count) diagnosis keys")
-            let p = PackagedKeys(userName: userName, date: Date(), keys: codableKeys)
+            let p = PackagedKeys(userName: userName, dateKeysSent: Date(), keys: codableKeys)
             keyCount = codableKeys.count
             package = p
             keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
@@ -129,7 +137,7 @@ class ExposureFramework: ObservableObject {
 
     func getAndPackageKeys(userName: String, otherKeys: [PackagedKeys], _ result: @escaping (Bool) -> Void) {
         if let p = package {
-            if rollingStartNumber(date: p.date) == rollingStartNumber(date: Date()) {
+            if rollingStartNumber(date: p.dateKeysSent) == rollingStartNumber(date: Date()) {
                 print("Reusing existing keys")
                 keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
                 result(true)

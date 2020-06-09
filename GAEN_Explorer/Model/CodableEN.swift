@@ -51,8 +51,8 @@ struct CodableExposureInfo: Codable {
     let attenuationDurationThresholds: [Int]
     var durations: [Int: Int] // minutes
     var meaningfulDuration: Int {
-        let lowAttn = durations[50] ?? 0
-        let mediumAttn = (durations[56] ?? lowAttn) - lowAttn
+        let lowAttn = durations[multipassThresholds[0]] ?? 0
+        let mediumAttn = (durations[multipassThresholds[1]] ?? lowAttn) - lowAttn
         return lowAttn + mediumAttn / 2
     }
 
@@ -131,8 +131,8 @@ struct CodableExposureInfo: Codable {
         self.attenuationDurations = attenuationDurations
         let config = CodableExposureConfiguration.shared
         self.attenuationDurationThresholds = config.attenuationDurationThresholds
-        self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
-                          config.attenuationDurationThresholds[1]: attenuationDurations[1]]
+        self.durations = [multipassThresholds[0]: attenuationDurations[0],
+                          multipassThresholds[1]: attenuationDurations[1]]
         self.extendedDuration = Int8(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
     }
 

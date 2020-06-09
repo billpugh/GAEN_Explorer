@@ -210,15 +210,6 @@ struct ExposuresView: View {
 
                                     }.font(.subheadline)
 
-//                                HStack {
-//                                    Text("Date").frame(width: geometry.size.width / 5, alignment: .leading)
-//
-//                                    Text("Duration").frame(width: geometry.size.width / 6, alignment: .trailing)
-//
-//                                    Text("Trans risk").frame(width: geometry.size.width / 5, alignment: .trailing)
-//
-//                                    Text("durations").frame(width: geometry.size.width / 4, alignment: .trailing)
-//                                }.padding(.vertical, 5).font(.footnote)
                         }) {
                                 ForEach(d.exposures, id: \.id) { info in
                                     ExposureInfoView(day: d, info: info, width: geometry.size.width)
@@ -248,7 +239,6 @@ struct ExposuresView: View {
                         // Delete all
                         Button(action: {
                             self.showingDeleteAlert = true
-                            LocalStore.shared.deleteAllExposures()
                         })
                         { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canErase).opacity(self.localStore.canErase ? 1 : 0.5)

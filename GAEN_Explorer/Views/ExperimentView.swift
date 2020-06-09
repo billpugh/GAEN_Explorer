@@ -65,6 +65,7 @@ struct ExperimentView: View {
                     Button(action: {
                         withAnimation {
                             self.localStore.startExperiment(self.framework)
+                            self.didExportExposures = false
                             self.didErase = false
                         }
                     }) { Text("Start scanning").font(.title) }.padding(.vertical).disabled(framework.isEnabled || !didErase)
@@ -79,8 +80,7 @@ struct ExperimentView: View {
                 Group {
                     Button(action: {
                         withAnimation {
-                            self.framework.isEnabled = false
-                            self.localStore.experimentEnded = Date()
+                            self.localStore.endScanningForExperiment(self.framework)
                         }
                     }) { Text("End scanning").font(.title) }.padding(.vertical)
 
@@ -132,9 +132,7 @@ struct ExperimentView: View {
                 // MARK: End/Abort
 
                 Button(action: {
-                    self.localStore.experimentStarted = nil
-                    self.localStore.experimentEnded = nil
-                    self.localStore.viewShown = nil
+                    self.localStore.resetExperiment(self.framework)
                     self.didExportExposures = false
                 }) {
                     Text(self.localStore.experimentStatus == .completed && self.didExportExposures ? "End experiment" : "Abort experiment").font(.title)

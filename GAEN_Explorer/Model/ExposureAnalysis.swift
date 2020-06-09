@@ -28,7 +28,9 @@ struct ExposureKey: Hashable, CustomStringConvertible {
 }
 
 // 50    55    58    61    64    67    70    73
-let multipassThresholds = [50, 55, 61, 70, 58, 67, 64, 73]
+
+// 55  67    50     58    61    64    70    73
+let multipassThresholds = [55, 67, 50, 64, 61, 73, 58, 70]
 
 let numberAnalysisPasses = multipassThresholds.count / 2
 

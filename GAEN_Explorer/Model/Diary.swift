@@ -53,7 +53,7 @@ struct DiaryEntry: Codable {
     }
 
     func csv(user: String) -> String {
-        "diary, \(user), \(kind.description), \(text)"
+        "diary, \(user), \(kind.description), \(time), \(text)"
     }
 
     static let testData: [DiaryEntry] = [
