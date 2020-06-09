@@ -107,7 +107,6 @@ class SensorFusion {
 
     let pedometer = CMPedometer()
 
-    @Published
     var sensorRecorder: CMSensorRecorder?
 
     func startAccel() {
@@ -119,6 +118,8 @@ class SensorFusion {
                 self.sensorRecorder!.recordAccelerometer(forDuration: 2 * 60 * 60) // Record for 20 minutes
                 print("started recording")
             }
+        } else {
+            print("accelerometerRecording not available")
         }
     }
 
@@ -126,7 +127,7 @@ class SensorFusion {
 
     private func fuseMotionData(_ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
-                                _ results: ([FusedData]?, [Activity: TimeInterval]?) -> Void) {
+                                _ results: ([FusedData]?, [Activity: Int]?) -> Void) {
         var motionData: [SensorData] = motions.map { motion in SensorData(at: motion.startDate, sensor: SensorReading.motion(motion)) }
         print("Have \(motionData.count) motion readings")
         motionData.append(contentsOf: sensorData)
@@ -136,7 +137,7 @@ class SensorFusion {
         var horizontalMode: HorizontalMode = .unknown
         var fusedData: [FusedData] = []
 
-        var activityDurations: [Activity: TimeInterval] = [:]
+        var activityDurations: [Activity: Int] = [:]
         motionData.sorted { $0.at < $1.at }.forEach { sensorData in
             switch sensorData.sensor {
             case let .scanning(isOn):
@@ -168,8 +169,8 @@ class SensorFusion {
         var prevTime: Date?
         fusedData.forEach { fd in
             if let prev = prevTime {
-                let oldTime: TimeInterval = activityDurations[fd.activity] ?? 0
-                activityDurations[fd.activity] = oldTime + fd.at.timeIntervalSince(prev)
+                let oldTime: Int = activityDurations[fd.activity] ?? 0
+                activityDurations[fd.activity] = oldTime + Int(fd.at.timeIntervalSince(prev))
             }
             prevTime = fd.at
         }
@@ -184,15 +185,16 @@ class SensorFusion {
     }
 
     static let secondsNeededToRecognizeHorizontal: TimeInterval = 20
-    func getSensorData(from: Date, to: Date, results: @escaping ([FusedData]?, [Activity: TimeInterval]?) -> Void) {
+    func getSensorData(from: Date, to: Date, results: @escaping ([FusedData]?, [Activity: Int]?) -> Void) {
         analyzeMotionQueue.async {
             if self.sensorRecorder != nil {
                 print("sensor recorded present")
             }
-            var horiztonalData: [SensorData] = []
+
             if let sensor = self.sensorRecorder,
                 let data = sensor.accelerometerData(from: from, to: to) {
                 print("Got accel")
+                var horiztonalData: [SensorData] = []
 
                 var oldHorizontal: HorizontalMode = .invalid
                 var startedHorizontal: Date?
@@ -237,6 +239,19 @@ class SensorFusion {
                         results(nil, nil)
                         return
                     }
+                    self.fuseMotionData(horiztonalData, a, results)
+                }
+            } else {
+                print("No accelerometerData available")
+
+                self.motionActivityManager.queryActivityStarting(from: from,
+                                                                 to: to,
+                                                                 to: OperationQueue.main) { activities, _ in
+                    guard let a = activities else {
+                        results(nil, nil)
+                        return
+                    }
+                    let horiztonalData: [SensorData] = [SensorData(at: from, sensor: SensorReading.horizontal(.unknown))]
                     self.fuseMotionData(horiztonalData, a, results)
                 }
             }
