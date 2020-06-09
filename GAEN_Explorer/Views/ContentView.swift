@@ -117,7 +117,7 @@ struct StatusView: View {
 //
 //
                 Group {
-                    NavigationLink(destination: ExperimentView(), tag: "startExperiment", selection: $localStore.viewShown) {
+                    NavigationLink(destination: ExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
                         Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStarted == nil ? .headline : .subheadline).padding(.bottom)
                     }
 
