@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		160660EA248D55D80045D08C /* Diary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660E9248D55D80045D08C /* Diary.swift */; };
+		160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EB248D5DDF0045D08C /* DiaryView.swift */; };
+		160660EE248D7B870045D08C /* ExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660ED248D7B870045D08C /* ExperimentView.swift */; };
+		160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
 		163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F0246A118200267376 /* ExposureFramework.swift */; };
 		164D16D5246A10D800267376 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D4246A10D800267376 /* AppDelegate.swift */; };
 		164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D6246A10D800267376 /* SceneDelegate.swift */; };
@@ -36,6 +40,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		160660E9248D55D80045D08C /* Diary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diary.swift; sourceTree = "<group>"; };
+		160660EB248D5DDF0045D08C /* DiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryView.swift; sourceTree = "<group>"; };
+		160660ED248D7B870045D08C /* ExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentView.swift; sourceTree = "<group>"; };
+		160660EF248EEA2E0045D08C /* SensorFusion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorFusion.swift; sourceTree = "<group>"; };
 		164D16D1246A10D800267376 /* GAEN Explorer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GAEN Explorer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		164D16D4246A10D800267376 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		164D16D6246A10D800267376 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -81,6 +89,7 @@
 		1617BAC12475AAC900BFF2D7 /* Functionality */ = {
 			isa = PBXGroup;
 			children = (
+				160660EF248EEA2E0045D08C /* SensorFusion.swift */,
 				164D16F0246A118200267376 /* ExposureFramework.swift */,
 				164D16F9246AD19500267376 /* Utilities.swift */,
 			);
@@ -147,6 +156,7 @@
 				16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */,
 				168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */,
 				164D16F7246A1CE200267376 /* CodableEN.swift */,
+				160660E9248D55D80045D08C /* Diary.swift */,
 				16F6179E247B583700757986 /* LocalStores.swift */,
 				16F308172480103100BD7DA1 /* ExposureAnalysis.swift */,
 			);
@@ -167,7 +177,9 @@
 		16C3E71E2476D53300B4EA2B /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				160660ED248D7B870045D08C /* ExperimentView.swift */,
 				164D16D8246A10D800267376 /* ContentView.swift */,
+				160660EB248D5DDF0045D08C /* DiaryView.swift */,
 				16C3E71C2476D14900B4EA2B /* AboutView.swift */,
 				16CBDFF72476BE2E009AF285 /* ExposuresView.swift */,
 				16F6179C247B1FB000757986 /* ConfigurationView.swift */,
@@ -265,13 +277,17 @@
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
 				164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */,
+				160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */,
 				164D16D9246A10D800267376 /* ContentView.swift in Sources */,
 				164D16FA246AD19500267376 /* Utilities.swift in Sources */,
+				160660EA248D55D80045D08C /* Diary.swift in Sources */,
 				16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */,
 				16F6179F247B583700757986 /* LocalStores.swift in Sources */,
 				16F6179D247B1FB000757986 /* ConfigurationView.swift in Sources */,
 				168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */,
+				160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */,
 				163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */,
+				160660EE248D7B870045D08C /* ExperimentView.swift in Sources */,
 				164D16F8246A1CE200267376 /* CodableEN.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -412,14 +428,14 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
-				DEVELOPMENT_TEAM = H2Z73245NN;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-";
+				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "GAEN Explorer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
@@ -435,14 +451,14 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
-				DEVELOPMENT_TEAM = H2Z73245NN;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-";
+				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "GAEN Explorer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
