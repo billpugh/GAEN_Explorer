@@ -125,7 +125,8 @@ class SensorFusion {
 
     static let minimumNumberOfSecondsToRecord: TimeInterval = 5
 
-    private func fuseMotionData(_ sensorData: [SensorData],
+    private func fuseMotionData(_ to: Date,
+                                _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
                                 _ results: ([FusedData]?, [Activity: Int]?) -> Void) {
         var motionData: [SensorData] = motions.map { motion in SensorData(at: motion.startDate, sensor: SensorReading.motion(motion)) }
@@ -167,14 +168,20 @@ class SensorFusion {
         print("Got \(fusedData.count) fused data items")
 
         var prevTime: Date?
+        var prevActivity: Activity?
         fusedData.forEach { fd in
+            print("\(fd.time)  \(fd.activity)")
             if let prev = prevTime {
-                let oldTime: Int = activityDurations[fd.activity] ?? 0
-                activityDurations[fd.activity] = oldTime + Int(fd.at.timeIntervalSince(prev))
+                let oldTime: Int = activityDurations[prevActivity!] ?? 0
+                activityDurations[prevActivity!] = oldTime + Int(fd.at.timeIntervalSince(prev))
             }
             prevTime = fd.at
+            prevActivity = fd.activity
         }
-
+        if let prev = prevTime {
+            let oldTime: Int = activityDurations[prevActivity!] ?? 0
+            activityDurations[prevActivity!] = oldTime + Int(to.timeIntervalSince(prev))
+        }
         print("Got \(fusedData.count) fused data items")
 
         print("activity durations")
@@ -239,7 +246,7 @@ class SensorFusion {
                         results(nil, nil)
                         return
                     }
-                    self.fuseMotionData(horiztonalData, a, results)
+                    self.fuseMotionData(to, horiztonalData, a, results)
                 }
             } else {
                 print("No accelerometerData available")
@@ -252,7 +259,7 @@ class SensorFusion {
                         return
                     }
                     let horiztonalData: [SensorData] = [SensorData(at: from, sensor: SensorReading.horizontal(.unknown))]
-                    self.fuseMotionData(horiztonalData, a, results)
+                    self.fuseMotionData(to, horiztonalData, a, results)
                 }
             }
         }
