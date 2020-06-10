@@ -72,11 +72,12 @@ struct CodableExposureInfo: Codable {
         var prev: Int = 0
         var prevAnt = 0
         for (key, value) in sortedDurations {
-            result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: key, prevDuration: prev, cumulativeDuration: value))
-            prev = value
+            let cumulativeDuration = max(prev, value)
+            result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: key, prevDuration: prev, cumulativeDuration: cumulativeDuration))
+            prev = cumulativeDuration
             prevAnt = key
         }
-        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: ThresholdData.maxAttenuation, prevDuration: prev, cumulativeDuration: max(prev, Int(duration))))
+        result.append(ThresholdData(prevAttenuation: prevAnt, attenuation: ThresholdData.maxAttenuation, prevDuration: prev, cumulativeDuration: min(30, max(prev, Int(extendedDuration)))))
         return result
     }
 
