@@ -45,7 +45,13 @@ struct EncountersWithUser: Codable {
     }
 
     func csvFormat(to: String) -> [String] {
-        exposures.map { exposureInfo in "exposure, \(to), \(userName),  \(exposureInfo.day), \(exposureInfo.durationsCSV), \(exposureInfo.thresholdsCSV)" }
+        let pair = [to, userName].sorted().joined(separator: "-")
+        return exposures.map { exposureInfo in "exposure, \(to), \(pair),  \(exposureInfo.day), \(exposureInfo.meaningfulDuration), \(exposureInfo.durationsCSV), \(exposureInfo.extendedDuration)" }
+    }
+
+    static func csvHeader() -> String {
+        let thresholdsHeader = multipassThresholds.sorted().map { String($0) }.joined(separator: ", ")
+        return "kind, user, what,  when, detail, \(thresholdsHeader), ∞\n"
     }
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, exposures: [CodableExposureInfo] = []) {
@@ -413,9 +419,9 @@ class LocalStore: ObservableObject {
     // MARK: - Export exposures
 
     func csvExport() -> String {
-        let exposuresCSV = allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
+        let exposuresCSV = EncountersWithUser.csvHeader() + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
         let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
-        guard let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value) " }).joined(separator: "\n") else {
+        guard let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value), secs " }).joined(separator: "\n") else {
             return exposuresCSV + "\n" + diaryCSV
         }
         return exposuresCSV + "\n" + diaryCSV + "\n" + timeSpentCSV
