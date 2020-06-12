@@ -16,6 +16,7 @@ enum DiaryKind: String, CustomStringConvertible, Codable {
     case analysisPerformed
     case scanningChanged
     case memo
+    case activity
 
     var description: String {
         switch self {
@@ -33,6 +34,8 @@ enum DiaryKind: String, CustomStringConvertible, Codable {
             return "Scanning changed"
         case .memo:
             return "memo:"
+        case .activity:
+            return "activity:"
         }
     }
 }
@@ -46,6 +49,12 @@ struct DiaryEntry: Codable {
         self.at = at
         self.kind = kind
         self.text = text
+    }
+
+    init(fusedData: FusedData) {
+        self.at = fusedData.at
+        self.kind = .activity
+        self.text = fusedData.activity.rawValue
     }
 
     var time: String {
