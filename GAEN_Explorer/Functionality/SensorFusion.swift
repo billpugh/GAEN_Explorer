@@ -125,7 +125,7 @@ class SensorFusion {
 
     static let minimumNumberOfSecondsToRecord: TimeInterval = 5
 
-    private func fuseMotionData(_ to: Date,
+    private func fuseMotionData(from: Date, to: Date,
                                 _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
                                 _ results: ([FusedData]?, [Activity: Int]?) -> Void) {
@@ -167,20 +167,35 @@ class SensorFusion {
         }
         print("Got \(fusedData.count) fused data items")
 
-        var prevTime: Date?
-        var prevActivity: Activity?
+        let maxDuration = Int(to.timeIntervalSince(from) + 200)
+        var prevData: FusedData?
         fusedData.forEach { fd in
             print("\(fd.time)  \(fd.activity)")
-            if let prev = prevTime {
-                let oldTime: Int = activityDurations[prevActivity!] ?? 0
-                activityDurations[prevActivity!] = oldTime + Int(fd.at.timeIntervalSince(prev))
+            if let prev = prevData {
+                let oldDuration: Int = activityDurations[prev.activity] ?? 0
+                let newDuration = oldDuration + Int(fd.at.timeIntervalSince(prev.at))
+                if newDuration > maxDuration {
+                    let msg = "Got duration of \(newDuration) for \(prev.activity), started \(prev.time), ended \(fd.time))"
+                    print(msg)
+                    LocalStore.shared.addDiaryEntry(.debugging, msg)
+                } else {
+                    activityDurations[prev.activity] = newDuration
+                    print("set time doing \(prev.activity) to \(newDuration)")
+                }
             }
-            prevTime = fd.at
-            prevActivity = fd.activity
+            prevData = fd
         }
-        if let prev = prevTime {
-            let oldTime: Int = activityDurations[prevActivity!] ?? 0
-            activityDurations[prevActivity!] = oldTime + Int(to.timeIntervalSince(prev))
+        if let prev = prevData {
+            let oldDuration: Int = activityDurations[prev.activity] ?? 0
+            let newDuration = oldDuration + Int(to.timeIntervalSince(prev.at))
+            if newDuration > maxDuration {
+                let msg = "Got duration of \(newDuration) for \(prev.activity), started \(prev.time), ended at experiment end at \(timeFormatter.string(from: to)))"
+                print(msg)
+                LocalStore.shared.addDiaryEntry(.debugging, msg)
+            } else {
+                activityDurations[prev.activity] = newDuration
+                print("set time doing \(prev.activity) to \(newDuration)")
+            }
         }
         print("Got \(fusedData.count) fused data items")
 
@@ -246,7 +261,7 @@ class SensorFusion {
                         results(nil, nil)
                         return
                     }
-                    self.fuseMotionData(to, horiztonalData, a, results)
+                    self.fuseMotionData(from: from, to: to, horiztonalData, a, results)
                 }
             } else {
                 print("No accelerometerData available")
@@ -259,7 +274,7 @@ class SensorFusion {
                         return
                     }
                     let horiztonalData: [SensorData] = [SensorData(at: from, sensor: SensorReading.horizontal(.unknown))]
-                    self.fuseMotionData(to, horiztonalData, a, results)
+                    self.fuseMotionData(from: from, to: to, horiztonalData, a, results)
                 }
             }
         }

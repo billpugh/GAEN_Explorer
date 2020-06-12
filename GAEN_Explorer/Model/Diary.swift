@@ -10,6 +10,7 @@ import Foundation
 
 enum DiaryKind: String, CustomStringConvertible, Codable {
     case startExperiment
+    case endExperiment
     case keysShared
     case exposuresShared
     case keysReceived
@@ -17,11 +18,15 @@ enum DiaryKind: String, CustomStringConvertible, Codable {
     case scanningChanged
     case memo
     case activity
+    case debugging
 
     var description: String {
         switch self {
         case .startExperiment:
             return "Experiment started"
+        case .endExperiment:
+            return "Experiment ended"
+
         case .keysShared:
             return "Keys shared"
         case .exposuresShared:
@@ -29,13 +34,15 @@ enum DiaryKind: String, CustomStringConvertible, Codable {
         case .keysReceived:
             return "Keys received from"
         case .analysisPerformed:
-            return "Analysis pass performed"
+            return "Analysis"
         case .scanningChanged:
             return "Scanning changed"
         case .memo:
             return "memo:"
         case .activity:
             return "activity:"
+        case .debugging:
+            return "debugging:"
         }
     }
 }
@@ -58,7 +65,7 @@ struct DiaryEntry: Codable {
     }
 
     var time: String {
-        LocalStore.shared.timeFormatter.string(from: at)
+        timeFormatter.string(from: at)
     }
 
     func csv(user: String) -> String {
@@ -68,6 +75,7 @@ struct DiaryEntry: Codable {
     static let testData: [DiaryEntry] = [
         DiaryEntry(hoursAgo(0, minutes: 25), .startExperiment),
         DiaryEntry(hoursAgo(0, minutes: 23), .memo, "Started dinner"),
+        DiaryEntry(hoursAgo(0, minutes: 25), .endExperiment),
         DiaryEntry(hoursAgo(0, minutes: 4), .keysShared),
         DiaryEntry(hoursAgo(0, minutes: 3), .keysReceived, "Bob"),
         DiaryEntry(hoursAgo(0, minutes: 3), .analysisPerformed, "pass 1"),

@@ -16,13 +16,15 @@ struct ExposureKey: Hashable, CustomStringConvertible {
 
     let transmissionRiskLevel: ENRiskLevel
 
+    let duration: Int
     var date: Date
     var day: String {
-        LocalStore.shared.dayFormatter.string(from: date)
+        dayFormatter.string(from: date)
     }
 
     init(info: CodableExposureInfo) {
         self.date = info.date
+        self.duration = info.exposureInfoDuration
         self.transmissionRiskLevel = info.transmissionRiskLevel
     }
 }

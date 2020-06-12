@@ -7,7 +7,8 @@
 import Foundation
 import SwiftUI
 
-struct ThresholdDataView0: View {
+let thresholdDebug = true
+struct ThresholdDataViewo: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
@@ -31,30 +32,70 @@ struct ThresholdDataView: View {
 
 struct ExposureDurationViewLarge: View {
     let thresholdData: ThresholdData
-    let scale: CGFloat = 5
-    let cornerRadius: CGFloat = 2
+    static let scale: CGFloat = 5
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
                 Capsule()
-                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+
                 Capsule()
-                    .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
-                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * scale).foregroundColor(.green)
+                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration - thresholdData.prevCumulativeDuration) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
+
+                Capsule()
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.thisDuration) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green)
+                Capsule()
+                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
             }
             Text(thresholdData.attenuationLabel)
         }.padding(.bottom, 8)
     }
 }
 
+struct BarView: View {
+    let height: CGFloat
+    let width: CGFloat
+    let step: CGFloat
+    var body: some View {
+        Path { path in
+            path.move(to: CGPoint(x: 0, y: 0))
+            path.move(to: CGPoint(x: width, y: 0))
+            for y in stride(from: 0, through: self.height, by: self.step) {
+                path.move(to: CGPoint(x: 0, y: height - y))
+                path.addLine(to: CGPoint(x: width, y: height - y))
+            }
+        }.stroke(Color.gray)
+            .frame(width: width, height: height)
+    }
+}
+
 struct ExposureDurationsViewLarge: View {
     let thresholdData: [ThresholdData]
+    let maxDuration: Int
     var body: some View {
-        HStack(alignment: .bottom) {
-            ForEach(thresholdData, id: \.self) {
-                ExposureDurationViewLarge(thresholdData: $0)
+        ZStack(alignment: Alignment(horizontal: .center, vertical: .top)) {
+            BarView(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale,
+                    width: ExposureDurationViewLarge.scale * 7 * CGFloat(thresholdData.count),
+                    step: 10 * ExposureDurationViewLarge.scale)
+            HStack(alignment: .bottom, spacing: 2 * ExposureDurationViewLarge.scale) {
+                ForEach(thresholdData, id: \.self) {
+                    ExposureDurationViewLarge(thresholdData: $0)
+                }
             }
         }
+    }
+}
+
+struct ExposureDurationsViewLarge_Previews0: PreviewProvider {
+    static let batch = EncountersWithUser.testData
+
+    static var previews: some View {
+        ExposureDurationsViewLarge(thresholdData: batch.exposures[0].thresholdData,
+                                   maxDuration: batch.exposures[0].calculatedTotalDuration)
+            .previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
     }
 }
 
@@ -100,22 +141,39 @@ struct ExposureDurationsViewSmall: View {
 struct ExposureDetailView: View {
     var batch: EncountersWithUser
     var info: CodableExposureInfo
-    @EnvironmentObject var localStore: LocalStore
-    var body: some View { VStack {
-        ExposureDurationsViewLarge(thresholdData: self.info.thresholdData).padding(.vertical)
-        ScrollView {
-            GeometryReader { geometry in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("From keys \(self.batch.userName) sent \(self.batch.dateKeysSent, formatter: LocalStore.shared.shortDateFormatter)")
-                    Text("analyzed \(self.batch.dateAnalyzed, formatter: LocalStore.shared.shortDateFormatter)")
-                    Text("")
-                    Text("This encounter occurred on \(self.info.date, formatter: LocalStore.shared.dayFormatter)")
-                    Group {
-                        Text("encounter lasted at least \(self.info.totalDuration) minutes")
-                        Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
 
-                        Text("minimum durations at different attenuations:").padding(.top)
-                    }
+    var line1: String {
+        if let experiment = batch.experiment {
+            return "Experiment \(shortDate: experiment.started) - \(time: experiment.ended)"
+        }
+        return "From keys \(batch.userName) sent \(shortDate: batch.dateKeysSent)"
+    }
+
+    var line2: String {
+        if let _ = batch.experiment {
+            return "Encounter with \(batch.userName)"
+        }
+        return "Analyzed \(batch.analysisPasses) times at \(shortDate: batch.dateAnalyzed)"
+    }
+
+    @EnvironmentObject var localStore: LocalStore
+    var body: some View { GeometryReader { geometry in
+        VStack {
+            ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration).padding(.vertical)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(self.line1)
+                    Text(self.line2)
+
+                    Spacer()
+                    Text("This encounter occurred on \(self.info.date, formatter: dayFormatter)")
+                    Group {
+                        Text("encounter lasted at least \(self.info.calculatedTotalDuration) minutes")
+                        Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
+                        Spacer()
+
+                    }.padding(.horizontal)
+                    Text("minimum durations:")
                     ForEach(self.info.thresholdData
                         .filter { $0.thisDuration > 0 },
                             id: \.self) { t in
@@ -125,7 +183,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Encounter with \(batch.userName), \(self.info.date, formatter: LocalStore.shared.dayFormatter)", displayMode: .inline)
+    }.navigationBarTitle("Encounter with \(batch.userName), \(self.info.date, formatter: dayFormatter)", displayMode: .inline)
     }
 }
 
@@ -173,8 +231,8 @@ struct ExposureInfoView: View {
     var body: some View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
-                Text("\(info.date, formatter: LocalStore.shared.dayFormatter)").frame(width: width / 5, alignment: .leading)
-                Spacer()
+                Text("\(info.date, formatter: dayFormatter)").frame(width: width / 6, alignment: .leading).padding()
+
                 MeaningfulExposureView(info: info, scale: 2)
                 Spacer()
                 ExposureDurationsViewSmall(thresholdData: info.thresholdData)
@@ -223,11 +281,11 @@ struct ExposuresView: View {
                             Section(header:
                                 VStack(alignment: .leading) {
                                     HStack {
-                                        Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: LocalStore.shared.shortDateFormatter)").font(.headline)
+                                        Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: shortDateFormatter)").font(.headline)
 
                                     }.padding(.top)
                                     HStack {
-                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: LocalStore.shared.shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
+                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
 
                                     }.font(.subheadline)
 
@@ -326,7 +384,7 @@ struct ExposureDetailView_Previews1: PreviewProvider {
     static var previews: some View {
         NavigationView {
             ExposureDetailView(batch: batch, info: batch.exposures[1])
-        }.previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
+        }.previewDevice(PreviewDevice(rawValue: "iPhone SE"))
     }
 }
 

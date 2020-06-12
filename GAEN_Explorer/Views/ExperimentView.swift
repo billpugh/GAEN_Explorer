@@ -17,14 +17,17 @@ struct ExperimentView: View {
     @State var showingSheetToShareExposures = false
     @State var didExportExposures = false
     @State var didErase = false
+    @State var description: String = ""
+    @State var lastMemo = ""
 
-    var finalButtonTitle: String {
-        if !localStore.canAnalyze && localStore.allExposures.count > 0 {
-            return "Share your analysis"
-        } else if !localStore.canResetAnalysis {
-            return "Analyze encounters"
+    var analysisButtonTitle: String {
+        if localStore.allExposures.count == 0 {
+            return "No keys to analyze"
         }
-        return "Analyze again"
+        if !localStore.canAnalyze {
+            return "Share your analysis"
+        }
+        return "Perform Analysis #\(localStore.analysisPassedCompleted + 1) of \(numberAnalysisPasses)"
     }
 
     func itemsToShare() -> [Any] {
@@ -40,6 +43,11 @@ struct ExperimentView: View {
     var body: some View {
         ScrollView(.vertical) {
             VStack {
+                HStack {
+                    Text("Description:")
+                    TextField("description", text: self.$description, onCommit: {})
+                }
+
                 // MARK: experimentStatus == .none
 
                 Group {
@@ -76,6 +84,19 @@ struct ExperimentView: View {
                 }.disabled(self.localStore.experimentStatus != .none)
 
                 // MARK: started
+
+                HStack(alignment: .bottom) {
+                    Button(action: {
+                        self.localStore.addDiaryEntry(.memo, self.lastMemo)
+
+                        withAnimation {
+                            self.lastMemo = ""
+                        }
+                                                    })
+                    { Text("Add memo") }.font(.title).padding(.leading)
+                    TextField("Memo", text: self.$lastMemo, onCommit: {})
+                }
+                .disabled(self.localStore.experimentStatus == .none)
 
                 Group {
                     Button(action: {
@@ -123,7 +144,7 @@ struct ExperimentView: View {
                             }
                         }
                     }
-                    ) { Text(finalButtonTitle).font(.title) }
+                    ) { Text(analysisButtonTitle).font(.title) }
                         .padding(.vertical)
                         .disabled(self.localStore.allExposures.count == 0)
 

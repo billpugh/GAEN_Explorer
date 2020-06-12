@@ -112,15 +112,15 @@ struct StatusView: View {
                 }
                 ) {
                     ZStack {
-                        HStack { Text("Share keys")
+                        HStack { Text(localStore.userName.isEmpty ? "Provide a user name before sharing keys" : "Share keys")
                             Spacer()
                             Image(systemName: "square.and.arrow.up")
                         }.font(.headline)
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
-                }.padding().sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
-                                  content: {
-                                      ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                }.padding().disabled(localStore.userName.isEmpty).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
+                                                                        content: {
+                                                                            ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                                            })
 
 //
@@ -128,7 +128,7 @@ struct StatusView: View {
                 Group {
                     // Show exposures
                     NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                        Text("Show encounters").font(.headline).padding()
+                        Text(localStore.showEncountersMsg).font(.headline).padding()
                     }
 
                     NavigationLink(destination: ExperimentView(), tag: "experiment", selection: $localStore.viewShown) {

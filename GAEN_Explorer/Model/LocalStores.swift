@@ -34,6 +34,7 @@ struct EncountersWithUser: Codable {
     let userName: String
     let dateKeysSent: Date
     var dateAnalyzed: Date
+    var experiment: ExperimentSummary?
     let transmissionRiskLevel: ENRiskLevel
     var keys: [CodableDiagnosisKey]
     var keysChecked: Int {
@@ -56,12 +57,13 @@ struct EncountersWithUser: Codable {
         return "kind, user, what, when, detail, \(thresholdsHeader),  \(thresholdsHeader),  \(thresholdsHeader)\n"
     }
 
-    init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, exposures: [CodableExposureInfo] = []) {
+    init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, experiment: ExperimentSummary? = nil, exposures: [CodableExposureInfo] = []) {
         self.userName = packedKeys.userName
         self.dateKeysSent = packedKeys.dateKeysSent
         self.dateAnalyzed = Date()
         self.keys = packedKeys.keys
         self.transmissionRiskLevel = transmissionRiskLevel
+        self.experiment = experiment
         self.exposures = exposures
         for i in 0 ..< keys.count {
             keys[i].setTransmissionRiskLevel(transmissionRiskLevel: transmissionRiskLevel)
@@ -94,14 +96,59 @@ struct EncountersWithUser: Codable {
     static var testData = EncountersWithUser(packedKeys: PackagedKeys.testData, transmissionRiskLevel: 0, exposures: CodableExposureInfo.testData)
 }
 
+struct ExperimentSummary: Codable {
+    let started: Date
+    let ended: Date
+    let description: String
+}
+
+func makeDateFormatter(tweaks: (DateFormatter) -> DateFormatter) -> DateFormatter {
+    tweaks(DateFormatter())
+}
+
+let fullDateFormatter: DateFormatter = makeDateFormatter {
+    $0.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
+    return $0
+}
+
+let dayFormatter: DateFormatter = makeDateFormatter {
+    $0.dateFormat = "MMM d"
+    return $0
+}
+
+let shortDateFormatter: DateFormatter = makeDateFormatter {
+    $0.timeStyle = .short
+    $0.dateStyle = .short
+    $0.doesRelativeDateFormatting = true
+    return $0
+}
+
+let timeFormatter: DateFormatter = makeDateFormatter {
+    $0.timeStyle = .short
+    return $0
+}
+
+extension String.StringInterpolation {
+    mutating func appendInterpolation(day: Date) {
+        appendLiteral(dayFormatter.string(from: day))
+    }
+
+    mutating func appendInterpolation(fullDate: Date) {
+        appendLiteral(fullDateFormatter.string(from: fullDate))
+    }
+
+    mutating func appendInterpolation(shortDate: Date) {
+        appendLiteral(shortDateFormatter.string(from: shortDate))
+    }
+
+    mutating func appendInterpolation(time: Date) {
+        appendLiteral(timeFormatter.string(from: time))
+    }
+}
+
 // MARK: - LocalStore
 
 class LocalStore: ObservableObject {
-    let fullDateFormatter = DateFormatter()
-    let dayFormatter = DateFormatter()
-    let shortDateFormatter = DateFormatter()
-    let timeFormatter = DateFormatter()
-
     static let shared = LocalStore()
 
     static let userNameKey = "userName"
@@ -136,16 +183,35 @@ class LocalStore: ObservableObject {
         return pass > 0
     }
 
-    var canAnalyze: Bool {
+    var analysisPassedCompleted: Int {
         if allExposures.count == 0 {
-            return false
+            return 0
         }
-        let pass = allExposures.map(\.analysisPasses).min()!
-        return pass + 1 <= numberAnalysisPasses
+        return allExposures.map(\.analysisPasses).min()!
+    }
+
+    var canAnalyze: Bool {
+        analysisPassedCompleted < numberAnalysisPasses
     }
 
     var canErase: Bool {
         allExposures.count > 0
+    }
+
+    var showEncountersMsg: String {
+        if allExposures.count == 0 {
+            return "No keys or analysis yet"
+        }
+        if analysisPassedCompleted == 0 {
+            if allExposures.count == 1 {
+                return "Show key from \(allExposures[0].userName)"
+            }
+            return "Show keys from \(allExposures.count) devices"
+        }
+        if allExposures.count == 1 {
+            return "Show encounter with \(allExposures[0].userName)"
+        }
+        return "Show encounters with \(allExposures.count) devices"
     }
 
     func analyze() {
@@ -247,6 +313,9 @@ class LocalStore: ObservableObject {
     @Published
     var experimentEnded: Date?
 
+    @Published
+    var experimentDescription: String = ""
+
     enum ExperimentStatus {
         case none
         case started
@@ -267,14 +336,18 @@ class LocalStore: ObservableObject {
         switch experimentStatus {
         case .none: return nil
         case .started:
-            return "Experiment started \(timeFormatter.string(from: experimentStarted!))"
+            return "Experiment started \(time: experimentStarted!)"
         case .completed:
-            return "Experiment ended \(timeFormatter.string(from: experimentEnded!))"
+            return "Experiment ended \(time: experimentEnded!))"
         }
     }
 
     func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
         diary.append(DiaryEntry(Date(), kind, text))
+    }
+
+    func addMemoToDiary(_ text: String) {
+        diary.append(DiaryEntry(Date(), .memo, "\"\(text)\""))
     }
 
     func startExperiment(_ framework: ExposureFramework) {
@@ -284,13 +357,23 @@ class LocalStore: ObservableObject {
         timeSpentInActivity = nil
         SensorFusion.shared.startAccel()
         experimentStarted = Date()
+        experimentDescription = ""
         addDiaryEntry(.startExperiment)
         framework.eraseKeys()
         framework.isEnabled = true
     }
 
+    var experimentSummary: ExperimentSummary? {
+        if let started = experimentStarted,
+            let ended = experimentEnded {
+            return ExperimentSummary(started: started, ended: ended, description: experimentDescription)
+        }
+        return nil
+    }
+
     func endScanningForExperiment(_ framework: ExposureFramework) {
         framework.isEnabled = false
+        addDiaryEntry(.endExperiment)
         experimentEnded = Date()
         SensorFusion.shared.getSensorData(from: experimentStarted!, to: experimentEnded!) {
             fusedData, timeSpentInActivity in
@@ -308,6 +391,7 @@ class LocalStore: ObservableObject {
         viewShown = nil
         experimentEnded = nil
         experimentStarted = nil
+        experimentDescription = ""
         diary = []
         fusedData = nil
         timeSpentInActivity = nil
@@ -318,23 +402,11 @@ class LocalStore: ObservableObject {
     init(userName: String, testData: [EncountersWithUser], diary: [DiaryEntry] = []) {
         self.userName = userName
         self.allExposures = testData
-        fullDateFormatter.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
-        dayFormatter.dateFormat = "MMM d"
-        shortDateFormatter.timeStyle = .short
-        shortDateFormatter.dateStyle = .short
-        shortDateFormatter.doesRelativeDateFormatting = true
-        timeFormatter.timeStyle = .short
+
         self.diary = diary
     }
 
     init() {
-        fullDateFormatter.dateFormat = "yyyy/MM/dd HH:mm ZZZ"
-        dayFormatter.dateFormat = "MMM d"
-        shortDateFormatter.timeStyle = .short
-        shortDateFormatter.dateStyle = .short
-        shortDateFormatter.doesRelativeDateFormatting = true
-        timeFormatter.timeStyle = .short
-
         if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
         }
@@ -408,7 +480,7 @@ class LocalStore: ObservableObject {
         addDiaryEntry(DiaryKind.keysReceived, e.userName)
         if let i = positions[e.userName] {
             if allExposures[i].dateKeysSent < e.dateKeysSent {
-                let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i))
+                let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i), experiment: experimentSummary)
                 allExposures[i] = extractedExpr
                 print("Updated \(extractedExpr.keys.count) keys from \(e.userName)")
             } else {
@@ -416,7 +488,7 @@ class LocalStore: ObservableObject {
             }
         } else {
             let lastIndex = allExposures.count
-            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex))
+            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex), experiment: experimentSummary)
 
             positions[e.userName] = lastIndex
             print("positions = \(positions)")
@@ -427,18 +499,38 @@ class LocalStore: ObservableObject {
 
     // MARK: - Export exposures
 
+    func csvSafe(_ txt: String) -> String {
+        if txt.isEmpty {
+            return ""
+        }
+        return "\"\(txt)\""
+    }
+
     func csvExport() -> String {
         var thresholds: [Int] = multipassThresholds.sorted() + [maxAttenuation]
         if let sample = allExposures.first?.exposures.first {
             thresholds = sample.sortedThresholds
         }
-
-        let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
-        let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
-        guard let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value), secs " }).joined(separator: "\n") else {
-            return exposuresCSV + "\n" + diaryCSV + "\n"
+        var result = ""
+        if let start = experimentStarted,
+            let ended = experimentEnded {
+            result = """
+            experiment, \(userName), started, \(fullDate: start), \(csvSafe(experimentDescription))
+            experiment, \(userName), ended, \(fullDate: ended), \(csvSafe(experimentDescription))
+            """
         }
-        return exposuresCSV + "\n" + diaryCSV + "\n" + timeSpentCSV + "\n"
+        let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
+        result = result + exposuresCSV + "\n"
+
+        let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
+        if !diaryCSV.isEmpty {
+            result = result + diaryCSV + "\n"
+        }
+
+        if let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value), secs " }).joined(separator: "\n") {
+            result = result + timeSpentCSV + "\n"
+        }
+        return result
     }
 
     func exportExposuresToURL() {

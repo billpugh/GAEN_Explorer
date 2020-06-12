@@ -19,6 +19,7 @@ struct DiaryView: View {
                         HStack {
                             Text(d.time).frame(width: geometry.size.width / 4)
                             Text(d.kind.description)
+                            Text(d.text)
                         }
                     }
                 }
@@ -29,11 +30,9 @@ struct DiaryView: View {
                         Text("Memo")
                     }
                     Spacer()
-                    Text("B")
-                    Spacer()
                 }
-            }.navigationBarTitle("Diary for \(self.localStore.userName)", displayMode: .inline)
-        }
+            }
+        }.navigationBarTitle("Diary for \(self.localStore.userName)", displayMode: .inline)
     }
 }
 

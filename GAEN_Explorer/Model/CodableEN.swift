@@ -13,7 +13,7 @@ let maxAttenuation = 90
 struct ThresholdData: Hashable, CustomStringConvertible {
     var description: String {
         if true {
-            return "\(prevAttenuation) dB <  \(thisDuration) \(cumulativeDuration):\(durationDebug ?? -1) \(exceedingDuration):\(durationExceedingDebug ?? -1) <= \(attenuation) dB "
+            return "\(prevAttenuation) dB <  \(thisDuration) \(maxThisDuration) \(cumulativeDuration):\(durationDebug ?? -1) \(maxCumulativeDuration) \(exceedingDuration):\(durationExceedingDebug ?? -1) <= \(attenuation) dB "
         }
         //        thisDuration == 0 ? "" :
         //            "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < maxAttenuation ? "<= \(attenuation)dB" : "")"
@@ -37,6 +37,11 @@ struct ThresholdData: Hashable, CustomStringConvertible {
 
     let cumulativeDuration: Int
     let prevCumulativeDuration: Int
+    let maxCumulativeDuration: Int
+
+    var maxThisDuration: Int {
+        maxCumulativeDuration - cumulativeDuration + thisDuration
+    }
 
     var prevCumulativeDurationCapped: Int {
         min(30, prevCumulativeDuration)
@@ -62,21 +67,33 @@ struct ThresholdData: Hashable, CustomStringConvertible {
     }
 }
 
+struct RawAttenuationData: Codable {
+    let thresholds: [Int]
+    let durations: [Int]
+}
+
 // from ENExposureInfo
 struct CodableExposureInfo: Codable {
     let id: UUID
     let date: Date
     var day: String {
-        LocalStore.shared.dayFormatter.string(from: date)
+        dayFormatter.string(from: date)
     }
 
-    var totalDuration: Int // minutes
+    var totalDuration: Int
+
+    var calculatedTotalDuration: Int {
+        totalTime(atNoMoreThan: maxAttenuation)
+    }
+
+    let exposureInfoDuration: Int
     let totalRiskScore: ENRiskScore
 
     let transmissionRiskLevel: ENRiskLevel
     let attenuationValue: Int8 // attenuation risk level
     var durations: [Int: Int] // minutes
     var durationsExceeding: [Int: Int] // minutes
+    var rawAnalysis: [RawAttenuationData] = []
     var meaningfulDuration: Int {
         let lowAttn = totalTime(atNoMoreThan: multipassThresholds[0])
         let mediumAttn = totalTime(atNoMoreThan: multipassThresholds[1]) - lowAttn
@@ -106,18 +123,14 @@ struct CodableExposureInfo: Codable {
     }
 
     func totalTime(atNoMoreThan: Int) -> Int {
-        if atNoMoreThan == maxAttenuation {
-            return totalDuration
-        } else if atNoMoreThan == 0 {
+        if atNoMoreThan == 0 {
             return 0
         }
         return max(totalTime0(atNoMoreThan: atNoMoreThan), timeInBucket(upperBound: atNoMoreThan) + totalTime(atNoMoreThan: prevThreshold(dB: atNoMoreThan)))
     }
 
     func totalTime(exceeding: Int) -> Int {
-        if exceeding == 0 {
-            return totalDuration
-        } else if exceeding == maxAttenuation {
+        if exceeding == maxAttenuation {
             return 0
         }
         return max(totalTime0(exceeding: exceeding), timeInBucket(upperBound: exceeding) + totalTime(exceeding: nextThreshold(dB: exceeding)))
@@ -165,35 +178,39 @@ struct CodableExposureInfo: Codable {
         durations.keys.sorted().map { String($0) }.joined(separator: ", ")
     }
 
-    var thresholdData: [ThresholdData] {
-        var result: [ThresholdData] = []
-        let sortedDurations = durations.keys.sorted() + [maxAttenuation]
-        var prevdB = 0
-        for dB in sortedDurations {
-            result.append(ThresholdData(prevAttenuation: prevdB,
-                                        attenuation: dB,
-                                        thisDuration: timeInBucket(upperBound: dB),
-                                        cumulativeDuration: totalTime(atNoMoreThan: dB),
-                                        prevCumulativeDuration: totalTime(atNoMoreThan: prevdB),
-                                        exceedingDuration: totalTime(exceeding: dB),
-                                        durationDebug: durations[dB],
-                                        durationExceedingDebug: durationsExceeding[dB]))
-            prevdB = dB
-        }
+    func thresholdData(dB: Int) -> ThresholdData {
+        let prevdB = prevThreshold(dB: dB)
+        let nextdB = nextThreshold(dB: dB)
+        let cummulativeDuration = totalTime(atNoMoreThan: dB)
+        return ThresholdData(prevAttenuation: prevdB,
+                             attenuation: dB,
+                             thisDuration: timeInBucket(upperBound: dB),
+                             cumulativeDuration: cummulativeDuration,
+                             prevCumulativeDuration: totalTime(atNoMoreThan: prevdB),
+                             maxCumulativeDuration: max(cummulativeDuration,
+                                                        totalTime(atNoMoreThan: nextdB) - timeInBucket(upperBound: nextdB)),
+                             exceedingDuration: totalTime(exceeding: dB),
+                             durationDebug: durations[dB],
+                             durationExceedingDebug: durationsExceeding[dB])
+    }
 
-        return result
+    var thresholdData: [ThresholdData] {
+        let sortedDurations = durations.keys.sorted() + [maxAttenuation]
+        return sortedDurations.map { thresholdData(dB: $0) }
     }
 
     mutating func merge(_ merging: CodableExposureInfo) {
         totalDuration = max(totalDuration, merging.totalDuration)
         durations.merge(merging.durations) { old, _ in old }
         durationsExceeding.merge(merging.durationsExceeding) { old, _ in old }
+        rawAnalysis.append(contentsOf: merging.rawAnalysis)
     }
 
     init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
         self.id = UUID()
         self.date = info.date
 
+        self.exposureInfoDuration = Int(info.duration / 60)
         self.totalRiskScore = info.totalRiskScore
         self.transmissionRiskLevel = info.transmissionRiskLevel
         self.attenuationValue = Int8(info.attenuationValue)
@@ -204,6 +221,7 @@ struct CodableExposureInfo: Codable {
                           config.attenuationDurationThresholds[1]: attenuationDurations[0] + attenuationDurations[1]]
         self.durationsExceeding = [config.attenuationDurationThresholds[0]: attenuationDurations[1] + attenuationDurations[2],
                                    config.attenuationDurationThresholds[1]: attenuationDurations[2]]
+        rawAnalysis.append(RawAttenuationData(thresholds: config.attenuationDurationThresholds, durations: attenuationDurations))
         if true {
             print("ENExposureInfo:")
             print("  attenuationDurations \(attenuationDurations)")
@@ -230,6 +248,7 @@ struct CodableExposureInfo: Codable {
         self.attenuationValue = attenuationValue
         self.durations = durations
         self.totalDuration = duration
+        self.exposureInfoDuration = min(30, duration)
         self.durationsExceeding =
             Dictionary(uniqueKeysWithValues:
                 durations.map { key, value in (key, duration - value) })
