@@ -46,12 +46,14 @@ struct EncountersWithUser: Codable {
 
     func csvFormat(to: String) -> [String] {
         let pair = [to, userName].sorted().joined(separator: "-")
-        return exposures.map { exposureInfo in "exposure, \(to), \(pair),  \(exposureInfo.day), \(exposureInfo.meaningfulDuration), \(exposureInfo.durationsCSV), \(exposureInfo.extendedDuration)" }
+        return exposures.map { exposureInfo in """
+        exposure, \(to), \(pair), \(exposureInfo.day), \(exposureInfo.meaningfulDuration),  \(exposureInfo.durationsCSV),  \(exposureInfo.durationsExceedingCSV), \(exposureInfo.timeInBucketCSV)
+        """ }
     }
 
-    static func csvHeader() -> String {
-        let thresholdsHeader = multipassThresholds.sorted().map { String($0) }.joined(separator: ", ")
-        return "kind, user, what,  when, detail, \(thresholdsHeader), ∞\n"
+    static func csvHeader(_ thresholds: [Int]) -> String {
+        let thresholdsHeader = thresholds.map { $0 == maxAttenuation ? "∞" : String($0) }.joined(separator: ", ")
+        return "kind, user, what, when, detail, \(thresholdsHeader),  \(thresholdsHeader),  \(thresholdsHeader)\n"
     }
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, exposures: [CodableExposureInfo] = []) {
@@ -294,6 +296,10 @@ class LocalStore: ObservableObject {
             fusedData, timeSpentInActivity in
             self.fusedData = fusedData
             self.timeSpentInActivity = timeSpentInActivity
+            if let fd = fusedData {
+                self.diary.append(contentsOf: fd.map { DiaryEntry(fusedData: $0) })
+                self.diary.sort(by: { $0.at < $1.at })
+            }
         }
     }
 
@@ -302,6 +308,9 @@ class LocalStore: ObservableObject {
         viewShown = nil
         experimentEnded = nil
         experimentStarted = nil
+        diary = []
+        fusedData = nil
+        timeSpentInActivity = nil
     }
 
     // MARK: - Lifecycle
@@ -419,12 +428,17 @@ class LocalStore: ObservableObject {
     // MARK: - Export exposures
 
     func csvExport() -> String {
-        let exposuresCSV = EncountersWithUser.csvHeader() + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
+        var thresholds: [Int] = multipassThresholds.sorted() + [maxAttenuation]
+        if let sample = allExposures.first?.exposures.first {
+            thresholds = sample.sortedThresholds
+        }
+
+        let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
         let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
         guard let timeSpentCSV = timeSpentInActivity?.map({ "time, \(userName), \($0.key), \($0.value), secs " }).joined(separator: "\n") else {
-            return exposuresCSV + "\n" + diaryCSV
+            return exposuresCSV + "\n" + diaryCSV + "\n"
         }
-        return exposuresCSV + "\n" + diaryCSV + "\n" + timeSpentCSV
+        return exposuresCSV + "\n" + diaryCSV + "\n" + timeSpentCSV + "\n"
     }
 
     func exportExposuresToURL() {
@@ -436,7 +450,7 @@ class LocalStore: ObservableObject {
             in: .userDomainMask
         ).first
 
-        guard let path = documents?.appendingPathComponent("exposures.csv") else {
+        guard let path = documents?.appendingPathComponent("\(userName).csv") else {
             return
         }
 

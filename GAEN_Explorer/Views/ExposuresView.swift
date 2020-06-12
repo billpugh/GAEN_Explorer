@@ -7,31 +7,40 @@
 import Foundation
 import SwiftUI
 
+struct ThresholdDataView0: View {
+    let t: ThresholdData
+    let width: CGFloat
+    var body: some View {
+        Text(t.description)
+    }
+}
+
 struct ThresholdDataView: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
         HStack {
             Text(
-                t.prevAttenuation > 0 ? "\(t.prevAttenuation)dB" : "").frame(width: width / 4, alignment: .trailing)
-            Text(t.prevAttenuation > 0 ? " < \(t.thisDuration) min" : "\(t.thisDuration) min").frame(width: width / 4.5, alignment: .trailing)
-            Text(t.attenuation < 90 ? "<= \(t.attenuation)dB" : "").frame(width: width / 4, alignment: .leading)
+                t.prevAttenuation > 0
+                    ? "\(t.prevAttenuation) dB <  \(t.thisDurationString) min"
+                    : "\(t.thisDurationString) min").frame(width: width / 2, alignment: .trailing)
+            Text(t.attenuation < maxAttenuation ? "<= \(t.attenuation) dB" : "").frame(width: width / 4, alignment: .leading)
         }
     }
 }
 
 struct ExposureDurationViewLarge: View {
     let thresholdData: ThresholdData
-    let scale: CGFloat = 6
+    let scale: CGFloat = 5
     let cornerRadius: CGFloat = 2
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: cornerRadius * scale)
+                Capsule()
                     .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.primary)
-                RoundedRectangle(cornerRadius: cornerRadius * scale)
+                Capsule()
                     .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
-                    .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
+                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * scale).foregroundColor(.green)
             }
             Text(thresholdData.attenuationLabel)
         }.padding(.bottom, 8)
@@ -55,11 +64,23 @@ struct ExposureDurationViewSmall: View {
     let cornerRadius: CGFloat = 2
     var body: some View {
         ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: cornerRadius * scale)
-                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDuration) * scale).foregroundColor(.primary)
-            RoundedRectangle(cornerRadius: cornerRadius * scale)
-                .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDuration) * scale)
-                .offset(x: 0, y: CGFloat(-thresholdData.prevDuration) * scale).foregroundColor(.green)
+            if thresholdData.capped {
+                Rectangle()
+                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * scale / 2)
+                    .offset(x: 0, y: -CGFloat(thresholdData.cumulativeDurationCapped) * scale / 2).foregroundColor(.primary)
+            }
+
+            Capsule()
+                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * scale).foregroundColor(.primary)
+
+            if thresholdData.capped {
+                Rectangle()
+                    .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDurationCapped) * scale / 2)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * scale - CGFloat(thresholdData.thisDurationCapped) * scale / 2).foregroundColor(.green)
+            }
+            Capsule()
+                .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDurationCapped) * scale)
+                .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * scale).foregroundColor(.green)
 
         }.padding(.bottom, 8)
     }
@@ -90,10 +111,10 @@ struct ExposureDetailView: View {
                     Text("")
                     Text("This encounter occurred on \(self.info.date, formatter: LocalStore.shared.dayFormatter)")
                     Group {
-                        Text("encounter lasted \(self.info.duration)/\(self.info.extendedDuration) minutes")
+                        Text("encounter lasted at least \(self.info.totalDuration) minutes")
                         Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
 
-                        Text("durations at different attenuations:").padding(.top)
+                        Text("minimum durations at different attenuations:").padding(.top)
                     }
                     ForEach(self.info.thresholdData
                         .filter { $0.thisDuration > 0 },
@@ -104,7 +125,7 @@ struct ExposureDetailView: View {
             }
 
         }.padding(.horizontal)
-    }.navigationBarTitle("Encounter with \(batch.userName)  \(self.info.date, formatter: LocalStore.shared.dayFormatter)", displayMode: .inline)
+    }.navigationBarTitle("Encounter with \(batch.userName), \(self.info.date, formatter: LocalStore.shared.dayFormatter)", displayMode: .inline)
     }
 }
 
@@ -289,13 +310,23 @@ struct ExposuresView: View {
     }
 }
 
-struct ExposureDetailView_Previews: PreviewProvider {
+struct ExposureDetailView_Previews0: PreviewProvider {
     static let batch = EncountersWithUser.testData
 
     static var previews: some View {
         NavigationView {
             ExposureDetailView(batch: batch, info: batch.exposures[0])
-        }
+        }.previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
+    }
+}
+
+struct ExposureDetailView_Previews1: PreviewProvider {
+    static let batch = EncountersWithUser.testData
+
+    static var previews: some View {
+        NavigationView {
+            ExposureDetailView(batch: batch, info: batch.exposures[1])
+        }.previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
     }
 }
 
@@ -304,8 +335,9 @@ struct ExposuresView_Previews: PreviewProvider {
 
     static var previews: some View {
         NavigationView {
-            ExposuresView().environmentObject(localStore)
-                .environmentObject(ExposureFramework.shared)
-        }
+            ExposuresView()
+        }.environmentObject(localStore)
+            .environmentObject(ExposureFramework.shared)
+            .previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
     }
 }
