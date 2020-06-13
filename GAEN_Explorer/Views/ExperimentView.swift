@@ -21,6 +21,9 @@ struct ExperimentView: View {
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
+        if self.localStore.experimentStatus != .completed {
+            return "Perform analysis"
+        }
         if localStore.allExposures.count == 0 {
             return "No keys to analyze"
         }
@@ -44,8 +47,8 @@ struct ExperimentView: View {
         ScrollView(.vertical) {
             VStack {
                 HStack {
-                    Text("Description:")
-                    TextField("description", text: self.$description, onCommit: {})
+                    Text("Description:").font(.headline)
+                    TextField("description", text: self.$description)
                 }
 
                 // MARK: experimentStatus == .none
@@ -94,7 +97,7 @@ struct ExperimentView: View {
                         }
                                                     })
                     { Text("Add memo") }.font(.title).padding(.leading)
-                    TextField("Memo", text: self.$lastMemo, onCommit: {})
+                    TextField("memo", text: self.$lastMemo)
                 }
                 .disabled(self.localStore.experimentStatus == .none)
 
@@ -173,9 +176,11 @@ struct ExperimentView: View {
 }
 
 struct StartExperimentView_Previews: PreviewProvider {
+       static let localStore = LocalStore(userName: "Alice", testData: [EncountersWithUser.testData])
     static var previews: some View {
         NavigationView {
-            ExperimentView().environmentObject(LocalStore.shared)
+            ExperimentView().environmentObject(localStore)
+            .environmentObject(ExposureFramework.shared)
         }
     }
 }

@@ -123,6 +123,13 @@ let shortDateFormatter: DateFormatter = makeDateFormatter {
     return $0
 }
 
+let relativeDateFormatter: DateFormatter = makeDateFormatter {
+    $0.timeStyle = .short
+    $0.dateStyle = .short
+    $0.doesRelativeDateFormatting = true
+    return $0
+}
+
 let timeFormatter: DateFormatter = makeDateFormatter {
     $0.timeStyle = .short
     return $0
@@ -137,8 +144,11 @@ extension String.StringInterpolation {
         appendLiteral(fullDateFormatter.string(from: fullDate))
     }
 
-    mutating func appendInterpolation(shortDate: Date) {
-        appendLiteral(shortDateFormatter.string(from: shortDate))
+    mutating func appendInterpolation(date: Date) {
+        appendLiteral(shortDateFormatter.string(from: date))
+    }
+    mutating func appendInterpolation(relativeDate: Date) {
+        appendLiteral(relativeDateFormatter.string(from: relativeDate))
     }
 
     mutating func appendInterpolation(time: Date) {
@@ -511,12 +521,13 @@ class LocalStore: ObservableObject {
         if let sample = allExposures.first?.exposures.first {
             thresholds = sample.sortedThresholds
         }
-        var result = ""
+
+        var result = "device, \(userName), export, \(date: Date()), \(csvSafe(deviceModelName()))"
         if let start = experimentStarted,
             let ended = experimentEnded {
-            result = """
-            experiment, \(userName), started, \(fullDate: start), \(csvSafe(experimentDescription))
-            experiment, \(userName), ended, \(fullDate: ended), \(csvSafe(experimentDescription))
+            result = result + """
+            experiment, \(userName), description, \(date: start), \(csvSafe(experimentDescription))
+            experiment, \(userName), duration, \(date: ended), \(Int(ended.timeIntervalSince(start)/60))
             """
         }
         let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")

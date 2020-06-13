@@ -201,8 +201,10 @@ struct CodableExposureInfo: Codable {
 
     mutating func merge(_ merging: CodableExposureInfo) {
         totalDuration = max(totalDuration, merging.totalDuration)
-        durations.merge(merging.durations) { old, _ in old }
-        durationsExceeding.merge(merging.durationsExceeding) { old, _ in old }
+        durations.merge(merging.durations) { old, new in max(old,new) }
+        durations = nonDecreasing(durations)
+        durationsExceeding.merge(merging.durationsExceeding) { old, new in max(old,new) }
+        durationsExceeding = nonIncreasing(durationsExceeding)
         rawAnalysis.append(contentsOf: merging.rawAnalysis)
     }
 
@@ -224,6 +226,7 @@ struct CodableExposureInfo: Codable {
         rawAnalysis.append(RawAttenuationData(thresholds: config.attenuationDurationThresholds, durations: attenuationDurations))
         if true {
             print("ENExposureInfo:")
+            print("  attenuationThresholds \(config.attenuationDurationThresholds)")
             print("  attenuationDurations \(attenuationDurations)")
 
             print("  durations \(durations)")
@@ -255,7 +258,9 @@ struct CodableExposureInfo: Codable {
     }
 
     static let testData = [
-        CodableExposureInfo(date: daysAgo(3), duration: 75, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 4,
+         CodableExposureInfo(date: daysAgo(2), duration: 10, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 5,
+                             durations: [50:5, 64:10]),
+         CodableExposureInfo(date: daysAgo(3), duration: 75, totalRiskScore: ENRiskScore(42), transmissionRiskLevel: 5, attenuationValue: 4,
                             durations: [50: 10, 55: 15, 64: 40, 67: 45],
                             durationsExceeding: [67: 30, 64: 30, 55: 60, 50: 60]),
 

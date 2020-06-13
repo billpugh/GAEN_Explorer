@@ -32,6 +32,7 @@ struct ThresholdDataView: View {
 
 struct ExposureDurationViewLarge: View {
     let thresholdData: ThresholdData
+     let maxDuration: Int
     static let scale: CGFloat = 5
     var body: some View {
         VStack {
@@ -49,7 +50,7 @@ struct ExposureDurationViewLarge: View {
                 Capsule()
                     .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration) * ExposureDurationViewLarge.scale)
                     .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
-            }
+            }.frame(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale, alignment:.bottom)
             Text(thresholdData.attenuationLabel)
         }.padding(.bottom, 8)
     }
@@ -77,51 +78,42 @@ struct ExposureDurationsViewLarge: View {
     let maxDuration: Int
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .center, vertical: .top)) {
-            BarView(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale,
+            BarView(height: CGFloat(max(30,self.maxDuration)) * ExposureDurationViewLarge.scale,
                     width: ExposureDurationViewLarge.scale * 7 * CGFloat(thresholdData.count),
                     step: 10 * ExposureDurationViewLarge.scale)
             HStack(alignment: .bottom, spacing: 2 * ExposureDurationViewLarge.scale) {
                 ForEach(thresholdData, id: \.self) {
-                    ExposureDurationViewLarge(thresholdData: $0)
+                    ExposureDurationViewLarge(thresholdData: $0, maxDuration: max(30,self.maxDuration))
                 }
             }
         }
     }
 }
 
-struct ExposureDurationsViewLarge_Previews0: PreviewProvider {
-    static let batch = EncountersWithUser.testData
 
-    static var previews: some View {
-        ExposureDurationsViewLarge(thresholdData: batch.exposures[0].thresholdData,
-                                   maxDuration: batch.exposures[0].calculatedTotalDuration)
-            .previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
-    }
-}
 
 struct ExposureDurationViewSmall: View {
     let thresholdData: ThresholdData
-    let scale: CGFloat = 2
-    let cornerRadius: CGFloat = 2
+    static let scale: CGFloat = 2
     var body: some View {
         ZStack(alignment: .bottom) {
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * scale / 2)
-                    .offset(x: 0, y: -CGFloat(thresholdData.cumulativeDurationCapped) * scale / 2).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale / 2)
+                    .offset(x: 0, y: -CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.primary)
             }
 
             Capsule()
-                .frame(width: 5 * scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * scale).foregroundColor(.primary)
+                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.primary)
 
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDurationCapped) * scale / 2)
-                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * scale - CGFloat(thresholdData.thisDurationCapped) * scale / 2).foregroundColor(.green)
+                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale / 2)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * ExposureDurationViewSmall.scale - CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.green)
             }
             Capsule()
-                .frame(width: 5 * scale, height: CGFloat(thresholdData.thisDurationCapped) * scale)
-                .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * scale).foregroundColor(.green)
+                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale)
+                .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.green)
 
         }.padding(.bottom, 8)
     }
@@ -134,7 +126,7 @@ struct ExposureDurationsViewSmall: View {
             ForEach(thresholdData, id: \.self) {
                 ExposureDurationViewSmall(thresholdData: $0)
             }
-        }
+        }.frame(height: ExposureDurationViewSmall.scale*30+10, alignment: .bottom)
     }
 }
 
@@ -144,16 +136,16 @@ struct ExposureDetailView: View {
 
     var line1: String {
         if let experiment = batch.experiment {
-            return "Experiment \(shortDate: experiment.started) - \(time: experiment.ended)"
+            return "Experiment \(date: experiment.started) - \(time: experiment.ended)"
         }
-        return "From keys \(batch.userName) sent \(shortDate: batch.dateKeysSent)"
+        return "From keys \(batch.userName) sent \(date: batch.dateKeysSent)"
     }
 
     var line2: String {
         if let _ = batch.experiment {
             return "Encounter with \(batch.userName)"
         }
-        return "Analyzed \(batch.analysisPasses) times at \(shortDate: batch.dateAnalyzed)"
+        return "Analyzed \(batch.analysisPasses) times at \(date: batch.dateAnalyzed)"
     }
 
     @EnvironmentObject var localStore: LocalStore
@@ -281,13 +273,13 @@ struct ExposuresView: View {
                             Section(header:
                                 VStack(alignment: .leading) {
                                     HStack {
-                                        Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: shortDateFormatter)").font(.headline)
+                                        Text("\(d.userName) sent \(d.keysChecked) keys \(d.dateKeysSent, formatter: relativeDateFormatter)").font(.headline)
 
                                     }.padding(.top)
                                     HStack {
-                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: shortDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
+                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: relativeDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
 
-                                    }.font(.subheadline)
+                                    }.font(.subheadline).padding(.bottom, 8)
 
                         }) {
                                 ForEach(d.exposures, id: \.id) { info in
