@@ -147,6 +147,7 @@ extension String.StringInterpolation {
     mutating func appendInterpolation(date: Date) {
         appendLiteral(shortDateFormatter.string(from: date))
     }
+
     mutating func appendInterpolation(relativeDate: Date) {
         appendLiteral(relativeDateFormatter.string(from: relativeDate))
     }
@@ -527,7 +528,7 @@ class LocalStore: ObservableObject {
             let ended = experimentEnded {
             result = result + """
             experiment, \(userName), description, \(date: start), \(csvSafe(experimentDescription))
-            experiment, \(userName), duration, \(date: ended), \(Int(ended.timeIntervalSince(start)/60))
+            experiment, \(userName), duration, \(date: ended), \(Int(ended.timeIntervalSince(start) / 60))
             """
         }
         let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")

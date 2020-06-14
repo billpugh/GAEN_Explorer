@@ -23,6 +23,7 @@
 		164D16F8246A1CE200267376 /* CodableEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* CodableEN.swift */; };
 		164D16FA246AD19500267376 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
+		167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */; };
 		168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
 		16A4D83B246C902800A081EF /* keys_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D837246C902800A081EF /* keys_64.png */; };
 		16A4D83C246C902800A081EF /* keys_44.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D838246C902800A081EF /* keys_44.png */; };
@@ -31,6 +32,16 @@
 		16B4184F24773C670054D622 /* GAEN_Explorer.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 164D16E8246A111700267376 /* GAEN_Explorer.entitlements */; };
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
 		16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C3E71C2476D14900B4EA2B /* AboutView.swift */; };
+		16C90A182494648E0038A9E6 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
+		16C90A1A2495048E0038A9E6 /* IntLB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* IntLB.swift */; };
+		16C90A1B24950F830038A9E6 /* IntLB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* IntLB.swift */; };
+		16C90A1C24952B580038A9E6 /* CodableEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* CodableEN.swift */; };
+		16C90A1D24952C0C0038A9E6 /* LocalStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F6179E247B583700757986 /* LocalStores.swift */; };
+		16C90A1E24952C200038A9E6 /* ExposureAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F308172480103100BD7DA1 /* ExposureAnalysis.swift */; };
+		16C90A1F24952C370038A9E6 /* ExposureFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F0246A118200267376 /* ExposureFramework.swift */; };
+		16C90A2024952C3B0038A9E6 /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
+		16C90A2124952C610038A9E6 /* Diary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660E9248D55D80045D08C /* Diary.swift */; };
+		16C90A2224952C9F0038A9E6 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
 		16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CBDFF72476BE2E009AF285 /* ExposuresView.swift */; };
 		16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F308172480103100BD7DA1 /* ExposureAnalysis.swift */; };
 		16F3083A2481996200BD7DA1 /* CHANGES.md in Resources */ = {isa = PBXBuildFile; fileRef = 16F308392481996000BD7DA1 /* CHANGES.md */; };
@@ -38,6 +49,16 @@
 		16F6179F247B583700757986 /* LocalStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F6179E247B583700757986 /* LocalStores.swift */; };
 		16FE3363247995720061BEBE /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 16FE3362247995720061BEBE /* README.md */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		167BBC1E24926010007A7819 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 164D16C9246A10D800267376 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 164D16D0246A10D800267376;
+			remoteInfo = GAEN_Explorer;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		160660E9248D55D80045D08C /* Diary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diary.swift; sourceTree = "<group>"; };
@@ -58,6 +79,10 @@
 		164D16F7246A1CE200267376 /* CodableEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableEN.swift; sourceTree = "<group>"; };
 		164D16F9246AD19500267376 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		164D1721246B357900267376 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
+		167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GAEN ExplorerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GAEN_ExplorerTests.swift; sourceTree = "<group>"; };
+		167BBC1D24926010007A7819 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		167BBE632493BAFA007A7819 /* EXPERIMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = EXPERIMENTS.md; sourceTree = "<group>"; };
 		168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TemporaryExposureKeyExport.pb.swift; sourceTree = "<group>"; };
 		16A4D837246C902800A081EF /* keys_64.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_64.png; sourceTree = "<group>"; };
 		16A4D838246C902800A081EF /* keys_44.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_44.png; sourceTree = "<group>"; };
@@ -65,6 +90,7 @@
 		16A4D83A246C902800A081EF /* keys_320.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_320.png; sourceTree = "<group>"; };
 		16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = TemporaryExposureKeyExport.proto; sourceTree = "<group>"; };
 		16C3E71C2476D14900B4EA2B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		16C90A192495048D0038A9E6 /* IntLB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntLB.swift; sourceTree = "<group>"; };
 		16CBDFF72476BE2E009AF285 /* ExposuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposuresView.swift; sourceTree = "<group>"; };
 		16F308172480103100BD7DA1 /* ExposureAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposureAnalysis.swift; sourceTree = "<group>"; };
 		16F308392481996000BD7DA1 /* CHANGES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGES.md; sourceTree = "<group>"; };
@@ -80,6 +106,13 @@
 			files = (
 				164D16EB246A112600267376 /* ExposureNotification.framework in Frameworks */,
 				164D16EF246A116F00267376 /* SwiftProtobuf in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		167BBC1624926010007A7819 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,9 +132,11 @@
 		164D16C8246A10D800267376 = {
 			isa = PBXGroup;
 			children = (
+				167BBE632493BAFA007A7819 /* EXPERIMENTS.md */,
 				16F308392481996000BD7DA1 /* CHANGES.md */,
 				16FE3362247995720061BEBE /* README.md */,
 				164D16D3246A10D800267376 /* GAEN_Explorer */,
+				167BBC1A24926010007A7819 /* GAEN ExplorerTests */,
 				164D16D2246A10D800267376 /* Products */,
 				164D16E9246A112600267376 /* Frameworks */,
 			);
@@ -111,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				164D16D1246A10D800267376 /* GAEN Explorer.app */,
+				167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -159,8 +195,18 @@
 				160660E9248D55D80045D08C /* Diary.swift */,
 				16F6179E247B583700757986 /* LocalStores.swift */,
 				16F308172480103100BD7DA1 /* ExposureAnalysis.swift */,
+				16C90A192495048D0038A9E6 /* IntLB.swift */,
 			);
 			path = Model;
+			sourceTree = "<group>";
+		};
+		167BBC1A24926010007A7819 /* GAEN ExplorerTests */ = {
+			isa = PBXGroup;
+			children = (
+				167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */,
+				167BBC1D24926010007A7819 /* Info.plist */,
+			);
+			path = "GAEN ExplorerTests";
 			sourceTree = "<group>";
 		};
 		16A4D82E246C8E9100A081EF /* UTI Icons */ = {
@@ -210,18 +256,40 @@
 			productReference = 164D16D1246A10D800267376 /* GAEN Explorer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		167BBC1824926010007A7819 /* GAEN ExplorerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 167BBC2224926010007A7819 /* Build configuration list for PBXNativeTarget "GAEN ExplorerTests" */;
+			buildPhases = (
+				167BBC1524926010007A7819 /* Sources */,
+				167BBC1624926010007A7819 /* Frameworks */,
+				167BBC1724926010007A7819 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				167BBC1F24926010007A7819 /* PBXTargetDependency */,
+			);
+			name = "GAEN ExplorerTests";
+			productName = "GAEN ExplorerTests";
+			productReference = 167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		164D16C9246A10D800267376 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1150;
+				LastSwiftUpdateCheck = 1160;
 				LastUpgradeCheck = 1150;
 				ORGANIZATIONNAME = "Ninja Monkey Coders";
 				TargetAttributes = {
 					164D16D0246A10D800267376 = {
 						CreatedOnToolsVersion = 11.5;
+					};
+					167BBC1824926010007A7819 = {
+						CreatedOnToolsVersion = 11.6;
+						TestTargetID = 164D16D0246A10D800267376;
 					};
 				};
 			};
@@ -242,6 +310,7 @@
 			projectRoot = "";
 			targets = (
 				164D16D0246A10D800267376 /* GAEN_Explorer */,
+				167BBC1824926010007A7819 /* GAEN ExplorerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -265,6 +334,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		167BBC1724926010007A7819 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -273,6 +349,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */,
+				16C90A1A2495048E0038A9E6 /* IntLB.swift in Sources */,
 				16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */,
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
@@ -292,7 +369,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		167BBC1524926010007A7819 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16C90A1E24952C200038A9E6 /* ExposureAnalysis.swift in Sources */,
+				16C90A182494648E0038A9E6 /* Utilities.swift in Sources */,
+				16C90A1B24950F830038A9E6 /* IntLB.swift in Sources */,
+				16C90A2024952C3B0038A9E6 /* SensorFusion.swift in Sources */,
+				16C90A1F24952C370038A9E6 /* ExposureFramework.swift in Sources */,
+				16C90A2124952C610038A9E6 /* Diary.swift in Sources */,
+				167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */,
+				16C90A2224952C9F0038A9E6 /* TemporaryExposureKeyExport.pb.swift in Sources */,
+				16C90A1C24952B580038A9E6 /* CodableEN.swift in Sources */,
+				16C90A1D24952C0C0038A9E6 /* LocalStores.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		167BBC1F24926010007A7819 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 164D16D0246A10D800267376 /* GAEN_Explorer */;
+			targetProxy = 167BBC1E24926010007A7819 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		164D16DF246A10DC00267376 /* LaunchScreen.storyboard */ = {
@@ -402,6 +504,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -428,14 +531,13 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "GAEN Explorer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
@@ -451,18 +553,59 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "GAEN Explorer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		167BBC2024926010007A7819 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = H2Z73245NN;
+				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.GAEN-ExplorerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GAEN Explorer.app/GAEN Explorer";
+			};
+			name = Debug;
+		};
+		167BBC2124926010007A7819 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = H2Z73245NN;
+				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.GAEN-ExplorerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GAEN Explorer.app/GAEN Explorer";
 			};
 			name = Release;
 		};
@@ -483,6 +626,15 @@
 			buildConfigurations = (
 				164D16E6246A10DC00267376 /* Debug */,
 				164D16E7246A10DC00267376 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		167BBC2224926010007A7819 /* Build configuration list for PBXNativeTarget "GAEN ExplorerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				167BBC2024926010007A7819 /* Debug */,
+				167BBC2124926010007A7819 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

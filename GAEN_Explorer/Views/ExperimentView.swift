@@ -21,7 +21,7 @@ struct ExperimentView: View {
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
-        if self.localStore.experimentStatus != .completed {
+        if localStore.experimentStatus != .completed {
             return "Perform analysis"
         }
         if localStore.allExposures.count == 0 {
@@ -176,11 +176,11 @@ struct ExperimentView: View {
 }
 
 struct StartExperimentView_Previews: PreviewProvider {
-       static let localStore = LocalStore(userName: "Alice", testData: [EncountersWithUser.testData])
+    static let localStore = LocalStore(userName: "Alice", testData: [EncountersWithUser.testData])
     static var previews: some View {
         NavigationView {
             ExperimentView().environmentObject(localStore)
-            .environmentObject(ExposureFramework.shared)
+                .environmentObject(ExposureFramework.shared)
         }
     }
 }

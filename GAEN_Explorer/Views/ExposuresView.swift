@@ -8,7 +8,7 @@ import Foundation
 import SwiftUI
 
 let thresholdDebug = true
-struct ThresholdDataViewo: View {
+struct ThresholdDataView: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
@@ -16,7 +16,7 @@ struct ThresholdDataViewo: View {
     }
 }
 
-struct ThresholdDataView: View {
+struct ThresholdDataView0: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
@@ -32,25 +32,31 @@ struct ThresholdDataView: View {
 
 struct ExposureDurationViewLarge: View {
     let thresholdData: ThresholdData
-     let maxDuration: Int
-    static let scale: CGFloat = 5
+    let maxDuration: Int
+    static let scale: CGFloat = 4.5
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
-                Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+                if !thresholdData.cumulativeDuration.isExact {
+                    Rectangle()
+                        .fill(LinearGradient(gradient: Gradient(colors: [.red, .blue]), startPoint: .bottom, endPoint: .top))
+                        .frame(width: 2.5 * ExposureDurationViewLarge.scale, height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale)
+                }
 
                 Capsule()
-                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration - thresholdData.prevCumulativeDuration) * ExposureDurationViewLarge.scale)
-                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+
+//                Capsule()
+//                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
+//                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.thisDuration) * ExposureDurationViewLarge.scale)
-                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green)
-                Capsule()
-                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration) * ExposureDurationViewLarge.scale)
-                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration - thresholdData.cumulativeDuration) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
-            }.frame(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale, alignment:.bottom)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.thisDuration.value) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green)
+//                Capsule()
+//                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration.value) * ExposureDurationViewLarge.scale)
+//                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
+            }.frame(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale, alignment: .bottom)
             Text(thresholdData.attenuationLabel)
         }.padding(.bottom, 8)
     }
@@ -78,19 +84,17 @@ struct ExposureDurationsViewLarge: View {
     let maxDuration: Int
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .center, vertical: .top)) {
-            BarView(height: CGFloat(max(30,self.maxDuration)) * ExposureDurationViewLarge.scale,
+            BarView(height: CGFloat(max(30, self.maxDuration)) * ExposureDurationViewLarge.scale,
                     width: ExposureDurationViewLarge.scale * 7 * CGFloat(thresholdData.count),
                     step: 10 * ExposureDurationViewLarge.scale)
             HStack(alignment: .bottom, spacing: 2 * ExposureDurationViewLarge.scale) {
                 ForEach(thresholdData, id: \.self) {
-                    ExposureDurationViewLarge(thresholdData: $0, maxDuration: max(30,self.maxDuration))
+                    ExposureDurationViewLarge(thresholdData: $0, maxDuration: max(30, self.maxDuration))
                 }
             }
         }
     }
 }
-
-
 
 struct ExposureDurationViewSmall: View {
     let thresholdData: ThresholdData
@@ -126,7 +130,7 @@ struct ExposureDurationsViewSmall: View {
             ForEach(thresholdData, id: \.self) {
                 ExposureDurationViewSmall(thresholdData: $0)
             }
-        }.frame(height: ExposureDurationViewSmall.scale*30+10, alignment: .bottom)
+        }.frame(height: ExposureDurationViewSmall.scale * 30 + 10, alignment: .bottom)
     }
 }
 
@@ -151,8 +155,8 @@ struct ExposureDetailView: View {
     @EnvironmentObject var localStore: LocalStore
     var body: some View { GeometryReader { geometry in
         VStack {
-            ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration).padding(.vertical)
             ScrollView {
+                ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration.value).padding()
                 VStack(alignment: .leading, spacing: 6) {
                     Text(self.line1)
                     Text(self.line2)
@@ -160,14 +164,15 @@ struct ExposureDetailView: View {
                     Spacer()
                     Text("This encounter occurred on \(self.info.date, formatter: dayFormatter)")
                     Group {
-                        Text("encounter lasted at least \(self.info.calculatedTotalDuration) minutes")
-                        Text("meaningful duration: \(self.info.meaningfulDuration) minutes")
+                        Text("encounter lasted  \(self.info.calculatedTotalDuration.description) minutes")
+                        Text("meaningful duration: \(self.info.meaningfulDuration.description) minutes")
                         Spacer()
 
                     }.padding(.horizontal)
                     Text("minimum durations:")
-                    ForEach(self.info.thresholdData
-                        .filter { $0.thisDuration > 0 },
+                    ForEach(self.info.thresholdData,
+                            // å .filter { !($0.thisDuration == 0) }
+
                             id: \.self) { t in
                         ThresholdDataView(t: t, width: geometry.size.width)
                     }
@@ -183,7 +188,7 @@ struct MeaningfulExposureView: View {
     var info: CodableExposureInfo
     var scale: Double = 3
     var value: Double {
-        Double(info.meaningfulDuration)
+        Double(info.meaningfulDuration.value)
     }
 
     static let maxValue: Double = 30
@@ -193,7 +198,7 @@ struct MeaningfulExposureView: View {
     }
 
     var scaledValue: CGFloat {
-        CGFloat(scale * value)
+        CGFloat(scale * min(value, Self.maxValue))
     }
 
     var scaledSignificant: CGFloat {
