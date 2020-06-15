@@ -84,9 +84,9 @@ class ExposureFramework: ObservableObject {
         manager.activate { _ in
             print("ENManager activiated")
             self.objectWillChange.send()
-            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
-                self.setExposureNotificationEnabled(true)
-            }
+//            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
+//                self.setExposureNotificationEnabled(true)
+//            }
         }
     }
 

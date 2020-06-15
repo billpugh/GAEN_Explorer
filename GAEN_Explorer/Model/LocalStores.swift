@@ -45,11 +45,20 @@ struct EncountersWithUser: Codable {
         PackagedKeys(userName: userName, dateKeysSent: dateKeysSent, keys: keys)
     }
 
+    func rawAnalysisCSV(_ to: String, _ pair: String, exposureInfo: CodableExposureInfo) -> [String] {
+        (1 ... exposureInfo.rawAnalysis.count).map { pass in
+            let ra = exposureInfo.rawAnalysis[pass - 1]
+            return "rawAnalysis, \(to), \(pair), \(exposureInfo.day), \(pass), \(ra.thresholdsCSV), \(ra.bucketsCSV)"
+        }
+    }
+
     func csvFormat(to: String) -> [String] {
         let pair = [to, userName].sorted().joined(separator: "-")
-        return exposures.map { exposureInfo in """
-        exposure, \(to), \(pair), \(exposureInfo.day), \(exposureInfo.meaningfulDuration),  \(exposureInfo.durationsCSV),  \(exposureInfo.durationsExceedingCSV), \(exposureInfo.timeInBucketCSV)
-        """ }
+        return exposures.flatMap { exposureInfo in
+            ["""
+            exposure, \(to), \(pair), \(exposureInfo.day), \(exposureInfo.meaningfulDuration),  \(exposureInfo.durationsCSV),  \(exposureInfo.durationsExceedingCSV), \(exposureInfo.timeInBucketCSV)
+            """] + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
+        }
     }
 
     static func csvHeader(_ thresholds: [Int]) -> String {
@@ -119,7 +128,6 @@ let dayFormatter: DateFormatter = makeDateFormatter {
 let shortDateFormatter: DateFormatter = makeDateFormatter {
     $0.timeStyle = .short
     $0.dateStyle = .short
-    $0.doesRelativeDateFormatting = true
     return $0
 }
 
@@ -313,7 +321,7 @@ class LocalStore: ObservableObject {
 
     // MARK: - Experiment
 
-    var fusedData: [FusedData]?
+    var significantActivites: [SignificantActivity]?
     var timeSpentInActivity: [Activity: Int]?
 
     @Published
@@ -364,7 +372,7 @@ class LocalStore: ObservableObject {
     func startExperiment(_ framework: ExposureFramework) {
         deleteAllExposures()
         diary = []
-        fusedData = nil
+        significantActivites = nil
         timeSpentInActivity = nil
         SensorFusion.shared.startAccel()
         experimentStarted = Date()
@@ -387,24 +395,23 @@ class LocalStore: ObservableObject {
         addDiaryEntry(.endExperiment)
         experimentEnded = Date()
         SensorFusion.shared.getSensorData(from: experimentStarted!, to: experimentEnded!) {
-            fusedData, timeSpentInActivity in
-            self.fusedData = fusedData
+            significantActivities, timeSpentInActivity in
+            self.significantActivites = significantActivities
             self.timeSpentInActivity = timeSpentInActivity
-            if let fd = fusedData {
-                self.diary.append(contentsOf: fd.map { DiaryEntry(fusedData: $0) })
+            if let sa = significantActivities {
+                self.diary.append(contentsOf: sa.map { DiaryEntry(significantActivity: $0) })
                 self.diary.sort(by: { $0.at < $1.at })
             }
         }
     }
 
-    func resetExperiment(_ framework: ExposureFramework) {
-        framework.isEnabled = true
+    func resetExperiment(_: ExposureFramework) {
         viewShown = nil
         experimentEnded = nil
         experimentStarted = nil
         experimentDescription = ""
         diary = []
-        fusedData = nil
+        significantActivites = nil
         timeSpentInActivity = nil
     }
 
@@ -518,21 +525,22 @@ class LocalStore: ObservableObject {
     }
 
     func csvExport() -> String {
-        var thresholds: [Int] = multipassThresholds.sorted() + [maxAttenuation]
+        var thresholds: [Int] = Set(multipassThresholds).sorted() + [maxAttenuation]
         if let sample = allExposures.first?.exposures.first {
             thresholds = sample.sortedThresholds
         }
 
-        var result = "device, \(userName), export, \(date: Date()), \(csvSafe(deviceModelName()))"
+        var result = EncountersWithUser.csvHeader(thresholds)
+            + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n") + "\n"
+
+        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName()))\n"
         if let start = experimentStarted,
             let ended = experimentEnded {
-            result = result + """
-            experiment, \(userName), description, \(date: start), \(csvSafe(experimentDescription))
-            experiment, \(userName), duration, \(date: ended), \(Int(ended.timeIntervalSince(start) / 60))
+            result += """
+            experiment, \(userName), description, \(fullDate: start), \(csvSafe(experimentDescription))
+            experiment, \(userName), duration, \(fullDate: ended), \(Int(ended.timeIntervalSince(start) / 60))\n
             """
         }
-        let exposuresCSV = EncountersWithUser.csvHeader(thresholds) + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n")
-        result = result + exposuresCSV + "\n"
 
         let diaryCSV = diary.map { $0.csv(user: userName) }.joined(separator: "\n")
         if !diaryCSV.isEmpty {

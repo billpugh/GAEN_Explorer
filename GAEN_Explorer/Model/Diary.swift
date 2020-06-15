@@ -58,10 +58,10 @@ struct DiaryEntry: Codable {
         self.text = text
     }
 
-    init(fusedData: FusedData) {
-        self.at = fusedData.at
+    init(significantActivity: SignificantActivity) {
+        self.at = significantActivity.at
         self.kind = .activity
-        self.text = fusedData.activity.rawValue
+        self.text = "\(significantActivity.activity.rawValue): \(significantActivity.duration)"
     }
 
     var time: String {

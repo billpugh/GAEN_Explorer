@@ -55,23 +55,23 @@ class ExposuresItem: NSObject, UIActivityItemSource {
     }
 }
 
-func nonDecreasing(_ dict: [Int: IntLB]) -> [Int: IntLB] {
+func nonDecreasing(_ dict: [Int: IntLB], upperBound: IntLB) -> [Int: IntLB] {
     let keys = dict.keys.sorted()
     var value: IntLB = dict[keys.first!]!
     var result: [Int: IntLB] = [:]
     for k in keys {
-        value = dict[k]!.applyLowerBound(value)
+        value = dict[k]!.applyBounds(lb: value, ub: upperBound)
         result[k] = value
     }
     return result
 }
 
-func nonIncreasing(_ dict: [Int: IntLB]) -> [Int: IntLB] {
+func nonIncreasing(_ dict: [Int: IntLB], upperBound: IntLB) -> [Int: IntLB] {
     let keys = dict.keys.sorted().reversed()
     var value: IntLB = dict[keys.first!]!
     var result: [Int: IntLB] = [:]
     for k in keys {
-        value = dict[k]!.applyLowerBound(value)
+        value = dict[k]!.applyBounds(lb: value, ub: upperBound)
         result[k] = value
     }
     return result

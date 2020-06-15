@@ -54,6 +54,13 @@ struct IntLB: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertible, C
         value == 0 && isExact
     }
 
+    func matches(_ value: Int) -> Bool {
+        if isExact {
+            return self.value == value
+        }
+        return self.value <= value
+    }
+
     func asLowerBound() -> IntLB {
         if isExact {
             return IntLB(value, false)
@@ -61,19 +68,29 @@ struct IntLB: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertible, C
         return self
     }
 
-    func applyLowerBound(_ lb: Int) -> IntLB {
+    func applyBounds(lb: IntLB, ub: IntLB) -> IntLB {
         if isExact {
-            assert(value >= lb, "Bug")
+            if value < lb.value {
+                print("applyLowerBound \(self), \(lb): must have grown")
+            }
             return self
         }
-        return IntLB(max(value, lb), false)
+        let v = max(value, lb.value)
+        if ub.isExact, v == ub.value {
+            return ub
+        }
+        return IntLB(v, false)
     }
 
-    func applyLowerBound(_ lb: IntLB?) -> IntLB {
-        if let lowerBound = lb {
-            return applyLowerBound(lowerBound.value)
-        }
-        return self
+//    func applyBounds(_ lb: IntLB?) -> IntLB {
+//        if let lowerBound = lb {
+//            return applyBounds(lowerBound.value)
+//        }
+//        return self
+//    }
+
+    func checkIntersection(_ rhs: IntLB) {
+        print("bad intersection \(self) \(rhs), must have grown")
     }
 
     func intersection(_ rhs: IntLB) -> IntLB {
@@ -82,21 +99,21 @@ struct IntLB: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertible, C
             return IntLB(max(value, rhs.value))
         case (true, false):
             if value < rhs.value {
-                print("Intersection \(self), \(rhs): must have grown")
+                checkIntersection(rhs)
                 return rhs
             }
             assert(value >= rhs.value, "Bug")
             return self
         case (false, true):
             if value > rhs.value {
-                print("Intersection \(self), \(rhs): must have grown")
+                checkIntersection(rhs)
                 return self
             }
             assert(value <= rhs.value, "Bug")
             return rhs
         case (true, true):
             if value != rhs.value {
-                print("Intersection \(self), \(rhs): must have grown")
+                checkIntersection(rhs)
                 return IntLB(max(value, rhs.value), true)
             }
             assert(value == rhs.value, "Bug")
@@ -136,17 +153,5 @@ func > (lhs: IntLB, rhs: Int) -> Bool {
 }
 
 func intersection(_ lhs: IntLB, _ rhs: IntLB) -> IntLB {
-    switch (lhs.isExact, rhs.isExact) {
-    case (false, false):
-        return IntLB(max(lhs.value, rhs.value))
-    case (true, false):
-        assert(lhs.value >= rhs.value, "Bug")
-        return lhs
-    case (false, true):
-        assert(lhs.value <= rhs.value, "Bug")
-        return rhs
-    case (true, true):
-        assert(lhs.value == rhs.value, "Bug")
-        return lhs
-    }
+    lhs.intersection(rhs)
 }

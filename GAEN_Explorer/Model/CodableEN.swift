@@ -63,9 +63,17 @@ struct ThresholdData: Hashable, CustomStringConvertible {
     }
 }
 
-struct RawAttenuationData: Codable {
+struct RawAttenuationData: Codable, Hashable {
     let thresholds: [Int]
-    let durations: [IntLB]
+    let buckets: [IntLB]
+
+    var thresholdsCSV: String {
+        thresholds.map { "\($0)" }.joined(separator: ", ")
+    }
+
+    var bucketsCSV: String {
+        buckets.map { "\($0)" }.joined(separator: ", ")
+    }
 }
 
 // from ENExposureInfo
@@ -206,9 +214,9 @@ struct CodableExposureInfo: Codable {
     mutating func merge(_ merging: CodableExposureInfo) {
         totalDuration = totalDuration.intersection(merging.totalDuration)
         durations.merge(merging.durations) { (old: IntLB, new: IntLB) in old.intersection(new) }
-        durations = nonDecreasing(durations)
+        durations = nonDecreasing(durations, upperBound: totalDuration)
         durationsExceeding.merge(merging.durationsExceeding) { (old: IntLB, new: IntLB) in old.intersection(new) }
-        durationsExceeding = nonIncreasing(durationsExceeding)
+        durationsExceeding = nonIncreasing(durationsExceeding, upperBound: totalDuration)
         print("After merging, got")
         print("  durations \(durations)")
         print("  durationsExceeding \(durationsExceeding)")
@@ -231,7 +239,7 @@ struct CodableExposureInfo: Codable {
                           config.attenuationDurationThresholds[1]: attenuationDurations[0] + attenuationDurations[1]]
         self.durationsExceeding = [config.attenuationDurationThresholds[0]: attenuationDurations[1] + attenuationDurations[2],
                                    config.attenuationDurationThresholds[1]: attenuationDurations[2]]
-        rawAnalysis.append(RawAttenuationData(thresholds: config.attenuationDurationThresholds, durations: attenuationDurations))
+        rawAnalysis.append(RawAttenuationData(thresholds: config.attenuationDurationThresholds, buckets: attenuationDurations))
         if true {
             print("ENExposureInfo:")
             print("  attenuationThresholds \(config.attenuationDurationThresholds)")
@@ -255,6 +263,50 @@ struct CodableExposureInfo: Codable {
         self.durationsExceeding = durationsExceeding
     }
 
+    mutating func updateConstraints() {
+        if !totalDuration.isExact {
+            durations = nonDecreasing(durations, upperBound: totalDuration)
+            durationsExceeding = nonIncreasing(durationsExceeding, upperBound: totalDuration)
+            return
+        }
+        var changed = false
+        let keys = durations.keys.sorted()
+
+        for dB in keys {
+            let lb = totalTime(atNoMoreThan: prevThreshold(dB: dB))
+            let ub = totalDuration - totalTime(exceeding: dB)
+            let currentValue = durations[dB]!
+            let newValue = currentValue.applyBounds(lb: lb, ub: ub)
+            print("durations[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
+            if currentValue != newValue {
+                changed = true
+                durations[dB] = newValue
+            }
+        }
+
+        if changed {
+            print("durations changed: \(durations)")
+        }
+
+        changed = false
+        for dB in keys.reversed() {
+            let lb = totalTime(exceeding: nextThreshold(dB: dB))
+            let ub = totalDuration - totalTime(atNoMoreThan: dB)
+            let currentValue = durationsExceeding[dB]!
+            let newValue = currentValue.applyBounds(lb: lb, ub: ub)
+            print("durationsExceeding[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
+
+            if currentValue != newValue {
+                changed = true
+                durationsExceeding[dB] = newValue
+            }
+        }
+
+        if changed {
+            print("durationsExceeding changed: \(durationsExceeding)")
+        }
+    }
+
     mutating func update(thresholds: [Int], buckets: [IntLB]) {
         var runningTotal: IntLB = 0
         for i in 0 ..< thresholds.count {
@@ -266,9 +318,9 @@ struct CodableExposureInfo: Codable {
             }
             durations[dB] = runningTotal
         }
-        durations = nonDecreasing(durations)
         runningTotal = runningTotal + buckets[thresholds.count]
         totalDuration = intersection(totalDuration, runningTotal)
+
         runningTotal = 0
         for i in (0 ..< thresholds.count).reversed() {
             let dB = thresholds[i]
@@ -279,7 +331,9 @@ struct CodableExposureInfo: Codable {
             }
             durationsExceeding[dB] = runningTotal
         }
-        durationsExceeding = nonIncreasing(durationsExceeding)
+        rawAnalysis.append(RawAttenuationData(thresholds: thresholds, buckets: buckets))
+
+        updateConstraints()
         if true {
             print("updated ENExposureInfo:")
             print("  attenuationThresholds \(thresholds)")

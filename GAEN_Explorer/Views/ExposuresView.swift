@@ -8,7 +8,7 @@ import Foundation
 import SwiftUI
 
 let thresholdDebug = true
-struct ThresholdDataView: View {
+struct ThresholdDataDebugView: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
@@ -16,7 +16,7 @@ struct ThresholdDataView: View {
     }
 }
 
-struct ThresholdDataView0: View {
+struct ThresholdDataView: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
@@ -46,16 +46,16 @@ struct ExposureDurationViewLarge: View {
                 Capsule()
                     .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
 
-//                Capsule()
-//                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
-//                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
+                //                Capsule()
+                //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
+                //                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
 
                 Capsule()
                     .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.thisDuration.value) * ExposureDurationViewLarge.scale)
                     .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green)
-//                Capsule()
-//                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration.value) * ExposureDurationViewLarge.scale)
-//                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
+                //                Capsule()
+                //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration.value) * ExposureDurationViewLarge.scale)
+                //                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
             }.frame(height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale, alignment: .bottom)
             Text(thresholdData.attenuationLabel)
         }.padding(.bottom, 8)
@@ -134,6 +134,40 @@ struct ExposureDurationsViewSmall: View {
     }
 }
 
+struct ExposureDetailViewDetail: View {
+    var info: CodableExposureInfo
+    let width: CGFloat
+    @EnvironmentObject var localStore: LocalStore
+    var body: some View {
+        ForEach(self.info.thresholdData
+            .filter { !($0.thisDuration == 0) },
+                
+            id: \.self) { t in
+            ThresholdDataView(t: t, width: self.width)
+        }
+    }
+}
+
+struct ExposureDetailViewDebugDetail: View {
+    var info: CodableExposureInfo
+    let width: CGFloat
+    @EnvironmentObject var localStore: LocalStore
+    var body: some View {
+        VStack {
+            Text("minimum durations:")
+            ForEach(self.info.thresholdData, id: \.self) { t in
+                ThresholdDataDebugView(t: t, width: self.width)
+            }
+
+            Text("Raw analysis \(self.info.rawAnalysis.count):")
+            ForEach(self.info.rawAnalysis, id: \.self) { ra in
+
+                Text("\(ra.thresholds.description) \(ra.buckets.description)")
+            }
+        }
+    }
+}
+
 struct ExposureDetailView: View {
     var batch: EncountersWithUser
     var info: CodableExposureInfo
@@ -169,12 +203,11 @@ struct ExposureDetailView: View {
                         Spacer()
 
                     }.padding(.horizontal)
-                    Text("minimum durations:")
-                    ForEach(self.info.thresholdData,
-                            // å .filter { !($0.thisDuration == 0) }
 
-                            id: \.self) { t in
-                        ThresholdDataView(t: t, width: geometry.size.width)
+                    if thresholdDebug {
+                        ExposureDetailViewDebugDetail(info: self.info, width: geometry.size.width)
+                    } else {
+                        ExposureDetailViewDetail(info: self.info, width: geometry.size.width)
                     }
                 }
             }
@@ -286,7 +319,7 @@ struct ExposuresView: View {
 
                                     }.font(.subheadline).padding(.bottom, 8)
 
-                        }) {
+                            }) {
                                 ForEach(d.exposures, id: \.id) { info in
                                     ExposureInfoView(day: d, info: info, width: geometry.size.width)
                                 }
@@ -300,7 +333,7 @@ struct ExposuresView: View {
                                    ExposuresItem(url: self.localStore.shareExposuresURL!,
                                                  title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
                                ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
-                    })
+                        })
 
                     HStack {
                         // Erase Analysis
@@ -335,24 +368,24 @@ struct ExposuresView: View {
                             self.showingSheet = true
                             self.exportingExposures = false
                             print("showingSheet set to true")
-                       })
+                        })
                         { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
                     }
                     // Erase button
-//                Button(action: { self.showingDeleteAlert = true }) {
-//                    Text("Erase all encounters").foregroundColor(.red)
-//
-//                }.alert(isPresented: self.$showingDeleteAlert) {
-//                    Alert(title: Text("Really Erase all?"),
-//                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
-//                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
-//                              self.showingDeleteAlert = false
-//                          },
-//                          secondaryButton: .cancel {
-//                              self.showingDeleteAlert = false
-//
-//                            })
-//                } // Erase button
+                    //                Button(action: { self.showingDeleteAlert = true }) {
+                    //                    Text("Erase all encounters").foregroundColor(.red)
+                    //
+                    //                }.alert(isPresented: self.$showingDeleteAlert) {
+                    //                    Alert(title: Text("Really Erase all?"),
+                    //                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
+                    //                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
+                    //                              self.showingDeleteAlert = false
+                    //                          },
+                    //                          secondaryButton: .cancel {
+                    //                              self.showingDeleteAlert = false
+                    //
+                    //                            })
+                    //                } // Erase button
                 }
             }
             .navigationBarTitle(self.localStore.allExposures.count == 0 ?

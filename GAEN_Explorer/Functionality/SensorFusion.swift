@@ -67,6 +67,22 @@ struct FusedData: Hashable {
     let activity: Activity
 }
 
+struct SignificantActivity: Hashable {
+    init(_ data: FusedData, seconds: Int) {
+        self.at = data.at
+        self.activity = data.activity
+        self.duration = seconds
+    }
+
+    let at: Date
+    var time: String {
+        getTimeFormatter().string(from: at)
+    }
+
+    let activity: Activity
+    let duration: Int
+}
+
 extension CMSensorDataList: Sequence {
     public typealias Iterator = NSFastEnumerationIterator
     public func makeIterator() -> NSFastEnumerationIterator {
@@ -128,7 +144,7 @@ class SensorFusion {
     private func fuseMotionData(from: Date, to: Date,
                                 _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
-                                _ results: ([FusedData]?, [Activity: Int]?) -> Void) {
+                                _ results: ([SignificantActivity]?, [Activity: Int]?) -> Void) {
         var motionData: [SensorData] = motions.map { motion in SensorData(at: motion.startDate, sensor: SensorReading.motion(motion)) }
         print("Have \(motionData.count) motion readings")
         motionData.append(contentsOf: sensorData)
@@ -169,13 +185,18 @@ class SensorFusion {
 
         let maxDuration = Int(to.timeIntervalSince(from) + 200)
         var prevData: FusedData?
+        var significantActivities: [SignificantActivity] = []
         fusedData.forEach { fd in
             print("\(fd.time)  \(fd.activity)")
             if let prev = prevData {
                 let oldDuration: Int = activityDurations[prev.activity] ?? 0
-                let newDuration = oldDuration + Int(fd.at.timeIntervalSince(prev.at))
-                if newDuration > maxDuration {
-                    let msg = "Got duration of \(newDuration) for \(prev.activity), started \(prev.time), ended \(fd.time))"
+                let thisDuration = Int(fd.at.timeIntervalSince(prev.at))
+                if thisDuration > 90 {
+                    significantActivities.append(SignificantActivity(prev, seconds: thisDuration))
+                }
+                let newDuration = oldDuration + thisDuration
+                if thisDuration > maxDuration {
+                    let msg = "Got duration of \(thisDuration) for \(prev.activity), started \(prev.time), ended \(fd.time))"
                     print(msg)
                     LocalStore.shared.addDiaryEntry(.debugging, msg)
                 } else {
@@ -187,9 +208,13 @@ class SensorFusion {
         }
         if let prev = prevData {
             let oldDuration: Int = activityDurations[prev.activity] ?? 0
-            let newDuration = oldDuration + Int(to.timeIntervalSince(prev.at))
-            if newDuration > maxDuration {
-                let msg = "Got duration of \(newDuration) for \(prev.activity), started \(prev.time), ended at experiment end at \(timeFormatter.string(from: to)))"
+            let thisDuration = Int(to.timeIntervalSince(prev.at))
+            if thisDuration > 90 {
+                significantActivities.append(SignificantActivity(prev, seconds: thisDuration))
+            }
+            let newDuration = oldDuration + thisDuration
+            if thisDuration > maxDuration {
+                let msg = "Got duration of \(thisDuration) for \(prev.activity), started \(prev.time), ended at experiment end at \(timeFormatter.string(from: to)))"
                 print(msg)
                 LocalStore.shared.addDiaryEntry(.debugging, msg)
             } else {
@@ -203,11 +228,11 @@ class SensorFusion {
         for (key, value) in activityDurations {
             print("  \(key) \(Int(value))")
         }
-        results(fusedData, activityDurations)
+        results(significantActivities, activityDurations)
     }
 
     static let secondsNeededToRecognizeHorizontal: TimeInterval = 20
-    func getSensorData(from: Date, to: Date, results: @escaping ([FusedData]?, [Activity: Int]?) -> Void) {
+    func getSensorData(from: Date, to: Date, results: @escaping ([SignificantActivity]?, [Activity: Int]?) -> Void) {
         analyzeMotionQueue.async {
             if self.sensorRecorder != nil {
                 print("sensor recorded present")
