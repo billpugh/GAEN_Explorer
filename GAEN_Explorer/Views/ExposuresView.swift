@@ -23,8 +23,8 @@ struct ThresholdDataView: View {
         HStack {
             Text(
                 t.prevAttenuation > 0
-                    ? "\(t.prevAttenuation) dB <  \(t.thisDurationString) min"
-                    : "\(t.thisDurationString) min").frame(width: width / 2, alignment: .trailing)
+                    ? "\(t.prevAttenuation) dB <  \(t.timeInBucketString) min"
+                    : "\(t.timeInBucketString) min").frame(width: width / 2, alignment: .trailing)
             Text(t.attenuation < maxAttenuation ? "<= \(t.attenuation) dB" : "").frame(width: width / 4, alignment: .leading)
         }
     }
@@ -37,22 +37,25 @@ struct ExposureDurationViewLarge: View {
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
-                if !thresholdData.cumulativeDuration.isExact {
+                if !thresholdData.totalTime.isExact {
                     Rectangle()
-                        .fill(LinearGradient(gradient: Gradient(colors: [.red, .blue]), startPoint: .bottom, endPoint: .top))
-                        .frame(width: 2.5 * ExposureDurationViewLarge.scale, height: CGFloat(maxDuration) * ExposureDurationViewLarge.scale)
+                        .fill(LinearGradient(gradient: Gradient(colors: [.primary, .gray]), startPoint: .bottom, endPoint: .top))
+                        .frame(width: 3 * ExposureDurationViewLarge.scale,
+                               height: CGFloat(min(maxDuration, thresholdData.totalTime.ub) - thresholdData.totalTime.lb + 3) * ExposureDurationViewLarge.scale)
+                        .offset(x: 0, y: CGFloat(3 - thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale)
                 }
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
 
                 //                Capsule()
                 //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
                 //                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.thisDuration.value) * ExposureDurationViewLarge.scale)
-                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.timeInBucket.lb) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(thresholdData.timeInBucket.lb - thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale).foregroundColor(.green)
+
                 //                Capsule()
                 //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration.value) * ExposureDurationViewLarge.scale)
                 //                    .offset(x: 0, y: CGFloat(thresholdData.thisDuration.value - thresholdData.cumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.5)
@@ -103,21 +106,21 @@ struct ExposureDurationViewSmall: View {
         ZStack(alignment: .bottom) {
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale / 2)
-                    .offset(x: 0, y: -CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale / 2)
+                    .offset(x: 0, y: -CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.primary)
             }
 
             Capsule()
-                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.cumulativeDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.primary)
+                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.primary)
 
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale / 2)
-                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * ExposureDurationViewSmall.scale - CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.green)
+                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale / 2)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevDurationCapped) * ExposureDurationViewSmall.scale - CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.green)
             }
             Capsule()
-                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.thisDurationCapped) * ExposureDurationViewSmall.scale)
-                .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.green)
+                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale)
+                .offset(x: 0, y: CGFloat(-thresholdData.prevDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.green)
 
         }.padding(.bottom, 8)
     }
@@ -140,7 +143,7 @@ struct ExposureDetailViewDetail: View {
     @EnvironmentObject var localStore: LocalStore
     var body: some View {
         ForEach(self.info.thresholdData
-            .filter { !($0.thisDuration == 0) },
+            .filter { !($0.timeInBucket == 0) },
                 
             id: \.self) { t in
             ThresholdDataView(t: t, width: self.width)
@@ -190,7 +193,7 @@ struct ExposureDetailView: View {
     var body: some View { GeometryReader { geometry in
         VStack {
             ScrollView {
-                ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration.value).padding()
+                ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration.lb).padding()
                 VStack(alignment: .leading, spacing: 6) {
                     Text(self.line1)
                     Text(self.line2)
@@ -221,7 +224,7 @@ struct MeaningfulExposureView: View {
     var info: CodableExposureInfo
     var scale: Double = 3
     var value: Double {
-        Double(info.meaningfulDuration.value)
+        Double(info.meaningfulDuration.lb)
     }
 
     static let maxValue: Double = 30
@@ -261,7 +264,7 @@ struct ExposureInfoView: View {
     var body: some View {
         NavigationLink(destination: ExposureDetailView(batch: day, info: info)) {
             HStack {
-                Text("\(info.date, formatter: dayFormatter)").frame(width: width / 6, alignment: .leading).padding()
+                Text("\(info.date, formatter: dayFormatter)").padding()
 
                 MeaningfulExposureView(info: info, scale: 2)
                 Spacer()
@@ -426,6 +429,6 @@ struct ExposuresView_Previews: PreviewProvider {
             ExposuresView()
         }.environmentObject(localStore)
             .environmentObject(ExposureFramework.shared)
-            .previewDevice(PreviewDevice(rawValue: "iPhone 11 Pro Max"))
+            .previewDevice(PreviewDevice(rawValue: "iPhone SE"))
     }
 }

@@ -233,7 +233,7 @@ class LocalStore: ObservableObject {
         return "Show encounters with \(allExposures.count) devices"
     }
 
-    func analyze() {
+    func analyze(doMaxAnalysis: Bool = false) {
         if !canAnalyze {
             print("No analysis to do")
             return
@@ -243,17 +243,11 @@ class LocalStore: ObservableObject {
         addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
         print("Analyzing")
         goDeeperQueue.async {
-            self.analyzeOffMainThread(pass)
+            self.analyzeOffMainThread(pass, doMaxAnalysis)
         }
     }
 
-    func goDeeper() {
-        goDeeperQueue.async {
-            // self.exposuresUpdated(newExposures: self.allExposures.map { info in info.goDeeper() })
-        }
-    }
-
-    func analyzeOffMainThread(_ pass: Int) {
+    func analyzeOffMainThread(_ pass: Int, _ doMaxAnalysis: Bool) {
         print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
 
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
@@ -270,11 +264,11 @@ class LocalStore: ObservableObject {
             ExposureFramework.shared.setExposureNotificationEnabled(false)
         }
         DispatchQueue.main.async {
-            self.incorporateResults(exposures, pass: pass)
+            self.incorporateResults(exposures, pass: pass, doMaxAnalysis)
         }
     }
 
-    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int) {
+    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, _ doMaxAnalysis: Bool) {
         print("incorporateResults")
         if viewShown != "experiment" {
             viewShown = "exposures"
@@ -292,6 +286,9 @@ class LocalStore: ObservableObject {
         }
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+        }
+        if doMaxAnalysis, canAnalyze {
+            analyze(doMaxAnalysis: true)
         }
     }
 

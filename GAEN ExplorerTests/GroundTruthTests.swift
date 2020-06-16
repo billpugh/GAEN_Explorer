@@ -42,7 +42,7 @@ struct GroundTruth {
         return truth[exceeding + 1 ..< truth.count].reduce(0, +)
     }
 
-    func getBuckets(thresholds: [Int]) -> [IntLB] {
+    func getBuckets(thresholds: [Int]) -> [BoundedInt] {
         var result = [Int](repeating: 0, count: thresholds.count + 1)
         var index = 0
         for dB in 0 ..< truth.count {
@@ -51,7 +51,7 @@ struct GroundTruth {
                 index += 1
             }
         }
-        return result.map { IntLB($0) }
+        return result.map { BoundedInt($0) }
     }
 
     func verify(info: CodableExposureInfo) {

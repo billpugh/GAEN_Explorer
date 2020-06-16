@@ -55,10 +55,10 @@ class ExposuresItem: NSObject, UIActivityItemSource {
     }
 }
 
-func nonDecreasing(_ dict: [Int: IntLB], upperBound: IntLB) -> [Int: IntLB] {
+func nonDecreasing(_ dict: [Int: BoundedInt], upperBound: BoundedInt) -> [Int: BoundedInt] {
     let keys = dict.keys.sorted()
-    var value: IntLB = dict[keys.first!]!
-    var result: [Int: IntLB] = [:]
+    var value: BoundedInt = dict[keys.first!]!
+    var result: [Int: BoundedInt] = [:]
     for k in keys {
         value = dict[k]!.applyBounds(lb: value, ub: upperBound)
         result[k] = value
@@ -66,10 +66,10 @@ func nonDecreasing(_ dict: [Int: IntLB], upperBound: IntLB) -> [Int: IntLB] {
     return result
 }
 
-func nonIncreasing(_ dict: [Int: IntLB], upperBound: IntLB) -> [Int: IntLB] {
+func nonIncreasing(_ dict: [Int: BoundedInt], upperBound: BoundedInt) -> [Int: BoundedInt] {
     let keys = dict.keys.sorted().reversed()
-    var value: IntLB = dict[keys.first!]!
-    var result: [Int: IntLB] = [:]
+    var value: BoundedInt = dict[keys.first!]!
+    var result: [Int: BoundedInt] = [:]
     for k in keys {
         value = dict[k]!.applyBounds(lb: value, ub: upperBound)
         result[k] = value

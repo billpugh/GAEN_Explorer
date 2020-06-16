@@ -13,46 +13,36 @@ let maxAttenuation = 90
 struct ThresholdData: Hashable, CustomStringConvertible {
     var description: String {
         if true {
-            return "\(thisDuration) \(maxThisDuration) \(cumulativeDuration):\(durationDebug ?? -1)  \(exceedingDuration):\(durationExceedingDebug ?? -1) <= \(attenuation) dB "
+            return "\(timeInBucket)  \(totalTime)  <= \(attenuation) dB "
         }
-        //        thisDuration == 0 ? "" :
-        //            "\(prevAttenuation > 0 ? "\(prevAttenuation)dB < " : "  ")\(thisDuration)min \(attenuation < maxAttenuation ? "<= \(attenuation)dB" : "")"
     }
 
     let prevAttenuation: Int
     let attenuation: Int
 
-    let thisDuration: IntLB
+    let timeInBucket: BoundedInt
 
-    var thisDurationString: String {
-        "\(thisDuration)"
+    var timeInBucketString: String {
+        "\(timeInBucket)"
     }
 
-    var thisDurationCapped: Int {
-        min(thisDuration.value, cumulativeDurationCapped - prevCumulativeDurationCapped)
+    var timeInBucketCapped: Int {
+        min(timeInBucket.lb, durationCapped - prevDurationCapped)
     }
 
-    let cumulativeDuration: IntLB
-    let prevCumulativeDuration: IntLB
+    let totalTime: BoundedInt
+    let prevTotalTime: BoundedInt
 
-    var maxThisDuration: IntLB {
-        thisDuration
+    var prevDurationCapped: Int {
+        min(30, prevTotalTime.lb)
     }
-
-    var prevCumulativeDurationCapped: Int {
-        min(30, prevCumulativeDuration.value)
-    }
-
-    let exceedingDuration: IntLB
 
     var capped: Bool {
-        cumulativeDuration.value > 30
+        totalTime.lb > 30
     }
 
-    let durationDebug: IntLB?
-    let durationExceedingDebug: IntLB?
-    var cumulativeDurationCapped: Int {
-        min(cumulativeDuration.value, 30)
+    var durationCapped: Int {
+        min(totalTime.lb, 30)
     }
 
     var attenuationLabel: String {
@@ -65,7 +55,7 @@ struct ThresholdData: Hashable, CustomStringConvertible {
 
 struct RawAttenuationData: Codable, Hashable {
     let thresholds: [Int]
-    let buckets: [IntLB]
+    let buckets: [BoundedInt]
 
     var thresholdsCSV: String {
         thresholds.map { "\($0)" }.joined(separator: ", ")
@@ -84,9 +74,9 @@ struct CodableExposureInfo: Codable {
         dayFormatter.string(from: date)
     }
 
-    var totalDuration: IntLB
+    var totalDuration: BoundedInt
 
-    var calculatedTotalDuration: IntLB {
+    var calculatedTotalDuration: BoundedInt {
         totalTime(atNoMoreThan: maxAttenuation)
     }
 
@@ -95,21 +85,25 @@ struct CodableExposureInfo: Codable {
 
     let transmissionRiskLevel: ENRiskLevel
     let attenuationValue: Int8 // attenuation risk level
-    var durations: [Int: IntLB] // minutes
-    var durationsExceeding: [Int: IntLB] // minutes
+    var durations: [Int: BoundedInt] // minutes
+    var durationsExceeding: [Int: BoundedInt] // minutes
     var rawAnalysis: [RawAttenuationData] = []
-    var meaningfulDuration: IntLB {
-        let lowAttn = totalTime(atNoMoreThan: multipassThresholds[0])
-        let mediumAttn = totalTime(atNoMoreThan: multipassThresholds[1])
-        let sum: IntLB = lowAttn + mediumAttn
-        return IntLB(sum.value / 2, sum.isExact)
+    var analysisPasses: Int {
+        rawAnalysis.count
     }
 
-    func totalTime(atNoMoreThan: Int) -> IntLB {
+    var meaningfulDuration: BoundedInt {
+        let lowAttn = totalTime(atNoMoreThan: multipassThresholds[0])
+        let mediumAttn = totalTime(atNoMoreThan: multipassThresholds[1])
+        let sum: BoundedInt = lowAttn + mediumAttn
+        return sum / 2
+    }
+
+    func totalTime(atNoMoreThan: Int) -> BoundedInt {
         if atNoMoreThan == maxAttenuation {
             return totalDuration
         } else if atNoMoreThan == 0 {
-            return IntLB(0)
+            return BoundedInt(0)
         }
         if let v = durations[atNoMoreThan] {
             return v
@@ -118,11 +112,11 @@ struct CodableExposureInfo: Codable {
         return durations[db]!.asLowerBound()
     }
 
-    func totalTime(exceeding: Int) -> IntLB {
+    func totalTime(exceeding: Int) -> BoundedInt {
         if exceeding == 0 {
             return totalDuration
         } else if exceeding == maxAttenuation {
-            return IntLB(0)
+            return BoundedInt(0)
         }
         if let v = durationsExceeding[exceeding] {
             return v
@@ -131,14 +125,14 @@ struct CodableExposureInfo: Codable {
         return durationsExceeding[db]!.asLowerBound()
     }
 
-    //    func totalTime(atNoMoreThan: Int) -> IntLB {
+    //    func totalTime(atNoMoreThan: Int) -> BoundedInt {
     //        if atNoMoreThan == 0 {
     //            return 0
     //        }
     //        return max(totalTime0(atNoMoreThan: atNoMoreThan), timeInBucket(upperBound: atNoMoreThan) + totalTime(atNoMoreThan: prevThreshold(dB: atNoMoreThan)))
     //    }
     //
-    //    func totalTime(exceeding: Int) -> IntLB {
+    //    func totalTime(exceeding: Int) -> BoundedInt {
     //        if exceeding == maxAttenuation {
     //            return 0
     //        }
@@ -153,14 +147,14 @@ struct CodableExposureInfo: Codable {
         durations.keys.filter { $0 < dB }.reduce(0, max)
     }
 
-    func timeInBucket(upperBound: Int) -> IntLB {
+    func timeInBucket(upperBound: Int) -> BoundedInt {
         let lowerBoundExclusive = prevThreshold(dB: upperBound)
         let t1 = minus(totalTime(atNoMoreThan: upperBound), totalTime(atNoMoreThan: lowerBoundExclusive))
         let t2 = minus(totalTime(exceeding: lowerBoundExclusive), totalTime(exceeding: upperBound))
-        return intersection(t1, t2)
+        return t1.intersectionMaybe(t2)
     }
 
-    func csvNumber(_ v: IntLB) -> String {
+    func csvNumber(_ v: BoundedInt) -> String {
         if v == 0 {
             return ""
         }
@@ -187,7 +181,7 @@ struct CodableExposureInfo: Codable {
         durations.keys.sorted().map { String($0) }.joined(separator: ", ")
     }
 
-    func cummulativeDuration(_ dB: Int) -> IntLB {
+    func cummulativeDuration(_ dB: Int) -> BoundedInt {
         let cummulativeDurationFromBelow = totalTime(atNoMoreThan: dB)
         let cummulativeDurationFromAbove = totalDuration - totalTime(exceeding: dB)
         print("cummulativeDuration( \(dB) ) = \(cummulativeDurationFromBelow), \(cummulativeDurationFromAbove)")
@@ -198,12 +192,9 @@ struct CodableExposureInfo: Codable {
         let prevdB = prevThreshold(dB: dB)
         return ThresholdData(prevAttenuation: prevdB,
                              attenuation: dB,
-                             thisDuration: timeInBucket(upperBound: dB),
-                             cumulativeDuration: cummulativeDuration(dB),
-                             prevCumulativeDuration: cummulativeDuration(prevdB),
-                             exceedingDuration: totalTime(exceeding: dB),
-                             durationDebug: durations[dB],
-                             durationExceedingDebug: durationsExceeding[dB])
+                             timeInBucket: timeInBucket(upperBound: dB),
+                             totalTime: totalTime(atNoMoreThan: dB),
+                             prevTotalTime: totalTime(atNoMoreThan: prevdB))
     }
 
     var thresholdData: [ThresholdData] {
@@ -213,9 +204,9 @@ struct CodableExposureInfo: Codable {
 
     mutating func merge(_ merging: CodableExposureInfo) {
         totalDuration = totalDuration.intersection(merging.totalDuration)
-        durations.merge(merging.durations) { (old: IntLB, new: IntLB) in old.intersection(new) }
+        durations.merge(merging.durations) { (old: BoundedInt, new: BoundedInt) in old.intersection(new) }
         durations = nonDecreasing(durations, upperBound: totalDuration)
-        durationsExceeding.merge(merging.durationsExceeding) { (old: IntLB, new: IntLB) in old.intersection(new) }
+        durationsExceeding.merge(merging.durationsExceeding) { (old: BoundedInt, new: BoundedInt) in old.intersection(new) }
         durationsExceeding = nonIncreasing(durationsExceeding, upperBound: totalDuration)
         print("After merging, got")
         print("  durations \(durations)")
@@ -232,7 +223,7 @@ struct CodableExposureInfo: Codable {
         self.totalRiskScore = info.totalRiskScore
         self.transmissionRiskLevel = info.transmissionRiskLevel
         self.attenuationValue = Int8(info.attenuationValue)
-        let attenuationDurations = info.attenuationDurations.map { IntLB(Int(truncating: $0) / 60) }
+        let attenuationDurations = info.attenuationDurations.map { BoundedInt(Int(truncating: $0) / 60) }
         self.totalDuration = attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2]
 
         self.durations = [config.attenuationDurationThresholds[0]: attenuationDurations[0],
@@ -251,7 +242,7 @@ struct CodableExposureInfo: Codable {
         }
     }
 
-    init(date: Date, transmissionRiskLevel: ENRiskLevel, totalDuration: IntLB = IntLB(0, false), durations: [Int: IntLB] = [:], durationsExceeding: [Int: IntLB] = [:]) {
+    init(date: Date, transmissionRiskLevel: ENRiskLevel, totalDuration: BoundedInt = BoundedInt.unknown, durations: [Int: BoundedInt] = [:], durationsExceeding: [Int: BoundedInt] = [:]) {
         self.id = UUID()
         self.date = date
         self.totalRiskScore = 1
@@ -263,52 +254,107 @@ struct CodableExposureInfo: Codable {
         self.durationsExceeding = durationsExceeding
     }
 
+    let debug = false
+
     mutating func updateConstraints() {
-        if !totalDuration.isExact {
-            durations = nonDecreasing(durations, upperBound: totalDuration)
-            durationsExceeding = nonIncreasing(durationsExceeding, upperBound: totalDuration)
-            return
-        }
-        var changed = false
-        let keys = durations.keys.sorted()
-
-        for dB in keys {
-            let lb = totalTime(atNoMoreThan: prevThreshold(dB: dB))
-            let ub = totalDuration - totalTime(exceeding: dB)
-            let currentValue = durations[dB]!
-            let newValue = currentValue.applyBounds(lb: lb, ub: ub)
-            print("durations[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
-            if currentValue != newValue {
-                changed = true
-                durations[dB] = newValue
+        for _ in 1 ... 3 {
+            if debug {
+                print(totalDuration)
+                print(durationsCSV)
+                print(durationsExceedingCSV)
             }
-        }
+            var changedDurations = false
+            let keys = durations.keys.sorted()
 
-        if changed {
-            print("durations changed: \(durations)")
-        }
+            for dB in keys {
+                let lb = totalTime(atNoMoreThan: prevThreshold(dB: dB))
 
-        changed = false
-        for dB in keys.reversed() {
-            let lb = totalTime(exceeding: nextThreshold(dB: dB))
-            let ub = totalDuration - totalTime(atNoMoreThan: dB)
-            let currentValue = durationsExceeding[dB]!
-            let newValue = currentValue.applyBounds(lb: lb, ub: ub)
-            print("durationsExceeding[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
-
-            if currentValue != newValue {
-                changed = true
-                durationsExceeding[dB] = newValue
+                let currentValue = durations[dB]!
+                let ub = totalTime(atNoMoreThan: nextThreshold(dB: dB))
+                let newValue = currentValue.applyBounds(lb: lb, ub: ub)
+                if debug {
+                    print("durations[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
+                }
+                if currentValue != newValue {
+                    changedDurations = true
+                    durations[dB] = newValue
+                }
             }
-        }
+            if changedDurations, debug {
+                print("durations changed: \(durationsCSV)")
+            }
+            var changedExceeding = false
+            for dB in keys.reversed() {
+                let nextdB = nextThreshold(dB: dB)
+                let lb = totalTime(exceeding: nextdB)
+                let ub = totalTime(exceeding: prevThreshold(dB: dB))
+                let currentValue = durationsExceeding[dB]!
+                let newValue = currentValue.applyBounds(lb: lb, ub: ub)
 
-        if changed {
-            print("durationsExceeding changed: \(durationsExceeding)")
+                if debug {
+                    print("durationsExceeding[\(dB)] \(lb) <= \(currentValue) <= \(ub)  = \(newValue)")
+                }
+
+                if currentValue != newValue {
+                    changedExceeding = true
+                    durationsExceeding[dB] = newValue
+                }
+            }
+            if changedExceeding, debug {
+                print("durationsExceeding changed: \(durationsExceedingCSV)")
+            }
+
+            for dB in keys {
+                let prevdB = prevThreshold(dB: dB)
+                let lb = totalTime(atNoMoreThan: prevThreshold(dB: dB))
+                let timeInBucket = totalTime(exceeding: prevdB) - totalTime(exceeding: dB)
+                let lb2 = lb + timeInBucket
+                let ub = totalDuration - totalTime(exceeding: dB)
+                let currentValue = durations[dB]!
+                let newValue = currentValue.softApplyBounds(lb: lb2, ub: ub)
+
+                if debug {
+                    print("durations[\(dB)] \(lb2) <= \(currentValue) <= \(ub)  = \(newValue)")
+                }
+                if currentValue != newValue {
+                    changedDurations = true
+                    durations[dB] = newValue
+                }
+            }
+
+            if changedDurations, debug {
+                print("durations changed: \(durations)")
+            }
+
+            for dB in keys.reversed() {
+                let nextdB = nextThreshold(dB: dB)
+                let lb = totalTime(exceeding: nextdB)
+                let timeInBucket = totalTime(atNoMoreThan: nextdB) - totalTime(atNoMoreThan: dB)
+                let lb2 = lb + timeInBucket
+                let ub = totalDuration - totalTime(atNoMoreThan: dB)
+                let currentValue = durationsExceeding[dB]!
+                let newValue = currentValue.softApplyBounds(lb: lb2, ub: ub)
+                if debug {
+                    print("durationsExceeding[\(dB)] \(lb2) <= \(currentValue) <= \(ub)  = \(newValue)")
+                }
+
+                if currentValue != newValue {
+                    changedExceeding = true
+                    durationsExceeding[dB] = newValue
+                }
+            }
+
+            if changedExceeding, debug {
+                print("durationsExceeding changed: \(durationsExceeding)")
+            }
+            if !changedDurations, !changedExceeding {
+                break
+            }
         }
     }
 
-    mutating func update(thresholds: [Int], buckets: [IntLB]) {
-        var runningTotal: IntLB = 0
+    mutating func update(thresholds: [Int], buckets: [BoundedInt]) {
+        var runningTotal: BoundedInt = 0
         for i in 0 ..< thresholds.count {
             let dB = thresholds[i]
             if let oldValue = durations[dB] {
@@ -334,7 +380,7 @@ struct CodableExposureInfo: Codable {
         rawAnalysis.append(RawAttenuationData(thresholds: thresholds, buckets: buckets))
 
         updateConstraints()
-        if true {
+        if debug {
             print("updated ENExposureInfo:")
             print("  attenuationThresholds \(thresholds)")
             print("  buckets \(buckets)")
@@ -345,7 +391,7 @@ struct CodableExposureInfo: Codable {
         }
     }
 
-    func updated(thresholds: [Int], buckets: [IntLB]) -> CodableExposureInfo {
+    func updated(thresholds: [Int], buckets: [BoundedInt]) -> CodableExposureInfo {
         var result = self
         result.update(thresholds: thresholds, buckets: buckets)
         return result
@@ -356,13 +402,18 @@ struct CodableExposureInfo: Codable {
             .updated(thresholds: [50, 64], buckets: [25, 25, 25])
             .updated(thresholds: [58, 70], buckets: [30, 25, 15]),
         CodableExposureInfo(date: daysAgo(3), transmissionRiskLevel: 5)
+            .updated(thresholds: [55, 61], buckets: [5, 10, 30])
+            .updated(thresholds: [52, 58], buckets: [0, 5, 30])
+            .updated(thresholds: [67, 73], buckets: [30, 25, 10])
+            .updated(thresholds: [64, 70], buckets: [20, 15, 25]),
+        CodableExposureInfo(date: daysAgo(4), transmissionRiskLevel: 5)
             .updated(thresholds: [55, 67], buckets: [20, 30, 30])
             .updated(thresholds: [50, 64], buckets: [5, 30, 30])
             .updated(thresholds: [61, 73], buckets: [30, 30, 30])
             .updated(thresholds: [58, 70], buckets: [25, 30, 30])
             .updated(thresholds: [52, 60], buckets: [10, 25, 30]),
 
-        CodableExposureInfo(date: daysAgo(4), transmissionRiskLevel: 5)
+        CodableExposureInfo(date: daysAgo(5), transmissionRiskLevel: 5)
             .updated(thresholds: [50, 64], buckets: [5, 5, 15]),
     ]
 }
