@@ -56,7 +56,8 @@ struct EncountersWithUser: Codable {
         let pair = [to, userName].sorted().joined(separator: "-")
         return exposures.flatMap { exposureInfo in
             ["""
-            exposure, \(to), \(pair), \(exposureInfo.day), \(exposureInfo.meaningfulDuration),  \(exposureInfo.durationsCSV),  \(exposureInfo.durationsExceedingCSV), \(exposureInfo.timeInBucketCSV)
+            exposure, \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV),
+            exposure, \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
             """] + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
         }
     }
@@ -217,6 +218,8 @@ class LocalStore: ObservableObject {
         allExposures.count > 0
     }
 
+    var analysisInProgress = false
+
     var showEncountersMsg: String {
         if allExposures.count == 0 {
             return "No keys or analysis yet"
@@ -233,9 +236,13 @@ class LocalStore: ObservableObject {
         return "Show encounters with \(allExposures.count) devices"
     }
 
-    func analyze(doMaxAnalysis: Bool = false) {
+    func analyze(doMaxAnalysis: Bool = false, wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled) {
         if !canAnalyze {
             print("No analysis to do")
+            return
+        }
+        if analysisInProgress {
+            print("Analysis in progress")
             return
         }
 
@@ -243,16 +250,15 @@ class LocalStore: ObservableObject {
         addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
         print("Analyzing")
         goDeeperQueue.async {
-            self.analyzeOffMainThread(pass, doMaxAnalysis)
+            self.analyzeOffMainThread(pass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
         }
     }
 
-    func analyzeOffMainThread(_ pass: Int, _ doMaxAnalysis: Bool) {
+    func analyzeOffMainThread(_ pass: Int, wasEnabled: Bool, doMaxAnalysis: Bool) {
         print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
-
+        assert(!Thread.current.isMainThread)
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
         print("Have \(allKeys.count) keys")
-        let wasEnabled = ExposureFramework.shared.manager.exposureNotificationEnabled
         if !wasEnabled {
             ExposureFramework.shared.setExposureNotificationEnabled(true)
         }
@@ -260,16 +266,17 @@ class LocalStore: ObservableObject {
                                                                       userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
                                                                       configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
         print("Got \(exposures.count) exposures")
-        if !wasEnabled {
+        if !wasEnabled && !doMaxAnalysis {
             ExposureFramework.shared.setExposureNotificationEnabled(false)
         }
         DispatchQueue.main.async {
-            self.incorporateResults(exposures, pass: pass, doMaxAnalysis)
+            self.incorporateResults(exposures, pass: pass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
         }
     }
 
-    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, _ doMaxAnalysis: Bool) {
+    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, wasEnabled: Bool, doMaxAnalysis: Bool) {
         print("incorporateResults")
+        assert(Thread.current.isMainThread)
         if viewShown != "experiment" {
             viewShown = "exposures"
         }
@@ -288,7 +295,25 @@ class LocalStore: ObservableObject {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
         if doMaxAnalysis, canAnalyze {
-            analyze(doMaxAnalysis: true)
+            let nextPass = pass + 1
+            addDiaryEntry(DiaryKind.analysisPerformed, "\(nextPass + 1)")
+            print("Analyzing")
+            goDeeperQueue.async {
+                self.analyzeOffMainThread(nextPass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
+            }
+            return
+        }
+        analysisInProgress = false
+        if !wasEnabled {
+            ExposureFramework.shared.setExposureNotificationEnabled(false)
+        }
+        for i in 0 ..< allExposures.count {
+            for j in 0 ..< allExposures[i].exposures.count {
+                allExposures[i].exposures[j].reanalyze()
+            }
+        }
+        if let encoded = try? JSONEncoder().encode(allExposures) {
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
     }
 

@@ -17,7 +17,6 @@ struct ExperimentView: View {
     @State var showingSheetToShareExposures = false
     @State var didExportExposures = false
     @State var didErase = false
-    @State var description: String = ""
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
@@ -30,7 +29,7 @@ struct ExperimentView: View {
         if !localStore.canAnalyze {
             return "Share your analysis"
         }
-        return "Perform Analysis #\(localStore.analysisPassedCompleted + 1) of \(numberAnalysisPasses)"
+        return "Perform analysis \(numberAnalysisPasses - localStore.analysisPassedCompleted) times"
     }
 
     func itemsToShare() -> [Any] {
@@ -48,7 +47,7 @@ struct ExperimentView: View {
             VStack {
                 HStack {
                     Text("Description:").font(.headline)
-                    TextField("description", text: self.$description)
+                    TextField("description", text: self.$localStore.experimentDescription)
                 }
 
                 // MARK: experimentStatus == .none
@@ -129,15 +128,15 @@ struct ExperimentView: View {
                     }) { Text("Share keys") }
                         .font(.title).padding(.vertical)
 
-                    if self.localStore.experimentStatus == .completed {
+                    if self.localStore.experimentStatus == .completed && (self.localStore.allExposures.count == 0 || localStore.canAnalyze) {
                         Text(self.localStore.allExposures.count == 0 ? "You currently don't have keys from anyone else"
-                            : "You currently have keys from \(self.localStore.allExposures.count) other people. When you share keys with someone, you share your keys and everyone elses. When everyone has all the keys, analyze your encounters")
+                            : "You currently have keys from \(self.localStore.allExposures.count) other people. When you share keys with someone, you share your keys and all the ones you have already received.")
                     }
 
                     Button(action: {
                         withAnimation {
                             if self.localStore.canAnalyze {
-                                LocalStore.shared.analyze()
+                                LocalStore.shared.analyze(doMaxAnalysis: true)
                             } else {
                                 self.localStore.exportExposuresToURL()
                                 self.showingSheetToShareExposures = true

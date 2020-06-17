@@ -37,10 +37,10 @@ struct ExposureDurationViewLarge: View {
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
-                if !thresholdData.totalTime.isExact {
-                    Rectangle()
-                        .fill(LinearGradient(gradient: Gradient(colors: [.primary, .gray]), startPoint: .bottom, endPoint: .top))
-                        .frame(width: 3 * ExposureDurationViewLarge.scale,
+                if !thresholdData.totalTime.isNearlyExact {
+                    Capsule()
+                        .fill(LinearGradient(gradient: Gradient(colors: [.green, .gray]), startPoint: .bottom, endPoint: .top))
+                        .frame(width: 2.5 * ExposureDurationViewLarge.scale,
                                height: CGFloat(min(maxDuration, thresholdData.totalTime.ub) - thresholdData.totalTime.lb + 3) * ExposureDurationViewLarge.scale)
                         .offset(x: 0, y: CGFloat(3 - thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale)
                 }
@@ -106,20 +106,20 @@ struct ExposureDurationViewSmall: View {
         ZStack(alignment: .bottom) {
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale / 2)
+                    .frame(width: 4 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale / 2)
                     .offset(x: 0, y: -CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.primary)
             }
 
             Capsule()
-                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.primary)
+                .frame(width: 4 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.durationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.primary)
 
             if thresholdData.capped {
                 Rectangle()
-                    .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale / 2)
+                    .frame(width: 4 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale / 2)
                     .offset(x: 0, y: CGFloat(-thresholdData.prevDurationCapped) * ExposureDurationViewSmall.scale - CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale / 2).foregroundColor(.green)
             }
             Capsule()
-                .frame(width: 5 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale)
+                .frame(width: 4 * ExposureDurationViewSmall.scale, height: CGFloat(thresholdData.timeInBucketCapped) * ExposureDurationViewSmall.scale)
                 .offset(x: 0, y: CGFloat(-thresholdData.prevDurationCapped) * ExposureDurationViewSmall.scale).foregroundColor(.green)
 
         }.padding(.bottom, 8)
@@ -165,7 +165,7 @@ struct ExposureDetailViewDebugDetail: View {
             Text("Raw analysis \(self.info.rawAnalysis.count):")
             ForEach(self.info.rawAnalysis, id: \.self) { ra in
 
-                Text("\(ra.thresholds.description) \(ra.buckets.description)")
+                Text("\(ra.thresholds.description) \(ra.bucket.description)")
             }
         }
     }

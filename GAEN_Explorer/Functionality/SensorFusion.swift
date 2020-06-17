@@ -190,7 +190,7 @@ class SensorFusion {
             print("\(fd.time)  \(fd.activity)")
             if let prev = prevData {
                 let oldDuration: Int = activityDurations[prev.activity] ?? 0
-                let thisDuration = Int(fd.at.timeIntervalSince(prev.at))
+                let thisDuration = Int(fd.at.timeIntervalSince(prev.at >= from ? prev.at : from))
                 if thisDuration > 90 {
                     significantActivities.append(SignificantActivity(prev, seconds: thisDuration))
                 }
@@ -208,7 +208,7 @@ class SensorFusion {
         }
         if let prev = prevData {
             let oldDuration: Int = activityDurations[prev.activity] ?? 0
-            let thisDuration = Int(to.timeIntervalSince(prev.at))
+            let thisDuration = Int(to.timeIntervalSince(prev.at >= from ? prev.at : from))
             if thisDuration > 90 {
                 significantActivities.append(SignificantActivity(prev, seconds: thisDuration))
             }

@@ -11,6 +11,7 @@
 		160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EB248D5DDF0045D08C /* DiaryView.swift */; };
 		160660EE248D7B870045D08C /* ExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660ED248D7B870045D08C /* ExperimentView.swift */; };
 		160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
+		1627E16E2498653E003BE502 /* ExhaustiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1627E16D2498653E003BE502 /* ExhaustiveTests.swift */; };
 		163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F0246A118200267376 /* ExposureFramework.swift */; };
 		164D16D5246A10D800267376 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D4246A10D800267376 /* AppDelegate.swift */; };
 		164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D6246A10D800267376 /* SceneDelegate.swift */; };
@@ -33,8 +34,8 @@
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
 		16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C3E71C2476D14900B4EA2B /* AboutView.swift */; };
 		16C90A182494648E0038A9E6 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
-		16C90A1A2495048E0038A9E6 /* IntLB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* IntLB.swift */; };
-		16C90A1B24950F830038A9E6 /* IntLB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* IntLB.swift */; };
+		16C90A1A2495048E0038A9E6 /* BoundedInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* BoundedInt.swift */; };
+		16C90A1B24950F830038A9E6 /* BoundedInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A192495048D0038A9E6 /* BoundedInt.swift */; };
 		16C90A1C24952B580038A9E6 /* CodableEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* CodableEN.swift */; };
 		16C90A1D24952C0C0038A9E6 /* LocalStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F6179E247B583700757986 /* LocalStores.swift */; };
 		16C90A1E24952C200038A9E6 /* ExposureAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F308172480103100BD7DA1 /* ExposureAnalysis.swift */; };
@@ -42,6 +43,7 @@
 		16C90A2024952C3B0038A9E6 /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
 		16C90A2124952C610038A9E6 /* Diary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660E9248D55D80045D08C /* Diary.swift */; };
 		16C90A2224952C9F0038A9E6 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
+		16C90A2624967C930038A9E6 /* GroundTruthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C90A2524967C920038A9E6 /* GroundTruthTests.swift */; };
 		16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CBDFF72476BE2E009AF285 /* ExposuresView.swift */; };
 		16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F308172480103100BD7DA1 /* ExposureAnalysis.swift */; };
 		16F3083A2481996200BD7DA1 /* CHANGES.md in Resources */ = {isa = PBXBuildFile; fileRef = 16F308392481996000BD7DA1 /* CHANGES.md */; };
@@ -65,6 +67,7 @@
 		160660EB248D5DDF0045D08C /* DiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryView.swift; sourceTree = "<group>"; };
 		160660ED248D7B870045D08C /* ExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentView.swift; sourceTree = "<group>"; };
 		160660EF248EEA2E0045D08C /* SensorFusion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorFusion.swift; sourceTree = "<group>"; };
+		1627E16D2498653E003BE502 /* ExhaustiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExhaustiveTests.swift; sourceTree = "<group>"; };
 		164D16D1246A10D800267376 /* GAEN Explorer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GAEN Explorer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		164D16D4246A10D800267376 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		164D16D6246A10D800267376 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -90,7 +93,8 @@
 		16A4D83A246C902800A081EF /* keys_320.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_320.png; sourceTree = "<group>"; };
 		16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = TemporaryExposureKeyExport.proto; sourceTree = "<group>"; };
 		16C3E71C2476D14900B4EA2B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
-		16C90A192495048D0038A9E6 /* IntLB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntLB.swift; sourceTree = "<group>"; };
+		16C90A192495048D0038A9E6 /* BoundedInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedInt.swift; sourceTree = "<group>"; };
+		16C90A2524967C920038A9E6 /* GroundTruthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroundTruthTests.swift; sourceTree = "<group>"; };
 		16CBDFF72476BE2E009AF285 /* ExposuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposuresView.swift; sourceTree = "<group>"; };
 		16F308172480103100BD7DA1 /* ExposureAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposureAnalysis.swift; sourceTree = "<group>"; };
 		16F308392481996000BD7DA1 /* CHANGES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGES.md; sourceTree = "<group>"; };
@@ -195,7 +199,7 @@
 				160660E9248D55D80045D08C /* Diary.swift */,
 				16F6179E247B583700757986 /* LocalStores.swift */,
 				16F308172480103100BD7DA1 /* ExposureAnalysis.swift */,
-				16C90A192495048D0038A9E6 /* IntLB.swift */,
+				16C90A192495048D0038A9E6 /* BoundedInt.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -204,6 +208,8 @@
 			isa = PBXGroup;
 			children = (
 				167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */,
+				16C90A2524967C920038A9E6 /* GroundTruthTests.swift */,
+				1627E16D2498653E003BE502 /* ExhaustiveTests.swift */,
 				167BBC1D24926010007A7819 /* Info.plist */,
 			);
 			path = "GAEN ExplorerTests";
@@ -349,7 +355,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				16F308182480103100BD7DA1 /* ExposureAnalysis.swift in Sources */,
-				16C90A1A2495048E0038A9E6 /* IntLB.swift in Sources */,
+				16C90A1A2495048E0038A9E6 /* BoundedInt.swift in Sources */,
 				16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */,
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
@@ -375,12 +381,14 @@
 			files = (
 				16C90A1E24952C200038A9E6 /* ExposureAnalysis.swift in Sources */,
 				16C90A182494648E0038A9E6 /* Utilities.swift in Sources */,
-				16C90A1B24950F830038A9E6 /* IntLB.swift in Sources */,
+				16C90A1B24950F830038A9E6 /* BoundedInt.swift in Sources */,
 				16C90A2024952C3B0038A9E6 /* SensorFusion.swift in Sources */,
 				16C90A1F24952C370038A9E6 /* ExposureFramework.swift in Sources */,
 				16C90A2124952C610038A9E6 /* Diary.swift in Sources */,
 				167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */,
+				16C90A2624967C930038A9E6 /* GroundTruthTests.swift in Sources */,
 				16C90A2224952C9F0038A9E6 /* TemporaryExposureKeyExport.pb.swift in Sources */,
+				1627E16E2498653E003BE502 /* ExhaustiveTests.swift in Sources */,
 				16C90A1C24952B580038A9E6 /* CodableEN.swift in Sources */,
 				16C90A1D24952C0C0038A9E6 /* LocalStores.swift in Sources */,
 			);

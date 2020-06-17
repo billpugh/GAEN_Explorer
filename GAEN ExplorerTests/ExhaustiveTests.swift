@@ -61,14 +61,48 @@ struct ExhaustiveCase {
                 min(30, durations(exceeding: thresholds[1]))]
     }
 
-    func check() {
-        print("ExhaustiveCheck \(seed) \(truth) ")
+    func check(listBad: Bool = false) -> Bool {
         var info = CodableExposureInfo(date: daysAgo(3), transmissionRiskLevel: 5)
+        var anyExactBuckets: Bool = false
         for pass in 1 ... numberAnalysisPasses {
             let thresholds = getAttenuationDurationThresholds(pass: pass)
-            info.update(thresholds: thresholds, buckets: getBuckets(thresholds: thresholds).map { BoundedInt($0) })
+            let buckets = getBuckets(thresholds: thresholds)
+            if buckets.filter({ $0 >= 30 }).isEmpty {
+                anyExactBuckets = true
+            }
+            info.update(thresholds: thresholds, buckets: buckets)
             verify(info)
         }
+        let good = isExact(info) || !anyExactBuckets
+        if !good, listBad {
+            print("bad ExhaustiveCheck \(seed) \(truth) ")
+            if !info.durations.values.filter({ !$0.isNearlyExact }).isEmpty {
+                print(" inexact durations: \(info.durationsCSV)")
+            }
+            if !info.durationsExceeding.values.filter({ !$0.isNearlyExact }).isEmpty {
+                print(" inexact durationsExceeding: \(info.durationsExceedingCSV)")
+            }
+            if !info.durations.keys.map({ info.timeInBucket(upperBound: $0) }).filter({ !$0.isNearlyExact }).isEmpty {
+                print(" inexact timeInBuckets: \(info.timeInBucketCSV)")
+            }
+            for ra in info.rawAnalysis {
+                print("  .updated(thresholds: \(ra.thresholds), buckets: \(ra.bucket))")
+            }
+        }
+        return good
+    }
+
+    func isExact(_ info: CodableExposureInfo) -> Bool {
+        if !info.durations.values.filter({ !$0.isNearlyExact }).isEmpty {
+            return false
+        }
+        if !info.durationsExceeding.values.filter({ !$0.isNearlyExact }).isEmpty {
+            return false
+        }
+        if !info.durations.keys.map({ info.timeInBucket(upperBound: $0) }).filter({ !$0.isNearlyExact }).isEmpty {
+            return false
+        }
+        return true
     }
 
     func verify(_ info: CodableExposureInfo) {
@@ -91,15 +125,22 @@ class ExhaustiveTests: XCTestCase {
     }
 
     func testExample() throws {
-        for i in 0 ... 1000 {
-            ExhaustiveCase(seed: UInt32(i)).check()
+        var countNotGood = 0
+        for i in 0 ... 10000 {
+            if ExhaustiveCase(seed: UInt32(i)).check(listBad: true) {
+                countNotGood += 1
+            }
         }
+        print(countNotGood)
+        XCTAssertGreaterThanOrEqual(countNotGood, 9998)
     }
 
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         measure {
-            // Put the code you want to measure the time of here.
+            for i in 0 ... 1000 {
+                _ = ExhaustiveCase(seed: UInt32(i)).check()
+            }
         }
     }
 }
