@@ -35,8 +35,6 @@ struct ExposureKey: Hashable, CustomStringConvertible {
 
 let multipassThresholds = [55, 61, 52, 58, 67, 73, 64, 70]
 
-// let multipassThresholds = [55, 67, 50, 64, 61, 73, 58, 70]
-
 let numberAnalysisPasses = multipassThresholds.count / 2
 
 func getAttenuationDurationThresholds(pass: Int) -> [Int] {

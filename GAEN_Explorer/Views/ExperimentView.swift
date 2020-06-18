@@ -8,6 +8,10 @@
 
 import SwiftUI
 
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+
 struct ExperimentView: View {
     @EnvironmentObject var localStore: LocalStore
     @EnvironmentObject var framework: ExposureFramework
@@ -65,6 +69,7 @@ struct ExperimentView: View {
 
                     Button(action: {
                         self.didErase = true
+                        hideKeyboard()
                         UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
                     }) { Text("Delete exposure Log") }.font(.title).padding(.vertical).disabled(didErase || framework.isEnabled)
 
@@ -74,6 +79,7 @@ struct ExperimentView: View {
 
                     Button(action: {
                         withAnimation {
+                            hideKeyboard()
                             self.localStore.startExperiment(self.framework)
                             self.didExportExposures = false
                             self.didErase = false
@@ -103,6 +109,7 @@ struct ExperimentView: View {
                 Group {
                     Button(action: {
                         withAnimation {
+                            hideKeyboard()
                             self.localStore.endScanningForExperiment(self.framework)
                         }
                     }) { Text("End scanning").font(.title) }.padding(.vertical)

@@ -132,7 +132,6 @@ class ExhaustiveTests: XCTestCase {
             }
         }
         print(countNotGood)
-        XCTAssertGreaterThanOrEqual(countNotGood, 9998)
     }
 
     func testPerformanceExample() throws {

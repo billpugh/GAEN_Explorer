@@ -8,12 +8,20 @@
 
 import XCTest
 
-func XCTAssertMatches(_ boundedInt: BoundedInt?, _ int: Int) {
+func XCTAssertMatches(_ boundedInt: BoundedInt?, _ int: Int, _ msg: String = "") {
     guard let bi = boundedInt else {
         XCTAssertNotNil(boundedInt)
         return
     }
-    XCTAssert(bi.matches(int), "XCTAssertMatch failed: \(bi) doesn't match \(int)")
+    XCTAssert(bi.matches(int), "XCTAssertMatch failed: \(bi) doesn't match \(int) \(msg)")
+}
+
+func XCTAssertMatches(_ boundedInt: BoundedInt?, _ expected: BoundedInt, _ msg: String = "") {
+    guard let bi = boundedInt else {
+        XCTAssertNotNil(boundedInt)
+        return
+    }
+    XCTAssert(expected.matches(bi), "XCTAssertMatch failed: \(bi) doesn't match \(expected) \(msg)")
 }
 
 class GAEN_ExplorerTests: XCTestCase {
@@ -34,11 +42,11 @@ class GAEN_ExplorerTests: XCTestCase {
         let xy = x + y
         XCTAssertMatches(xy, 15)
         let xz = x + z
-        XCTAssertEqual(xz.lb, 35)
+        XCTAssertEqual(xz.lb, 30)
         XCTAssertEqual(xz.isNearlyExact, false)
         let intersectionAY = intersection(a, y)
         XCTAssertMatches(intersectionAY, 10)
-        let exactly30 = BoundedInt(exact: 30)
+        let exactly30 = BoundedInt(uncapped: 30)
         let combination = z.intersection(exactly30)
         XCTAssertEqual(combination.lb, 30)
         XCTAssertEqual(combination.ub, 30)
@@ -54,13 +62,28 @@ class GAEN_ExplorerTests: XCTestCase {
         XCTAssertMatches(info.durationsExceeding[64], 15)
     }
 
-    func testCodableExposureInfoTestData1() throws {
-        var info = CodableExposureInfo.testData[1]
+    func testCodableExposureInfoTestData0() throws {
+        let info = CodableExposureInfo.testData[0]
         print(info.thresholdsCSV)
         print(info.durationsCSV)
         print(info.durationsExceedingCSV)
         print(info.timeInBucketCSV)
-        let t = info.timeInBucket(upperBound: 61)
+
+        XCTAssertEqual(info.durationsCSV, "25, 30...45, 45...50, 50...65, 65...75")
+        XCTAssertEqual(info.durationsExceedingCSV, "45...50, 35...40, 25, 15, ")
+        XCTAssertEqual(info.timeInBucketCSV, "25, 5...20, 10...20, 10...15, 15")
+    }
+
+    func testCodableExposureInfoTestData1() throws {
+        let info = CodableExposureInfo.testData[1]
+        print(info.thresholdsCSV)
+        print(info.durationsCSV)
+        print(info.durationsExceedingCSV)
+        print(info.timeInBucketCSV)
+
+        XCTAssertEqual(info.durationsCSV, ", 5, 5, 10...15, 20, 30...35, 30...35, 50...55, 55...60")
+        XCTAssertEqual(info.durationsExceedingCSV, "40...60, 35...60, 35...60, 35...55, 35...40, 30...35, 25, 10, ")
+        XCTAssertEqual(info.timeInBucketCSV, ", 5, 0...5, 5...15, 5...15, 10...15, 5...10, 15...20, 10")
     }
 
     func testCodableExposureInfo1() throws {
@@ -73,8 +96,8 @@ class GAEN_ExplorerTests: XCTestCase {
         XCTAssertMatches(info.durations[58], 25)
         XCTAssertMatches(info.durations[61], 30)
 
-        XCTAssertEqual(info.durationsCSV, ", 5, 25, 30, 30")
-        XCTAssertEqual(info.durationsExceedingCSV, "30, 25, 5, , ")
+        XCTAssertEqual(info.durationsCSV, ", 5, 25, 25...30, 25...30")
+        XCTAssertEqual(info.durationsExceedingCSV, "25...30, 25, 5, , ")
 
         print(info.sortedThresholds)
         print(info.totalDuration)
@@ -93,8 +116,8 @@ class GAEN_ExplorerTests: XCTestCase {
         XCTAssertMatches(info.durations[50], 5)
         XCTAssertMatches(info.durations[55], 25)
 
-        XCTAssertEqual(info.durationsCSV, "5, 25, 35+, 55+, 85+")
-        XCTAssertEqual(info.durationsExceedingCSV, "80+, 60+, 30+, 30+, ")
+        XCTAssertEqual(info.durationsCSV, "5, 25, 30+, 50+, 75+")
+        XCTAssertEqual(info.durationsExceedingCSV, "70+, 55+, 30+, 30+, ")
 
         print(info.sortedThresholds)
         print(info.totalDuration)
@@ -142,8 +165,8 @@ class GAEN_ExplorerTests: XCTestCase {
 
         XCTAssertMatches(info.totalDuration, 45)
 
-        XCTAssertEqual(info.durationsCSV, "5, 5, 5, 5, 15, 35, 35, 45, 45")
-        XCTAssertEqual(info.durationsExceedingCSV, "40, 40, 40, 40, 30, 10, 10, , ")
+        XCTAssertEqual(info.durationsCSV, "5, 5, 5, 5, 15, 30...35, 30...35, 35...45, 35...45")
+        XCTAssertEqual(info.durationsExceedingCSV, "30...45, 30...45, 30...45, 30...45, 25...30, 10, 10, , ")
         print(info.sortedThresholds)
         print(info.totalDuration)
         print(info.durationsCSV)
@@ -160,8 +183,8 @@ class GAEN_ExplorerTests: XCTestCase {
         print(info.sortedThresholds)
 
         XCTAssertMatches(info.totalDuration, 40)
-        XCTAssertEqual(info.durationsCSV, "5, 25, 35, 40, 40, 40, 40, 40, 40")
-        XCTAssertEqual(info.durationsExceedingCSV, "35, 15, 5, , , , , , ")
+        XCTAssertEqual(info.durationsCSV, "5, 25, 30...40, 35...40, 35...40, 35...40, 35...40, 35...40, 35...40")
+        XCTAssertEqual(info.durationsExceedingCSV, "30...40, 15, 5, , , , , , ")
 
         //
     }
@@ -180,9 +203,9 @@ class GAEN_ExplorerTests: XCTestCase {
         print(info.totalDuration)
         print(info.durationsCSV)
         print(info.durationsExceedingCSV)
-        XCTAssertMatches(info.totalDuration, 45)
-        XCTAssertEqual(info.durationsCSV, "5, 25, 35, 40, 40...45, 40...45, 40...45, 40...45, 45")
-        XCTAssertEqual(info.durationsExceedingCSV, "40, 15, 10, , , , , , ")
+        XCTAssertEqual(info.totalDuration, BoundedInt(35, 40))
+        XCTAssertEqual(info.durationsCSV, "5, 25, 30...35, 35...40, 35...40, 35...40, 35...40, 35...40, 35...40")
+        XCTAssertEqual(info.durationsExceedingCSV, "35...40, 15, 10, , , , , , ")
     }
 
     func testCodableExposureInfo7() throws {
@@ -196,9 +219,9 @@ class GAEN_ExplorerTests: XCTestCase {
         print(info.durationsCSV)
         print(info.durationsExceedingCSV)
 
-        XCTAssertMatches(info.totalDuration, 65)
-        XCTAssertEqual(info.durationsCSV, ", 5, 5, 15, 20, 30, 35, 55, 65")
-        XCTAssertEqual(info.durationsExceedingCSV, "60...65, 55...60, 55...60, 45...50, 40, 35, 25, 10, ")
+        XCTAssertEqual(info.totalDuration, BoundedInt(55, 60))
+        XCTAssertEqual(info.durationsCSV, ", 5, 5, 10...15, 20, 30...35, 30...35, 50...55, 55...60")
+        XCTAssertEqual(info.durationsExceedingCSV, "40...60, 35...60, 35...60, 35...55, 35...40, 30...35, 25, 10, ")
         XCTAssertMatches(info.timeInBucket(upperBound: 64), 5)
         let thresholds = info.thresholdData
         let threshold64 = thresholds[4]
@@ -246,10 +269,53 @@ class GAEN_ExplorerTests: XCTestCase {
             .updated(thresholds: [67, 73], buckets: [15, 5, 0])
             .updated(thresholds: [64, 70], buckets: [10, 15, 0])
 
-        XCTAssertEqual(info.totalDuration, BoundedInt(exact: 25))
-        XCTAssertEqual(info.durationsCSV, ", , , 10, 10, 15, 25, 25, 25")
-        XCTAssertEqual(info.durationsExceedingCSV, "25, 25, 20, 15, 15, 5, , , ")
-        XCTAssertEqual(info.timeInBucketCSV, ", , , 10, , 5, 10, , ")
+        let duration61 = info.cumulativeDuration(61)
+        let duration64 = info.cumulativeDuration(64)
+        let duration67 = info.cumulativeDuration(67)
+
+        let timeInBucket64 = info.timeInBucket(upperBound: 64)
+        let timeInBucket67 = info.timeInBucket(upperBound: 67)
+        XCTAssertEqual(info.totalDuration, BoundedInt(20))
+        XCTAssertEqual(info.durationsCSV, ", , , 10, 10, 15, 20, 20, 20")
+        XCTAssertEqual(info.durationsExceedingCSV, "20, 20, 20, 15, 15, 5, , , ")
+        XCTAssertEqual(info.timeInBucketCSV, ", , , 10, 0...5, 10, 5, , ")
+    }
+
+    func testCodableExposureInfo11() throws {
+        let info = CodableExposureInfo(date: daysAgo(3), transmissionRiskLevel: 5)
+            .updated(thresholds: [55, 61], buckets: [0, 0, 30])
+            .updated(thresholds: [52, 58], buckets: [0, 0, 30])
+            .updated(thresholds: [67, 73], buckets: [15, 15, 10])
+            .updated(thresholds: [64, 70], buckets: [5, 15, 20])
+
+        XCTAssertEqual(info.totalDuration, BoundedInt(30, 40))
+        XCTAssertEqual(info.durationsCSV, ", , , , 5, 15, 15...20, 25...30, 30...40")
+        XCTAssertEqual(info.durationsExceedingCSV, "30...40, 30...40, 30...40, 30...40, 30...35, 20...25, 20, 10, ")
+        XCTAssertEqual(info.timeInBucketCSV, ", , , , 5, 10...15, 0...10, 10...15, 10")
+        print(info.sortedThresholds)
+        print(info.totalDuration)
+        print(info.durationsCSV)
+        print(info.durationsExceedingCSV)
+        print(info.timeInBucketCSV)
+    }
+
+    func testCodableExposureInfo12() throws {
+        let info = CodableExposureInfo(date: daysAgo(3), transmissionRiskLevel: 5)
+            .updated(thresholds: [55, 61], buckets: [5, 10, 25])
+            .updated(thresholds: [52, 58], buckets: [5, 5, 25])
+            .updated(thresholds: [67, 73], buckets: [10, 10, 20])
+            .updated(thresholds: [64, 70], buckets: [10, 10, 20])
+
+        print(info.sortedThresholds)
+        print(info.totalDuration)
+        print(info.durationsCSV)
+        print(info.durationsExceedingCSV)
+        print(info.timeInBucketCSV)
+
+        XCTAssertEqual(info.totalDuration, BoundedInt(30, 35))
+        XCTAssertEqual(info.durationsCSV, "5, 5, 5...10, 10, 10, 10, 15...20, 15...20, 30...35")
+        XCTAssertEqual(info.durationsExceedingCSV, "30, 30, 25, 25, 25, 25, 20, 20, ")
+        XCTAssertEqual(info.timeInBucketCSV, "5, 0...5, 5...10, 0...5, 0...5, 0...5, 5...10, 0...5, 20")
     }
 
     func testThresholds() throws {
@@ -321,7 +387,18 @@ class GAEN_ExplorerTests: XCTestCase {
         let expect: [Int: BoundedInt] = [3: 5, 5: BoundedInt(5, 10), 6: BoundedInt(5, 10), 7: BoundedInt(8, 10), 8: 10]
         let updatedDict = nonDecreasing(dict, upperBound: 10)
         for (k, v) in updatedDict {
-            XCTAssertEqual(v, expect[k]!, "\(k): \(v.lb)...\(v.ub) != \(expect[k]!.lb)...\(expect[k]!.ub)")
+            XCTAssertMatches(v, expect[k]!, "\(k): \(v.preciseLB)...\(v.ub) != \(expect[k]!.preciseLB)...\(expect[k]!.ub)")
+        }
+    }
+
+    func testMakeNonDecreasing2() throws {
+        let dict: [Int: BoundedInt] = [3: 5, 5: 10, 6: 15, 7: BoundedInt(10, 15), 8: 10, 9: 20, 10: 20, 11: BoundedInt(uncapped: 40)]
+        let expect: [Int: BoundedInt] = [3: 5, 5: 10, 6: 15, 7: 15, 8: 15, 9: 20, 10: 20, 11: BoundedInt(uncapped: 40)]
+        let updatedDict = nonDecreasing(dict, upperBound: 40)
+        print(updatedDict.keys.sorted().map { "\(updatedDict[$0]!)" }.joined(separator: ", "))
+        print(updatedDict.keys.sorted().map { "\(expect[$0]!)" }.joined(separator: ", "))
+        for (k, v) in updatedDict {
+            XCTAssertMatches(v, expect[k]!, "\(k): \(v.preciseLB)...\(v.ub) != \(expect[k]!.preciseLB)...\(expect[k]!.ub)")
         }
     }
 

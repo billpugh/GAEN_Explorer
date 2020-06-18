@@ -11,75 +11,74 @@ import Foundation
 struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertible, Codable, Hashable, LosslessStringConvertible {
     init?(_: String) {
         assert(false)
-        self.lb = 0
+        self.preciseLB = 0
         self.ub = BoundedInt.infinity
     }
 
     static let unknown = BoundedInt(0, BoundedInt.infinity)
     static let infinity = 999
-    let lb: Int
-    let ub: Int
-    var center: Int {
-        if ub == BoundedInt.infinity {
-            return ub
+
+    static func rounded(_ v: Int) -> Int {
+        if v == 0 || v == BoundedInt.infinity {
+            return v
         }
-        return (lb + ub) / 2
+        return (v + 4) / 5 * 5
     }
 
+    static func unrounded(_ v: Int) -> Int {
+        if v == 0 || v == BoundedInt.infinity {
+            return v
+        }
+        assert(v % 5 == 0)
+        return v - 4
+    }
+
+    let preciseLB: Int
+    var lb: Int {
+        BoundedInt.rounded(preciseLB)
+    }
+
+    let ub: Int
+
     var isNearlyExact: Bool {
-        ub != BoundedInt.infinity && lb == ub
+        ub != BoundedInt.infinity && lb == BoundedInt.rounded(ub)
     }
 
     var isLowerBound: Bool {
         ub == BoundedInt.infinity
     }
 
-    init(exact: Int) {
-        self.lb = exact
-        self.ub = exact
+    init(uncapped: Int) {
+        self.preciseLB = BoundedInt.unrounded(uncapped)
+        self.ub = uncapped
     }
 
     init(integerLiteral value: IntegerLiteralType) {
-        if value == 0 {
-            self.lb = 0
-            self.ub = 0
-        } else
+        self.preciseLB = BoundedInt.unrounded(value)
         if value >= 30 {
-            self.lb = 30
             self.ub = BoundedInt.infinity
         } else {
-            self.lb = value
             self.ub = value
         }
     }
 
     init(_ value: Int) {
-        if value == 0 {
-            self.lb = 0
-            self.ub = 0
-        } else
+        self.preciseLB = BoundedInt.unrounded(value)
         if value >= 30 {
-            self.lb = 30
             self.ub = BoundedInt.infinity
         } else {
-            self.lb = value
             self.ub = value
         }
     }
 
-    init(uncapped: Int) {
-        self.lb = max(0, uncapped - 2)
-        self.ub = uncapped + 2
-    }
-
     init(_ lb: Int, _ ub: Int) {
         assert(lb <= ub)
-        self.lb = lb
+        self.preciseLB = lb
         self.ub = ub
     }
 
     init(lb: Int) {
-        self.lb = lb
+        self.preciseLB = lb
         self.ub = BoundedInt.infinity
     }
 
@@ -91,27 +90,31 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
             return "\(lb)"
         }
 
-        return "\(lb)...\(ub)"
+        return "\(lb)...\(BoundedInt.rounded(ub))"
     }
 
     func matches(_ value: Int) -> Bool {
-        lb <= value && value <= ub
+        preciseLB <= value && value <= ub
+    }
+
+    func matches(_ value: BoundedInt) -> Bool {
+        preciseLB <= value.lb && value.ub <= ub
     }
 
     func asLowerBound() -> BoundedInt {
         if isLowerBound {
             return self
         }
-        return BoundedInt(lb, BoundedInt.infinity)
+        return BoundedInt(preciseLB, BoundedInt.infinity)
     }
 
     func applyBounds(lb: BoundedInt, ub: BoundedInt) -> BoundedInt {
         let newMax = min(self.ub, ub.ub)
-        let newMin = max(lb.lb, self.lb)
+        let newMin = max(lb.preciseLB, preciseLB)
         if newMin > newMax {
             print("must have grown \(lb) <= \(self) <= \(ub)")
-            if self.lb <= newMin {
-                return BoundedInt(self.lb, newMin)
+            if preciseLB <= newMin {
+                return BoundedInt(newMin, newMin)
             } else if newMax <= self.ub {
                 return BoundedInt(newMax, self.ub)
             }
@@ -122,30 +125,30 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
     func softApplyBounds(lb: BoundedInt, ub: BoundedInt) -> BoundedInt {
         let newMax = min(self.ub, ub.ub)
-        let newMin = max(lb.lb, self.lb)
+        let newMin = max(lb.preciseLB, preciseLB)
         if newMin > newMax {
             return self
         }
         return BoundedInt(newMin, newMax)
     }
 
-//    func applyBounds(_ lb: BoundedInt?) -> BoundedInt {
-//        if let lowerBound = lb {
-//            return applyBounds(lowerBound.value)
-//        }
-//        return self
-//    }
+    //    func applyBounds(_ lb: BoundedInt?) -> BoundedInt {
+    //        if let lowerBound = lb {
+    //            return applyBounds(lowerBound.value)
+    //        }
+    //        return self
+    //    }
 
     func checkIntersection(_ rhs: BoundedInt) {
         print("bad intersection \(self) \(rhs), must have grown")
     }
 
     func intersection(_ rhs: BoundedInt) -> BoundedInt {
-        let lb = max(self.lb, rhs.lb)
+        let lb = max(preciseLB, rhs.preciseLB)
         let ub = min(self.ub, rhs.ub)
         if lb > ub {
             if rhs.isLowerBound {
-                let result = BoundedInt(rhs.lb, rhs.lb)
+                let result = BoundedInt(rhs.preciseLB, rhs.preciseLB)
                 print("1 Must have grown \(self) & \(rhs) -> \(result)")
                 return result
             }
@@ -162,7 +165,7 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
     }
 
     func intersectionMaybe(_ rhs: BoundedInt) -> BoundedInt {
-        let lb = max(self.lb, rhs.lb)
+        let lb = max(preciseLB, rhs.preciseLB)
         let ub = min(self.ub, rhs.ub)
         if lb > ub {
             print("4 Must have grown \(self) & \(rhs) -> \(self)")
@@ -174,9 +177,9 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
 func + (lhs: BoundedInt, rhs: BoundedInt) -> BoundedInt {
     if lhs.isLowerBound || rhs.isLowerBound {
-        return BoundedInt(lhs.lb + rhs.lb, BoundedInt.infinity)
+        return BoundedInt(lhs.preciseLB + rhs.preciseLB, BoundedInt.infinity)
     }
-    return BoundedInt(lhs.lb + rhs.lb, lhs.ub + rhs.ub)
+    return BoundedInt(lhs.preciseLB + rhs.preciseLB, lhs.ub + rhs.ub)
 }
 
 func minus(_ lhs: BoundedInt, _ rhs: BoundedInt) -> BoundedInt {
@@ -188,24 +191,28 @@ func - (lhs: BoundedInt, rhs: BoundedInt) -> BoundedInt {
         return BoundedInt.unknown
     }
     if lhs.isLowerBound {
-        return BoundedInt(lb: max(0, lhs.lb - rhs.ub))
+        return BoundedInt(lb: max(0, lhs.preciseLB - rhs.ub))
     }
-    return BoundedInt(max(0, lhs.lb - rhs.ub), max(0, lhs.ub - rhs.lb))
+    return BoundedInt(max(0, lhs.preciseLB - rhs.ub), max(0, lhs.ub - rhs.preciseLB))
 }
 
 func / (lhs: BoundedInt, rhs: Int) -> BoundedInt {
     if lhs.isLowerBound {
-        return BoundedInt(lb: lhs.lb / rhs)
+        return BoundedInt(lb: lhs.preciseLB / rhs)
     }
-    return BoundedInt(lhs.lb / rhs, lhs.ub / rhs)
+    return BoundedInt(lhs.preciseLB / rhs, lhs.ub / rhs)
 }
 
 func == (lhs: BoundedInt, rhs: Int) -> Bool {
-    lhs.lb <= rhs && rhs <= lhs.ub
+    lhs.isNearlyExact && lhs.ub == rhs
+}
+
+func == (lhs: BoundedInt, rhs: BoundedInt) -> Bool {
+    lhs.lb == rhs.lb && lhs.ub == rhs.ub
 }
 
 func > (lhs: BoundedInt, rhs: Int) -> Bool {
-    lhs.lb > rhs
+    lhs.preciseLB > rhs
 }
 
 func intersection(_ lhs: BoundedInt, _ rhs: BoundedInt) -> BoundedInt {

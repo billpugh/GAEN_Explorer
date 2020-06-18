@@ -27,14 +27,14 @@ struct ThresholdData: Hashable, CustomStringConvertible {
     }
 
     var timeInBucketCapped: Int {
-        min(timeInBucket.lb, durationCapped - prevDurationCapped)
+        min(timeInBucket.ub, durationCapped - prevDurationCapped)
     }
 
     let totalTime: BoundedInt
     let prevTotalTime: BoundedInt
 
     var prevDurationCapped: Int {
-        min(30, prevTotalTime.lb)
+        min(30, prevTotalTime.ub)
     }
 
     var capped: Bool {
@@ -42,7 +42,7 @@ struct ThresholdData: Hashable, CustomStringConvertible {
     }
 
     var durationCapped: Int {
-        min(totalTime.lb, 30)
+        min(totalTime.ub, 30)
     }
 
     var attenuationLabel: String {
@@ -92,6 +92,8 @@ struct CodableExposureInfo: Codable {
     var analysisPasses: Int {
         rawAnalysis.count
     }
+
+    var needsReanalysis: Bool = false
 
     var meaningfulDuration: BoundedInt {
         let lowAttn = totalTime(atNoMoreThan: multipassThresholds[0])
@@ -203,18 +205,21 @@ struct CodableExposureInfo: Codable {
         return sortedDurations.map { thresholdData(dB: $0) }
     }
 
+    func thresholdData(max: Int) -> [ThresholdData] {
+        let keys = durations.keys.sorted()
+        let excess = keys.count + 1 - max
+        if excess > 0 {
+            let start = (excess + 1) / 2
+            let end = keys.count - (excess - start)
+            return (keys[start ..< end] + [maxAttenuation]).map { thresholdData(dB: $0) }
+        }
+        return (keys + [maxAttenuation]).map { thresholdData(dB: $0) }
+    }
+
     mutating func merge(_ merging: CodableExposureInfo) {
         duration = merging.duration.intersection(duration)
-        totalDuration = totalDuration.intersection(merging.totalDuration)
-        durations.merge(merging.durations) { (old: BoundedInt, new: BoundedInt) in old.intersection(new) }
-        durations = nonDecreasing(durations, upperBound: totalDuration)
-        durationsExceeding.merge(merging.durationsExceeding) { (old: BoundedInt, new: BoundedInt) in old.intersection(new) }
-        durationsExceeding = nonIncreasing(durationsExceeding, upperBound: totalDuration)
-        print("After merging, got")
-        print("  durations \(durations)")
-        print("  durationsExceeding \(durationsExceeding)")
-        print()
         rawAnalysis.append(contentsOf: merging.rawAnalysis)
+        needsReanalysis = true
     }
 
     init(_ info: ENExposureInfo, config: CodableExposureConfiguration) {
@@ -229,11 +234,15 @@ struct CodableExposureInfo: Codable {
         let attenuationDurations = info.attenuationDurations.map { (Int(truncating: $0) / 60) }
         self.totalDuration = BoundedInt(attenuationDurations[0] + attenuationDurations[1] + attenuationDurations[2])
 
-        self.durations = [config.attenuationDurationThresholds[0]: BoundedInt(attenuationDurations[0]),
-                          config.attenuationDurationThresholds[1]: BoundedInt(attenuationDurations[0] + attenuationDurations[1])]
-        self.durationsExceeding = [config.attenuationDurationThresholds[0]: BoundedInt(attenuationDurations[1] + attenuationDurations[2]),
-                                   config.attenuationDurationThresholds[1]: BoundedInt(attenuationDurations[2])]
+        self.durations = [config.attenuationDurationThresholds[0]: BoundedInt(attenuationDurations[0])]
+        durations[config.attenuationDurationThresholds[1]] = BoundedInt(attenuationDurations[0] + attenuationDurations[1])
+
+        self.durationsExceeding = [config.attenuationDurationThresholds[0]: BoundedInt(attenuationDurations[1] + attenuationDurations[2])]
+
+        durationsExceeding[config.attenuationDurationThresholds[1]] = BoundedInt(attenuationDurations[2])
+
         rawAnalysis.append(RawAttenuationData(thresholds: config.attenuationDurationThresholds, bucket: attenuationDurations))
+        self.needsReanalysis = true
         if true {
             print("ENExposureInfo:")
             print("  attenuationThresholds \(config.attenuationDurationThresholds)")
@@ -357,73 +366,47 @@ struct CodableExposureInfo: Codable {
         }
     }
 
+    func update(_ dict: inout [Int: BoundedInt], dB: Int, newValue: BoundedInt) {
+        if let oldValue = dict[dB] {
+            dict[dB] = oldValue.intersection(newValue)
+        } else {
+            dict[dB] = newValue
+        }
+    }
+
     mutating func reanalyze() {
+        if !needsReanalysis {
+            print("skipping reanalysis")
+            return
+        }
+        needsReanalysis = false
         durations.removeAll()
         durationsExceeding.removeAll()
         totalDuration = duration
         for ra in rawAnalysis {
             let bBucket = ra.bucket.map { BoundedInt($0) }
-            totalDuration = (bBucket[0] + bBucket[1] + bBucket[2]).intersection(totalDuration)
 
-            durations[ra.thresholds[0]] = bBucket[0]
-            durations[ra.thresholds[1]] = bBucket[0] + bBucket[1]
-            durationsExceeding[ra.thresholds[1]] = bBucket[2]
-            durationsExceeding[ra.thresholds[0]] = bBucket[1] + bBucket[2]
+            totalDuration = (bBucket[0] + bBucket[1] + bBucket[2]).intersection(totalDuration)
+            update(&durations, dB: ra.thresholds[0], newValue: bBucket[0])
+            update(&durations, dB: ra.thresholds[1], newValue: bBucket[0] + bBucket[1])
+            update(&durationsExceeding, dB: ra.thresholds[1], newValue: bBucket[2])
+            update(&durationsExceeding, dB: ra.thresholds[0], newValue: bBucket[1] + bBucket[2])
+
+//            durations[ra.thresholds[0]] = bBucket[0]
+//            durations[ra.thresholds[1]] = bBucket[0] + bBucket[1]
+//            durationsExceeding[ra.thresholds[1]] = bBucket[2]
+//            durationsExceeding[ra.thresholds[0]] = bBucket[1] + bBucket[2]
         }
         updateConstraints()
     }
 
     mutating func update(thresholds: [Int], buckets intBuckets: [Int]) {
-        let precise = intBuckets.filter { $0 >= 30 }.isEmpty
-        let d = intBuckets.reduce(0, +)
+        let bBuckets = intBuckets.map { BoundedInt($0) }
 
-        duration = duration.intersection(precise ? BoundedInt(exact: d) : BoundedInt(lb: d))
+        duration = duration.intersection(bBuckets[0] + bBuckets[1] + bBuckets[2])
         rawAnalysis.append(RawAttenuationData(thresholds: thresholds, bucket: intBuckets))
+        needsReanalysis = true
         reanalyze()
-    }
-
-    mutating func update0(thresholds: [Int], buckets intBuckets: [Int]) {
-        let imprecise = intBuckets.filter { $0 >= 30 }.isEmpty
-        let d = intBuckets.reduce(0, +)
-
-        duration = duration.intersection(imprecise ? BoundedInt(lb: d) : BoundedInt(d))
-        let buckets = intBuckets.map { BoundedInt($0) }
-
-        var runningTotal: BoundedInt = 0
-        for i in 0 ..< thresholds.count {
-            let dB = thresholds[i]
-            if let oldValue = durations[dB] {
-                runningTotal = intersection(oldValue, runningTotal + buckets[i])
-            } else {
-                runningTotal = runningTotal + buckets[i]
-            }
-            durations[dB] = runningTotal
-        }
-        runningTotal = runningTotal + buckets[thresholds.count]
-        totalDuration = intersection(intersection(totalDuration, runningTotal), duration)
-
-        runningTotal = 0
-        for i in (0 ..< thresholds.count).reversed() {
-            let dB = thresholds[i]
-            if let oldValue = durationsExceeding[dB] {
-                runningTotal = intersection(oldValue, runningTotal + buckets[i + 1])
-            } else {
-                runningTotal = runningTotal + buckets[i + 1]
-            }
-            durationsExceeding[dB] = runningTotal
-        }
-        rawAnalysis.append(RawAttenuationData(thresholds: thresholds, bucket: intBuckets))
-
-        updateConstraints()
-        if debug {
-            print("updated ENExposureInfo:")
-            print("  attenuationThresholds \(thresholds)")
-            print("  buckets \(buckets)")
-            print("  total duration \(totalDuration)")
-            print("  durations \(durations)")
-            print("  durationsExceeding \(durationsExceeding)")
-            print()
-        }
     }
 
     func updated(thresholds: [Int], buckets: [Int]) -> CodableExposureInfo {

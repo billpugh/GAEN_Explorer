@@ -41,7 +41,8 @@ struct ExposureDurationViewLarge: View {
                     Capsule()
                         .fill(LinearGradient(gradient: Gradient(colors: [.green, .gray]), startPoint: .bottom, endPoint: .top))
                         .frame(width: 2.5 * ExposureDurationViewLarge.scale,
-                               height: CGFloat(min(maxDuration, thresholdData.totalTime.ub) - thresholdData.totalTime.lb + 3) * ExposureDurationViewLarge.scale)
+                               height: CGFloat(min(maxDuration, thresholdData.totalTime.ub)
+                                   - thresholdData.totalTime.lb + 3) * ExposureDurationViewLarge.scale)
                         .offset(x: 0, y: CGFloat(3 - thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale)
                 }
 
@@ -91,7 +92,7 @@ struct ExposureDurationsViewLarge: View {
                     width: ExposureDurationViewLarge.scale * 7 * CGFloat(thresholdData.count),
                     step: 10 * ExposureDurationViewLarge.scale)
             HStack(alignment: .bottom, spacing: 2 * ExposureDurationViewLarge.scale) {
-                ForEach(thresholdData, id: \.self) {
+                ForEach(thresholdData, id: \.attenuation) {
                     ExposureDurationViewLarge(thresholdData: $0, maxDuration: max(30, self.maxDuration))
                 }
             }
@@ -130,7 +131,7 @@ struct ExposureDurationsViewSmall: View {
     let thresholdData: [ThresholdData]
     var body: some View {
         HStack(alignment: .bottom) {
-            ForEach(thresholdData, id: \.self) {
+            ForEach(thresholdData, id: \.attenuation) {
                 ExposureDurationViewSmall(thresholdData: $0)
             }
         }.frame(height: ExposureDurationViewSmall.scale * 30 + 10, alignment: .bottom)
@@ -158,7 +159,7 @@ struct ExposureDetailViewDebugDetail: View {
     var body: some View {
         VStack {
             Text("minimum durations:")
-            ForEach(self.info.thresholdData, id: \.self) { t in
+            ForEach(self.info.thresholdData, id: \.attenuation) { t in
                 ThresholdDataDebugView(t: t, width: self.width)
             }
 
@@ -268,7 +269,7 @@ struct ExposureInfoView: View {
 
                 MeaningfulExposureView(info: info, scale: 2)
                 Spacer()
-                ExposureDurationsViewSmall(thresholdData: info.thresholdData)
+                ExposureDurationsViewSmall(thresholdData: info.thresholdData(max: 7))
             }
         }
     }

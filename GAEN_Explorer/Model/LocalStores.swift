@@ -64,7 +64,7 @@ struct EncountersWithUser: Codable {
 
     static func csvHeader(_ thresholds: [Int]) -> String {
         let thresholdsHeader = thresholds.map { $0 == maxAttenuation ? "∞" : String($0) }.joined(separator: ", ")
-        return "kind, user, what, when, detail, \(thresholdsHeader),  \(thresholdsHeader),  \(thresholdsHeader)\n"
+        return "kind, user, what, when, detail, \(thresholdsHeader)\n"
     }
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, experiment: ExperimentSummary? = nil, exposures: [CodableExposureInfo] = []) {
@@ -100,6 +100,12 @@ struct EncountersWithUser: Codable {
             if let newValue = dict[key] {
                 exposures[i].merge(newValue)
             }
+        }
+    }
+
+    mutating func reanalyze() {
+        for i in 0 ..< exposures.count {
+            exposures[i].reanalyze()
         }
     }
 
@@ -181,6 +187,12 @@ class LocalStore: ObservableObject {
 
     @Published
     var viewShown: String? = nil
+
+    func changeView(to: String?) {
+        if viewShown != to {
+            viewShown = to
+        }
+    }
 
     func saveUserName() {
         UserDefaults.standard.set(userName, forKey: Self.userNameKey)
@@ -278,7 +290,7 @@ class LocalStore: ObservableObject {
         print("incorporateResults")
         assert(Thread.current.isMainThread)
         if viewShown != "experiment" {
-            viewShown = "exposures"
+            changeView(to: "exposures")
         }
         for i in 0 ..< allExposures.count {
             if allExposures[i].analysisPasses == pass {
@@ -291,9 +303,7 @@ class LocalStore: ObservableObject {
                 }
             }
         }
-        if let encoded = try? JSONEncoder().encode(allExposures) {
-            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-        }
+
         if doMaxAnalysis, canAnalyze {
             let nextPass = pass + 1
             addDiaryEntry(DiaryKind.analysisPerformed, "\(nextPass + 1)")
@@ -307,10 +317,9 @@ class LocalStore: ObservableObject {
         if !wasEnabled {
             ExposureFramework.shared.setExposureNotificationEnabled(false)
         }
+        print("Performing reanalysis")
         for i in 0 ..< allExposures.count {
-            for j in 0 ..< allExposures[i].exposures.count {
-                allExposures[i].exposures[j].reanalyze()
-            }
+            allExposures[i].reanalyze()
         }
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
@@ -398,7 +407,6 @@ class LocalStore: ObservableObject {
         timeSpentInActivity = nil
         SensorFusion.shared.startAccel()
         experimentStarted = Date()
-        experimentDescription = ""
         addDiaryEntry(.startExperiment)
         framework.eraseKeys()
         framework.isEnabled = true
@@ -498,7 +506,7 @@ class LocalStore: ObservableObject {
                 addKeysFromUser(try JSONDecoder().decode(PackagedKeys.self, from: data))
             }
             if LocalStore.shared.viewShown != "experiment" {
-                LocalStore.shared.viewShown = "exposures"
+                LocalStore.shared.changeView(to: "exposures")
             }
             if let encoded = try? JSONEncoder().encode(allExposures) {
                 UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
