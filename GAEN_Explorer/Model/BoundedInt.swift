@@ -139,11 +139,11 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
     //        return self
     //    }
 
-    func checkIntersection(_ rhs: BoundedInt) {
-        print("bad intersection \(self) \(rhs), must have grown")
-    }
-
-    func intersection(_ rhs: BoundedInt) -> BoundedInt {
+    
+    func intersection(_ rhsMaybe: BoundedInt?) -> BoundedInt {
+        guard let rhs = rhsMaybe else {
+            return self
+        }
         let lb = max(preciseLB, rhs.preciseLB)
         let ub = min(self.ub, rhs.ub)
         if lb > ub {
@@ -164,7 +164,10 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
         return BoundedInt(lb, ub)
     }
 
-    func intersectionMaybe(_ rhs: BoundedInt) -> BoundedInt {
+    func intersectionMaybe(_ rhsMaybe: BoundedInt?) -> BoundedInt {
+        guard let rhs = rhsMaybe else {
+                   return self
+               }
         let lb = max(preciseLB, rhs.preciseLB)
         let ub = min(self.ub, rhs.ub)
         if lb > ub {
@@ -215,6 +218,6 @@ func > (lhs: BoundedInt, rhs: Int) -> Bool {
     lhs.preciseLB > rhs
 }
 
-func intersection(_ lhs: BoundedInt, _ rhs: BoundedInt) -> BoundedInt {
+func intersection(_ lhs: BoundedInt, _ rhs: BoundedInt?) -> BoundedInt {
     lhs.intersection(rhs)
 }

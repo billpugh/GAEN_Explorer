@@ -33,10 +33,18 @@ struct ExposureKey: Hashable, CustomStringConvertible {
 
 // 55  67    50     58    61    64    70    73
 
-let multipassThresholds = [55, 61, 52, 58, 67, 73, 64, 70]
+let multipassThresholds = [58, 66,   64, 68,   56, 64,   60, 68,  52, 58,  54, 62, 48, 62 ]
+// 58 66   64 70   56 _64_   60 68  52 _58_  54 62
+// 58 66   64 68   56 64   60 68  52 58  54 62 48 62
 
+let lowerThresholdMeaningful = 58
+let upperThresholdMeaningful = 64
 let numberAnalysisPasses = multipassThresholds.count / 2
 
 func getAttenuationDurationThresholds(pass: Int) -> [Int] {
     [multipassThresholds[2 * (pass - 1)], multipassThresholds[2 * (pass - 1) + 1]]
+}
+
+func uniqueSortedThresholds() -> [Int] {
+    Set(multipassThresholds).sorted()
 }

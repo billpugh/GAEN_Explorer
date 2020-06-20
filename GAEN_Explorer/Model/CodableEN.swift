@@ -96,8 +96,8 @@ struct CodableExposureInfo: Codable {
     var needsReanalysis: Bool = false
 
     var meaningfulDuration: BoundedInt {
-        let lowAttn = totalTime(atNoMoreThan: multipassThresholds[0])
-        let mediumAttn = totalTime(atNoMoreThan: multipassThresholds[1])
+        let lowAttn = totalTime(atNoMoreThan: lowerThresholdMeaningful)
+        let mediumAttn = totalTime(atNoMoreThan: upperThresholdMeaningful)
         let sum: BoundedInt = lowAttn + mediumAttn
         return sum / 2
     }
@@ -367,11 +367,7 @@ struct CodableExposureInfo: Codable {
     }
 
     func update(_ dict: inout [Int: BoundedInt], dB: Int, newValue: BoundedInt) {
-        if let oldValue = dict[dB] {
-            dict[dB] = oldValue.intersection(newValue)
-        } else {
-            dict[dB] = newValue
-        }
+        dict[dB] = newValue.intersection( dict[dB] )
     }
 
     mutating func reanalyze() {
