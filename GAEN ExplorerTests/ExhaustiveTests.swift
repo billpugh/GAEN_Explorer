@@ -23,7 +23,7 @@ struct ExhaustiveCase {
         return result
     }
 
-    static let keys: [Int] = (multipassThresholds + [maxAttenuation]).sorted()
+    static let keys: [Int] = uniqueSortedThresholds() + [maxAttenuation]
     let seed: UInt32
     let truth: [Int: Int]
     init(seed: UInt32) {
