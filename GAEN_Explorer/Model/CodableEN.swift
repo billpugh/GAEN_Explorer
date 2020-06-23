@@ -451,7 +451,6 @@ struct CodableDiagnosisKey: Codable, Equatable {
     let rollingPeriod: ENIntervalNumber
     let rollingStartNumber: ENIntervalNumber
     var transmissionRiskLevel: ENRiskLevel = 0
-    let republicationSecret: UInt64? = nil
     init(_ key: ENTemporaryExposureKey) {
         self.keyData = key.keyData
         self.rollingPeriod = key.rollingPeriod

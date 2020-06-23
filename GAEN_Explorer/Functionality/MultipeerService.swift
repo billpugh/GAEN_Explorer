@@ -91,14 +91,36 @@ enum MultipeerMode: String, CaseIterable {
     case host
 }
 
-class PeerState {
-    let peerID: MCPeerID
+class PeerState: Identifiable {
+    let id: MCPeerID
     let keys: PackagedKeys?
     let participantsSeen: Int?
     init(_ peerID: MCPeerID, _ keys: PackagedKeys? = nil, _ participants: Int? = nil) {
-        self.peerID = peerID
+        self.id = peerID
         self.keys = keys
         self.participantsSeen = participants
+    }
+
+    func color(_ service: MultipeerService) -> Color {
+        let ready = isReady(expected: service.peers.count + 1)
+        if ready {
+            return .primary
+        }
+        return .gray
+    }
+
+    func isReady(expected: Int) -> Bool {
+        guard keys != nil,
+            let p = participantsSeen else { return false }
+        return expected == p
+    }
+
+    var label: String {
+        guard keys != nil,
+            let p = participantsSeen else {
+            return id.displayName
+        }
+        return "\(id.displayName) \(p)"
     }
 }
 
@@ -129,6 +151,7 @@ class MultipeerService: NSObject, ObservableObject {
         }
     }
 
+    let framework: ExposureFramework
     private let gaenServiceType = "gaen-explorer"
 
     private let myPeerId = MCPeerID(displayName: UIDevice.current.name)
@@ -141,9 +164,10 @@ class MultipeerService: NSObject, ObservableObject {
         return session
     }()
 
-    override init() {
+    init(_ framework: ExposureFramework) {
         self.serviceAdvertiser = MCNearbyServiceAdvertiser(peer: myPeerId, discoveryInfo: nil, serviceType: gaenServiceType)
         self.serviceBrowser = MCNearbyServiceBrowser(peer: myPeerId, serviceType: gaenServiceType)
+        self.framework = framework
         super.init()
 
         serviceAdvertiser.delegate = self
@@ -156,11 +180,34 @@ class MultipeerService: NSObject, ObservableObject {
         self.mode = .off
     }
 
-    func send(_ message: MultipeerExperimentMessage, _ peer: MCPeerID? = nil) -> Bool {
+    var wasReady = false
+    var isReady: Bool {
+        framework.exposureLogsErased && framework.keysAreCurrent
+    }
+
+    func mightBeReady() {
+        let ready = isReady
+        if ready == wasReady {
+            return
+        }
+        if !ready {
+            wasReady = ready
+            return
+        }
+        wasReady = ready
+        sendReady()
+    }
+
+    @discardableResult func send(_ message: MultipeerExperimentMessage, _ peer: MCPeerID? = nil) -> Bool {
         do {
             let sendTo = peer != nil ? [peer!] : Array(peers.keys)
+            if sendTo.isEmpty {
+                return true
+            }
             let encoded = try JSONEncoder().encode(message)
+            print("sending \(message.kind.rawValue) to \(sendTo.map { $0.displayName })")
             try session.send(encoded, toPeers: sendTo, with: .reliable)
+            print("sent")
             return true
         } catch {
             print("\(error)")
@@ -168,7 +215,7 @@ class MultipeerService: NSObject, ObservableObject {
         }
     }
 
-    func sendDesign(_ peer: MCPeerID? = nil) -> Bool {
+    @discardableResult func sendDesign(_ peer: MCPeerID? = nil) -> Bool {
         if mode != .host { return false }
         if LocalStore.shared.experimentDescription.isEmpty { return false }
 
@@ -176,15 +223,14 @@ class MultipeerService: NSObject, ObservableObject {
         return send(message, peer)
     }
 
-    func sendReady(_ peer: MCPeerID? = nil) -> Bool {
-        guard ExposureFramework.shared.exposureLogsErased,
-            let keys = ExposureFramework.shared.package else { return false }
+    @discardableResult func sendReady(_ peer: MCPeerID? = nil) -> Bool {
+        guard isReady else { return false }
 
-        let message = MultipeerExperimentMessage(readyKeys: keys, participants: 1 + peers.count)
+        let message = MultipeerExperimentMessage(readyKeys: framework.keys!, participants: 1 + peers.count)
         return send(message, peer)
     }
 
-    func sendStart() -> Bool {
+    @discardableResult func sendStart() -> Bool {
         guard mode == .host,
             let starts = LocalStore.shared.experimentStart,
             let ends = LocalStore.shared.experimentEnd else {
@@ -225,36 +271,41 @@ extension MultipeerService: MCNearbyServiceBrowserDelegate {
 extension MultipeerService: MCSessionDelegate {
     func session(_: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         NSLog("%@", "peer \(peerID) didChangeState: \(state.rawValue)")
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [self] in
             switch state {
             case .notConnected:
-                self.peers.removeValue(forKey: peerID)
+                peers.removeValue(forKey: peerID)
             case .connecting:
                 print("Ignoring connecting for \(peerID.displayName)")
             case .connected:
-                self.peers[peerID] = PeerState(peerID)
+                peers[peerID] = PeerState(peerID)
+                if isReady {
+                    sendReady(peerID)
+                }
             }
         }
     }
 
     func session(_: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         NSLog("%@", "didReceiveData: \(data)")
-        do {
-            let message = try JSONDecoder().decode(MultipeerExperimentMessage.self, from: data)
-            switch message.kind {
-            case .design:
-                LocalStore.shared.experimentDescription = message.description!
-                LocalStore.shared.experimentDurationMinutes = message.durationMinutes!
+        DispatchQueue.main.async {
+            do {
+                let message = try JSONDecoder().decode(MultipeerExperimentMessage.self, from: data)
+                switch message.kind {
+                case .design:
+                    LocalStore.shared.experimentDescription = message.description!
+                    LocalStore.shared.experimentDurationMinutes = message.durationMinutes!
 
-            case .i_am_ready:
-                peers[peerID] = PeerState(peerID, message.key, message.participants)
-                
-            case .startExperiment:
-                LocalStore.shared.experimentStart = message.startAt
-                LocalStore.shared.experimentEnd = message.endAt
+                case .i_am_ready:
+                    self.peers[peerID] = PeerState(peerID, message.key, message.participants)
+
+                case .startExperiment:
+                    LocalStore.shared.experimentStart = message.startAt
+                    LocalStore.shared.experimentEnd = message.endAt
+                }
+            } catch {
+                print("\(error)")
             }
-        } catch {
-            print("\(error)")
         }
     }
 

@@ -276,12 +276,6 @@ class GAEN_ExplorerTests: XCTestCase {
             .updated(thresholds: [67, 73], buckets: [15, 5, 0])
             .updated(thresholds: [64, 70], buckets: [10, 15, 0])
 
-        let duration61 = info.cumulativeDuration(61)
-        let duration64 = info.cumulativeDuration(64)
-        let duration67 = info.cumulativeDuration(67)
-
-        let timeInBucket64 = info.timeInBucket(upperBound: 64)
-        let timeInBucket67 = info.timeInBucket(upperBound: 67)
         XCTAssertEqual(info.totalDuration, BoundedInt(20))
         XCTAssertEqual(info.durationsCSV, ", , , 9, 9, 15, 20, 20, 20")
         XCTAssertEqual(info.durationsExceedingCSV, "20, 20, 20, 14, 14, 5, , , ")

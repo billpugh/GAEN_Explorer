@@ -83,7 +83,7 @@ struct StatusView: View {
             Section(header: Text("Status").font(.title)) {
                 HStack {
                     Text("User name: ")
-                    TextField("User name", text: self.$localStore.userName, onCommit: { self.localStore.saveUserName() })
+                    TextField("User name", text: self.$localStore.userName)
                 }.padding(.horizontal)
                 Toggle(isOn: self.$framework.isEnabled) {
                     Text("Scanning for encounters")
@@ -101,9 +101,9 @@ struct StatusView: View {
                 // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
-                    self.localStore.getAndPackageKeys { success in
+                    self.localStore.getAndPackageKeys { url in
                         print("getAndPackageKeys done")
-                        if success {
+                        if url != nil {
                             self.showingSheet = true
                             LocalStore.shared.addDiaryEntry(.keysShared)
                         }
@@ -131,7 +131,7 @@ struct StatusView: View {
                         Text(localStore.showEncountersMsg).font(.headline).padding()
                     }
 
-                    NavigationLink(destination: ExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
+                    NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
                         Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
                     }.disabled(self.localStore.userName.isEmpty)
 

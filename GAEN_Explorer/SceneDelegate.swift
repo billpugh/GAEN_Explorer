@@ -16,9 +16,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let url = URLContexts.first?.url {
             // Handle URL
             guard url.pathExtension == "diagk" else { return }
-            _ = LocalStore.shared.importDiagnosisKeys(from: url) {
-                _ in
-            }
+            LocalStore.shared.importDiagnosisKeys(from: url) { _ in }
 
             // WXApi.handleOpen(url, delegate: AppDelegate.shared)
         }
@@ -31,6 +29,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Create the SwiftUI view that provides the window contents.
         let contentView = ContentView().environmentObject(LocalStore.shared).environmentObject(ExposureFramework.shared)
+            .environmentObject(MultipeerService(ExposureFramework.shared))
 
         // Use a UIHostingController as window root view controller.
         if let windowScene = scene as? UIWindowScene {

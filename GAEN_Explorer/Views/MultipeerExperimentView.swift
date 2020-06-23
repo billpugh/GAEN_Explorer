@@ -6,13 +6,7 @@
 //  Copyright © 2020 Ninja Monkey Coders. All rights reserved.
 //
 
-import Grid
 import SwiftUI
-
-struct Participant: Identifiable {
-    var id: String
-    static let testData = ["a", "b", "c", "d", "e", "f", "h", "i"].map { Participant(id: $0) }
-}
 
 var experimentRunningTimer: Timer?
 
@@ -27,18 +21,33 @@ struct MultipeerExperimentView: View {
     }()
 
     @EnvironmentObject var localStore: LocalStore
+    @EnvironmentObject var framework: ExposureFramework
+    @EnvironmentObject var multipeerService: MultipeerService
     @State var description: String = ""
-    @State var selectedDuration = 2
+    @State var duration: Int = 27
     @State var experimentRunning: Bool = false
     @State var showingAlert: Bool = false
     @State var actionHeader: String = "Actions needed"
-    @State var isHosting: Bool = false
     var timer: Timer?
     @State var started: Bool = false
+    @State var declinedHost: Bool = false
+    @State var haveKeys: Bool = false
+    @State var becomeActiveObserver: NSObjectProtocol? = nil
+
+    func askHost() {
+        guard !declinedHost, multipeerService.mode != .host, framework.exposureLogsErased, multipeerService.peers.isEmpty else { return }
+        showingAlert = true
+    }
+
+    func updateView() {
+        withAnimation {
+            askHost()
+            haveKeys = framework.keysAreCurrent
+            self.multipeerService.mightBeReady()
+        }
+    }
 
     @State var remaining: String = "Not started"
-    let duration = ["14 min", "19 min", "24 min", "45 min", "60 min"]
-    let durationMinutes: [Double] = [14, 19, 24, 45, 60]
 
     func startExperiment() {}
 
@@ -47,15 +56,23 @@ struct MultipeerExperimentView: View {
             Section(header: Text("Experiment parameters").font(.title)) {
                 HStack {
                     Text("Description:").font(.headline)
-                    TextField("description", text: self.$description)
+                    TextField("description", text: self.$localStore.experimentDescription, onCommit: { self.multipeerService.sendDesign() })
+                }
+                Stepper(value: self.$localStore.experimentDurationMinutes, in: 9 ... 59, step: 5, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
+                    if !b {
+                        self.multipeerService.sendDesign()
+                    }
+                }) {
+                    Text("Duration \(self.localStore.experimentDurationMinutes) minutes")
                 }
 
-                Picker(selection: $selectedDuration, label: Text("Duration:")) {
-                    ForEach(0 ..< duration.count) {
-                        Text(self.duration[$0])
-                    }
-                } // .pickerStyle(WheelPickerStyle())
-            }
+                HStack(spacing: 10) {
+                    Text("mode: \(multipeerService.mode.rawValue)")
+                    Text("\(framework.exposureLogsErased ? "erased" : "not erased")")
+                    Text("peers: \(multipeerService.peers.count)")
+                    Button(action: { self.multipeerService.sendDesign() }) { Text("Send design") }
+                }
+            }.disabled(multipeerService.mode != .host)
             if experimentRunning {
                 Section(header: Text(started ? "Experiment running" : "Getting ready to start").font(.title)) {
                     Text(remaining)
@@ -86,31 +103,39 @@ struct MultipeerExperimentView: View {
             } else {
                 Section(header: Text(actionHeader).font(.title)) {
                     Button(action: {
-                        UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
-                     }) { Text("Delete exposure log") }
+                        self.framework.currentKeys(localStore.userName) { _ in
+                            self.framework.currentKeys(localStore.userName) {
+                                _ in
+                                print("after calling currentKeys, \(self.framework.keysAreCurrent)")
+                                haveKeys = true
+                                self.updateView()
+                            }
+                        }
+                    }) { Text("Get diagnosis key") }.disabled(self.haveKeys)
 
                     Button(action: {
-                        UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
-                        }) { Text("Get diagnosis key") }
+                        withAnimation {
+                            self.framework.eraseExposureLogs()
+                        }
+                        }) { Text("Delete exposure log") }.disabled(self.framework.exposureLogsErased)
 
-                    if isHosting {
+                    if multipeerService.mode == .host {
                         Button(action: { withAnimation {
                             self.experimentRunning = true
                             self.localStore.experimentStart = Date().addingTimeInterval(20)
-                            self.localStore.experimentEnd = self.localStore.experimentStart!.addingTimeInterval(60.0 * self.durationMinutes[self.selectedDuration])
+                            self.localStore.experimentEnd = self.localStore.experimentStart!.addingTimeInterval(60.0 * Double(self.duration))
                         } }) {
                             Text("Start experiment")
                         }
+                    } else {
+                        Text("wait for experiment to be started")
                     }
                 }
                 Section(header: Text("Participants").font(.title)) {
-                    Grid(Participant.testData) {
-                        Text($0.id)
+                    ForEach(Array(multipeerService.peers.values), id: \.id) {
+                        Text($0.label)
+                            .foregroundColor($0.color(self.multipeerService))
                     }
-
-                    .gridStyle(
-                        ModularGridStyle(columns: 2, rows: .fixed(40))
-                    )
                 }
             }
 
@@ -118,11 +143,22 @@ struct MultipeerExperimentView: View {
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("There is no host"), message: Text("Do you wish to become host?"), primaryButton: .default(Text("Yes")) {
                     print("Becoming host")
-                    self.isHosting = true
+                    self.multipeerService.mode = .host
                     self.actionHeader = "Hosting; Actions needed"
-                    }, secondaryButton: .cancel())
+                }, secondaryButton: .cancel { self.declinedHost = true })
             }.onAppear {
-                self.showingAlert = true
+                updateView()
+
+                let center = NotificationCenter.default
+                let mainQueue = OperationQueue.main
+                becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
+                    print("become active")
+                    updateView()
+                }
+            }.onDisappear {
+                if let o = becomeActiveObserver {
+                    NotificationCenter.default.removeObserver(o)
+                }
             }
             .navigationBarTitle("Multipeer experiment", displayMode: .inline)
     }
@@ -134,6 +170,7 @@ struct ExperimentSetupView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView { MultipeerExperimentView() }
             .environmentObject(localStore)
+            .environmentObject(MultipeerService(ExposureFramework.shared))
             .previewDevice(PreviewDevice(rawValue: "iPhone SE (2nd generation"))
     }
 }

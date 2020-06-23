@@ -15,6 +15,7 @@ import os.log
 let pointsOfInterest = OSLog(subsystem: "com.ninjamonkeycoders.gaen", category: .pointsOfInterest)
 
 class ExposureFramework: ObservableObject {
+    static let packagedKeysKey = "packagedKeys"
     let objectWillChange = ObservableObjectPublisher()
 
     static let shared = ExposureFramework()
@@ -37,6 +38,16 @@ class ExposureFramework: ObservableObject {
     var status: String { getNewStatus() }
 
     @Published var exposureLogsErased: Bool = false
+
+    var canEraseExposureLogs: Bool {
+        !exposureLogsErased && !isEnabled
+    }
+
+    func eraseExposureLogs() {
+        assert(!isEnabled)
+        exposureLogsErased = true
+        UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
+    }
 
     var exposureNotificationStatus: ENStatus {
         manager.exposureNotificationStatus
@@ -86,6 +97,10 @@ class ExposureFramework: ObservableObject {
         self.privateKeyData = privateKeyECData.suffix(65) + privateKeyECData.subdata(in: 36 ..< 68)
         self.secKey = SecKeyCreateWithData(privateKeyData as CFData, attributes, &cfError)!
 
+        if let keyData = UserDefaults.standard.object(forKey: Self.packagedKeysKey) as? Data {
+            self.keys = try? JSONDecoder().decode(PackagedKeys.self, from: keyData)
+        }
+
         manager.activate { _ in
             print("ENManager activiated")
             self.objectWillChange.send()
@@ -110,59 +125,87 @@ class ExposureFramework: ObservableObject {
         CodableDiagnosisKey(key)
     }
 
-    var package: PackagedKeys?
-
-    func eraseKeys() {
-        package = nil
-        keyCount = 0
+    var currentRollingStartDate: Int {
+        rollingStartNumber(Date())
     }
 
-    func exportKeys(_ userName: String, _ temporaryExposureKeys: [ENTemporaryExposureKey]?,
-                    _ error: Error?,
-                    _ otherKeys: [PackagedKeys],
-                    _ result: @escaping (Bool) -> Void) {
-        if let error = error {
-            print(error)
-            result(false)
-        } else {
-            let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
-            print("Got \(temporaryExposureKeys!.count) diagnosis keys")
-            let p = PackagedKeys(userName: userName, dateKeysSent: Date(), keys: codableKeys)
-            keyCount = codableKeys.count
-            package = p
-            keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
+    func rollingStartNumber(_ date: Date) -> Int {
+        Int(date.timeIntervalSince1970 / (24 * 60 * 60)) * 144
+    }
 
-            result(true)
+    var keys: PackagedKeys?
+
+    var keysAreCurrent: Bool {
+        guard let p = keys else { return false }
+        return keysCurrent(p)
+    }
+
+    func keysCurrent(_ p: PackagedKeys) -> Bool {
+        let currentRollingStart = currentRollingStartDate
+        return !p.keys.filter { $0.rollingStartNumber == currentRollingStart }.isEmpty
+    }
+
+    func currentKeys(_ userName: String, result: @escaping (PackagedKeys) -> Void) {
+        if let p = keys,
+            keysCurrent(p) {
+            result(p)
+            return
         }
-    }
-
-    func rollingStartNumber(date: Date) -> Int {
-        Int(date.timeIntervalSince1970 / 600)
-    }
-
-    func getAndPackageKeys(userName: String, otherKeys: [PackagedKeys], _ result: @escaping (Bool) -> Void) {
-        if let p = package {
-            if rollingStartNumber(date: p.dateKeysSent) == rollingStartNumber(date: Date()) {
-                print("Reusing existing keys")
-                keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
-                result(true)
-                return
-            }
-        }
+        let wasEnabled = isEnabled
+        isEnabled = true
         if callGetTestDiagnosisKeys {
             manager.getTestDiagnosisKeys {
                 temporaryExposureKeys, error in
-                self.exportKeys(userName, temporaryExposureKeys, error, otherKeys, result)
+                self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
             }
         } else {
             manager.getDiagnosisKeys {
                 temporaryExposureKeys, error in
-                self.exportKeys(userName, temporaryExposureKeys, error, otherKeys, result)
+                self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
             }
         }
     }
 
-    var keyCount: Int = 0
+    func packageKeys(_ userName: String, _ temporaryExposureKeys: [ENTemporaryExposureKey]?,
+                     wasEnabled: Bool,
+                     _ error: Error?,
+                     _ result: @escaping (PackagedKeys) -> Void) {
+        isEnabled = wasEnabled
+        DispatchQueue.main.async { [self] in
+            if let e = error {
+                print(e)
+                result(PackagedKeys(userName: userName, dateKeysSent: Date(), keys: []))
+            } else {
+                let codableKeys = temporaryExposureKeys!.map { getCodableKey($0) }
+                print("Got \(temporaryExposureKeys!.count) diagnosis keys")
+                let newKeys = PackagedKeys(userName: userName, dateKeysSent: Date(), keys: codableKeys)
+
+                updateKeys(newKeys)
+                result(newKeys)
+            }
+        }
+    }
+
+    func updateKeys(_ keys: PackagedKeys) {
+        assert(keysCurrent(keys))
+        objectWillChange.send()
+        self.keys = keys
+        if let encoded = try? JSONEncoder().encode(keys) {
+            UserDefaults.standard.set(encoded, forKey: Self.packagedKeysKey)
+        }
+    }
+
+    func exportAllKeys(userName: String, otherKeys: [PackagedKeys], _ result: @escaping (URL?) -> Void) {
+        currentKeys(userName) { p in
+            self.keyURL = CodableDiagnosisKey.exportToURL(packages: otherKeys + [p])
+            result(self.keyURL)
+        }
+    }
+
+    var keyCount: Int {
+        guard let p = keys else { return 0 }
+        return p.keys.count
+    }
 
     var keysExportedMessage: String {
         switch keyCount {

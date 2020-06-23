@@ -198,12 +198,16 @@ class LocalStore: ObservableObject {
     static let diaryKey = "diary"
 
     @Published
-    var userName: String = ""
+    var userName: String = "" {
+        didSet {
+            UserDefaults.standard.set(userName, forKey: Self.userNameKey)
+        }
+    }
 
     @Published
     var deviceId: Int = 0 {
         didSet {
-            UserDefaults.standard.set(deviceId, forKey: Self.userNameKey)
+            UserDefaults.standard.set(deviceId, forKey: Self.deviceIdKey)
         }
     }
 
@@ -214,11 +218,6 @@ class LocalStore: ObservableObject {
         if viewShown != to {
             viewShown = to
         }
-    }
-
-    func saveUserName() {
-        UserDefaults.standard.set(userName, forKey: Self.userNameKey)
-        print("User default saved")
     }
 
     // MARK: - Analysis
@@ -436,7 +435,6 @@ class LocalStore: ObservableObject {
         SensorFusion.shared.startAccel()
         experimentStart = Date()
         addDiaryEntry(.startExperiment)
-        framework.eraseKeys()
         framework.isEnabled = true
     }
 
@@ -519,9 +517,9 @@ class LocalStore: ObservableObject {
 
     var shareExposuresURL: URL?
 
-    func getAndPackageKeys(_ result: @escaping (Bool) -> Void) {
+    func getAndPackageKeys(_ result: @escaping (URL?) -> Void) {
         let keys: [PackagedKeys] = allExposures.map { $0.packagedKeys }
-        ExposureFramework.shared.getAndPackageKeys(userName: userName, otherKeys: keys, result)
+        ExposureFramework.shared.exportAllKeys(userName: userName, otherKeys: keys, result)
     }
 
     func importDiagnosisKeys(from url: URL, completionHandler: ((Bool) -> Void)? = nil) {

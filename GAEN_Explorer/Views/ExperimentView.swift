@@ -20,7 +20,6 @@ struct ExperimentView: View {
     @State var showingSheet = false
     @State var showingSheetToShareExposures = false
     @State var didExportExposures = false
-    @State var didErase = false
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
@@ -68,10 +67,9 @@ struct ExperimentView: View {
                     }
 
                     Button(action: {
-                        self.didErase = true
                         hideKeyboard()
-                        UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
-                    }) { Text("Delete exposure Log") }.font(.title).padding(.vertical).disabled(didErase || framework.isEnabled)
+                        self.framework.eraseExposureLogs()
+                    }) { Text("Delete exposure Log") }.font(.title).padding(.vertical).disabled(framework.exposureLogsErased || framework.isEnabled)
 
                     if self.localStore.experimentStatus == .none {
                         Text("You have to go to Settings->Privacy->Health->COVID-19 Exposure Logging, scroll all the way down to the bottom, and then select the \"Delete Exposure Log\" button once (twice if it allows you to).").font(.subheadline)
@@ -82,9 +80,8 @@ struct ExperimentView: View {
                             hideKeyboard()
                             self.localStore.startExperiment(self.framework)
                             self.didExportExposures = false
-                            self.didErase = false
                         }
-                    }) { Text("Start scanning").font(.title) }.padding(.vertical).disabled(framework.isEnabled || !didErase)
+                    }) { Text("Start scanning").font(.title) }.padding(.vertical).disabled(framework.isEnabled || !framework.exposureLogsErased)
 
                     if self.localStore.experimentStatus == .none {
                         Text("This will resume exposure scanning and start the experiment.")
@@ -124,9 +121,9 @@ struct ExperimentView: View {
 
                 Group {
                     Button(action: { self.computingKeys = true
-                        self.localStore.getAndPackageKeys { success in
+                        self.localStore.getAndPackageKeys { url in
                             print("getAndPackageKeys done")
-                            if success {
+                            if url != nil {
                                 self.showingSheet = true
                                 LocalStore.shared.addDiaryEntry(.keysShared)
                             }
