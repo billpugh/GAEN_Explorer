@@ -97,7 +97,7 @@ struct StatusView: View {
 
             // MARK: Actions
 
-            Section(header: Text("Actions").font(.title)) {
+            Section {
                 // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
@@ -132,8 +132,8 @@ struct StatusView: View {
                     }
 
                     NavigationLink(destination: ExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
-                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStarted == nil ? .headline : .subheadline).padding()
-                    }
+                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
+                    }.disabled(self.localStore.userName.isEmpty)
 
                     NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
                         Text("Show Diary").font(.headline).padding()

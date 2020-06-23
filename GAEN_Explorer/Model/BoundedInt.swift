@@ -35,17 +35,22 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
     let preciseLB: Int
     var lb: Int {
-        BoundedInt.rounded(preciseLB)
+        min(BoundedInt.rounded(preciseLB), ub)
     }
 
     let ub: Int
 
     var isNearlyExact: Bool {
-        ub != BoundedInt.infinity && lb == BoundedInt.rounded(ub)
+        ub != BoundedInt.infinity && BoundedInt.rounded(preciseLB) == BoundedInt.rounded(ub)
     }
 
     var isLowerBound: Bool {
         ub == BoundedInt.infinity
+    }
+
+    init(precise: Int) {
+        self.preciseLB = precise
+        self.ub = precise
     }
 
     init(uncapped: Int) {
@@ -84,13 +89,13 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
     var description: String {
         if isLowerBound {
-            return "\(lb)+"
+            return "\(preciseLB)+"
         }
         if isNearlyExact {
-            return "\(lb)"
+            return "\(ub)"
         }
 
-        return "\(lb)...\(BoundedInt.rounded(ub))"
+        return "\(preciseLB)...\(ub)"
     }
 
     func matches(_ value: Int) -> Bool {
@@ -108,7 +113,7 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
         return BoundedInt(preciseLB, BoundedInt.infinity)
     }
 
-    func applyBounds(lb: BoundedInt, ub: BoundedInt) -> BoundedInt {
+    func applyBounds(lb: BoundedInt = BoundedInt.unknown, ub: BoundedInt = BoundedInt.unknown) -> BoundedInt {
         let newMax = min(self.ub, ub.ub)
         let newMin = max(lb.preciseLB, preciseLB)
         if newMin > newMax {
@@ -139,7 +144,6 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
     //        return self
     //    }
 
-    
     func intersection(_ rhsMaybe: BoundedInt?) -> BoundedInt {
         guard let rhs = rhsMaybe else {
             return self
@@ -166,8 +170,8 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
     func intersectionMaybe(_ rhsMaybe: BoundedInt?) -> BoundedInt {
         guard let rhs = rhsMaybe else {
-                   return self
-               }
+            return self
+        }
         let lb = max(preciseLB, rhs.preciseLB)
         let ub = min(self.ub, rhs.ub)
         if lb > ub {

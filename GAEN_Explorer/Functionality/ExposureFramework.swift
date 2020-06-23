@@ -27,11 +27,16 @@ class ExposureFramework: ObservableObject {
         }
         set {
             setExposureNotificationEnabled(newValue)
+            if newValue {
+                exposureLogsErased = false
+            }
             LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
         }
     }
 
     var status: String { getNewStatus() }
+
+    @Published var exposureLogsErased: Bool = false
 
     var exposureNotificationStatus: ENStatus {
         manager.exposureNotificationStatus
@@ -279,7 +284,7 @@ class ExposureFramework: ObservableObject {
 //        }
 //    }
 
-    func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
+    func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
         let semaphore = DispatchSemaphore(value: 0)
         var result: [CodableExposureInfo]?
         var exposureDetectionError: Error?
@@ -313,7 +318,7 @@ class ExposureFramework: ObservableObject {
                     semaphore.signal()
                     return
                 }
-                result = exposures!.map { exposure in CodableExposureInfo(exposure, config: configuration) }.sorted { $0.date > $1.date }
+                result = exposures!.map { exposure in CodableExposureInfo(exposure, trueDuration: parameters.trueDuration, config: configuration) }.sorted { $0.date > $1.date }
                 semaphore.signal()
             }
         } // detectExposures

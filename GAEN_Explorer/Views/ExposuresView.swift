@@ -146,7 +146,7 @@ struct ExposureDetailViewDetail: View {
         ForEach(self.info.thresholdData
             .filter { !($0.timeInBucket == 0) },
                 
-            id: \.self) { t in
+            id: \.attenuation) { t in
             ThresholdDataView(t: t, width: self.width)
         }
     }
@@ -159,11 +159,13 @@ struct ExposureDetailViewDebugDetail: View {
     var body: some View {
         VStack {
             Text("minimum durations:")
-            ForEach(self.info.thresholdData, id: \.attenuation) { t in
-                ThresholdDataDebugView(t: t, width: self.width)
+            ForEach(self.info.thresholdData.filter { !($0.timeInBucket == 0) }, id: \.attenuation) { t in
+                ThresholdDataView(t: t, width: self.width)
             }
 
-            Text("Raw analysis \(self.info.rawAnalysis.count):")
+            Text("Raw analysis (\(self.info.rawAnalysis.count)):")
+                .padding(.top)
+
             ForEach(self.info.rawAnalysis, id: \.self) { ra in
 
                 Text("\(ra.thresholds.description) \(ra.bucket.description)")

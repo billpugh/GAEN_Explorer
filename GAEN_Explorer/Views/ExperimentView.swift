@@ -143,7 +143,7 @@ struct ExperimentView: View {
                     Button(action: {
                         withAnimation {
                             if self.localStore.canAnalyze {
-                                LocalStore.shared.analyze(doMaxAnalysis: true)
+                                LocalStore.shared.analyze(parameters: AnalysisParameters(doMaxAnalysis: true))
                             } else {
                                 self.localStore.exportExposuresToURL()
                                 self.showingSheetToShareExposures = true

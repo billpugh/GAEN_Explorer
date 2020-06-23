@@ -24,12 +24,15 @@
 		164D16F8246A1CE200267376 /* CodableEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F7246A1CE200267376 /* CodableEN.swift */; };
 		164D16FA246AD19500267376 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
+		165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */; };
+		165CBABE249EF25C009DFB7A /* Grid in Frameworks */ = {isa = PBXBuildFile; productRef = 165CBABD249EF25C009DFB7A /* Grid */; };
 		167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */; };
 		168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
 		16A4D83B246C902800A081EF /* keys_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D837246C902800A081EF /* keys_64.png */; };
 		16A4D83C246C902800A081EF /* keys_44.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D838246C902800A081EF /* keys_44.png */; };
 		16A4D83D246C902800A081EF /* keys_22.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D839246C902800A081EF /* keys_22.png */; };
 		16A4D83E246C902800A081EF /* keys_320.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D83A246C902800A081EF /* keys_320.png */; };
+		16AB372C24A18B520095E568 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AB372B24A18B520095E568 /* MultipeerService.swift */; };
 		16B4184F24773C670054D622 /* GAEN_Explorer.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 164D16E8246A111700267376 /* GAEN_Explorer.entitlements */; };
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
 		16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C3E71C2476D14900B4EA2B /* AboutView.swift */; };
@@ -82,6 +85,8 @@
 		164D16F7246A1CE200267376 /* CodableEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableEN.swift; sourceTree = "<group>"; };
 		164D16F9246AD19500267376 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		164D1721246B357900267376 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
+		165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerExperimentView.swift; sourceTree = "<group>"; };
+		166B69B8249FC012008C4B85 /* MultipeerExperiment.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MultipeerExperiment.md; sourceTree = "<group>"; };
 		167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GAEN ExplorerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GAEN_ExplorerTests.swift; sourceTree = "<group>"; };
 		167BBC1D24926010007A7819 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -91,6 +96,7 @@
 		16A4D838246C902800A081EF /* keys_44.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_44.png; sourceTree = "<group>"; };
 		16A4D839246C902800A081EF /* keys_22.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_22.png; sourceTree = "<group>"; };
 		16A4D83A246C902800A081EF /* keys_320.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = keys_320.png; sourceTree = "<group>"; };
+		16AB372B24A18B520095E568 /* MultipeerService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
 		16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = TemporaryExposureKeyExport.proto; sourceTree = "<group>"; };
 		16C3E71C2476D14900B4EA2B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		16C90A192495048D0038A9E6 /* BoundedInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedInt.swift; sourceTree = "<group>"; };
@@ -109,6 +115,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				164D16EB246A112600267376 /* ExposureNotification.framework in Frameworks */,
+				165CBABE249EF25C009DFB7A /* Grid in Frameworks */,
 				164D16EF246A116F00267376 /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -128,6 +135,7 @@
 			children = (
 				160660EF248EEA2E0045D08C /* SensorFusion.swift */,
 				164D16F0246A118200267376 /* ExposureFramework.swift */,
+				16AB372B24A18B520095E568 /* MultipeerService.swift */,
 				164D16F9246AD19500267376 /* Utilities.swift */,
 			);
 			path = Functionality;
@@ -158,6 +166,7 @@
 		164D16D3246A10D800267376 /* GAEN_Explorer */ = {
 			isa = PBXGroup;
 			children = (
+				166B69B7249FBFF1008C4B85 /* Documentation */,
 				16A4D82E246C8E9100A081EF /* UTI Icons */,
 				164D16F6246A1BF500267376 /* Model */,
 				164D16E8246A111700267376 /* GAEN_Explorer.entitlements */,
@@ -204,6 +213,14 @@
 			path = Model;
 			sourceTree = "<group>";
 		};
+		166B69B7249FBFF1008C4B85 /* Documentation */ = {
+			isa = PBXGroup;
+			children = (
+				166B69B8249FC012008C4B85 /* MultipeerExperiment.md */,
+			);
+			path = Documentation;
+			sourceTree = "<group>";
+		};
 		167BBC1A24926010007A7819 /* GAEN ExplorerTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -235,6 +252,7 @@
 				16C3E71C2476D14900B4EA2B /* AboutView.swift */,
 				16CBDFF72476BE2E009AF285 /* ExposuresView.swift */,
 				16F6179C247B1FB000757986 /* ConfigurationView.swift */,
+				165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -257,6 +275,7 @@
 			name = GAEN_Explorer;
 			packageProductDependencies = (
 				164D16EE246A116F00267376 /* SwiftProtobuf */,
+				165CBABD249EF25C009DFB7A /* Grid */,
 			);
 			productName = Test1;
 			productReference = 164D16D1246A10D800267376 /* GAEN Explorer.app */;
@@ -310,6 +329,7 @@
 			mainGroup = 164D16C8246A10D800267376;
 			packageReferences = (
 				164D16ED246A116F00267376 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+				165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */,
 			);
 			productRefGroup = 164D16D2246A10D800267376 /* Products */;
 			projectDirPath = "";
@@ -358,6 +378,7 @@
 				16C90A1A2495048E0038A9E6 /* BoundedInt.swift in Sources */,
 				16CBDFF82476BE2E009AF285 /* ExposuresView.swift in Sources */,
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
+				165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
 				164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */,
 				160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */,
@@ -370,6 +391,7 @@
 				168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */,
 				160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */,
 				163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */,
+				16AB372C24A18B520095E568 /* MultipeerService.swift in Sources */,
 				160660EE248D7B870045D08C /* ExperimentView.swift in Sources */,
 				164D16F8246A1CE200267376 /* CodableEN.swift in Sources */,
 			);
@@ -658,6 +680,14 @@
 				minimumVersion = 1.8.0;
 			};
 		};
+		165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/spacenation/swiftui-grid";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -665,6 +695,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 164D16ED246A116F00267376 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
+		};
+		165CBABD249EF25C009DFB7A /* Grid */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */;
+			productName = Grid;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

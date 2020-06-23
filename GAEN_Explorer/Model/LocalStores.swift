@@ -9,9 +9,10 @@ import ExposureNotification
 import Foundation
 
 struct PackagedKeys: Codable {
-    var userName: String
-    var dateKeysSent: Date
-    var keys: [CodableDiagnosisKey]
+    let userName: String
+    let deviceId: Int = LocalStore.shared.deviceId
+    let dateKeysSent: Date
+    let keys: [CodableDiagnosisKey]
     static let testData = PackagedKeys(userName: "Bob", dateKeysSent: hoursAgo(26, minutes: 17), keys: [])
 }
 
@@ -174,16 +175,37 @@ extension String.StringInterpolation {
 
 // MARK: - LocalStore
 
+struct AnalysisParameters {
+    let doMaxAnalysis: Bool
+    let trueDuration: TimeInterval?
+    let wasEnabled: Bool
+    init(doMaxAnalysis: Bool = false,
+         trueDuration: TimeInterval? = nil,
+         wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled) {
+        self.doMaxAnalysis = doMaxAnalysis
+        self.trueDuration = trueDuration
+        self.wasEnabled = wasEnabled
+    }
+}
+
 class LocalStore: ObservableObject {
     static let shared = LocalStore()
 
     static let userNameKey = "userName"
+    static let deviceIdKey = "deviceId"
     static let allExposuresKey = "allExposures"
     static let positionsKey = "positions"
     static let diaryKey = "diary"
 
     @Published
     var userName: String = ""
+
+    @Published
+    var deviceId: Int = 0 {
+        didSet {
+            UserDefaults.standard.set(deviceId, forKey: Self.userNameKey)
+        }
+    }
 
     @Published
     var viewShown: String? = nil
@@ -248,7 +270,7 @@ class LocalStore: ObservableObject {
         return "Show encounters with \(allExposures.count) devices"
     }
 
-    func analyze(doMaxAnalysis: Bool = false, wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled) {
+    func analyze(parameters: AnalysisParameters = AnalysisParameters()) {
         if !canAnalyze {
             print("No analysis to do")
             return
@@ -259,34 +281,37 @@ class LocalStore: ObservableObject {
         }
 
         let pass = allExposures.map(\.analysisPasses).min()!
-        addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
+        if !parameters.doMaxAnalysis {
+            addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
+        }
         print("Analyzing")
         goDeeperQueue.async {
-            self.analyzeOffMainThread(pass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
+            self.analyzeOffMainThread(pass, parameters)
         }
     }
 
-    func analyzeOffMainThread(_ pass: Int, wasEnabled: Bool, doMaxAnalysis: Bool) {
+    func analyzeOffMainThread(_ pass: Int, _ parameters: AnalysisParameters) {
         print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
         assert(!Thread.current.isMainThread)
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
         print("Have \(allKeys.count) keys")
-        if !wasEnabled {
+        if !parameters.wasEnabled {
             ExposureFramework.shared.setExposureNotificationEnabled(true)
         }
         let exposures = try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
                                                                       userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
+                                                                      parameters: parameters,
                                                                       configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
         print("Got \(exposures.count) exposures")
-        if !wasEnabled && !doMaxAnalysis {
+        if !parameters.wasEnabled && !parameters.doMaxAnalysis {
             ExposureFramework.shared.setExposureNotificationEnabled(false)
         }
         DispatchQueue.main.async {
-            self.incorporateResults(exposures, pass: pass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
+            self.incorporateResults(exposures, pass: pass, parameters)
         }
     }
 
-    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, wasEnabled: Bool, doMaxAnalysis: Bool) {
+    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, _ parameters: AnalysisParameters) {
         print("incorporateResults")
         assert(Thread.current.isMainThread)
         if viewShown != "experiment" {
@@ -304,17 +329,17 @@ class LocalStore: ObservableObject {
             }
         }
 
-        if doMaxAnalysis, canAnalyze {
+        if parameters.doMaxAnalysis, canAnalyze {
             let nextPass = pass + 1
             addDiaryEntry(DiaryKind.analysisPerformed, "\(nextPass + 1)")
             print("Analyzing")
             goDeeperQueue.async {
-                self.analyzeOffMainThread(nextPass, wasEnabled: wasEnabled, doMaxAnalysis: doMaxAnalysis)
+                self.analyzeOffMainThread(nextPass, parameters)
             }
             return
         }
         analysisInProgress = false
-        if !wasEnabled {
+        if !parameters.wasEnabled {
             ExposureFramework.shared.setExposureNotificationEnabled(false)
         }
         print("Performing reanalysis")
@@ -359,12 +384,15 @@ class LocalStore: ObservableObject {
     var diary: [DiaryEntry] = []
 
     @Published
-    var experimentStarted: Date?
+    var experimentStart: Date?
     @Published
-    var experimentEnded: Date?
+    var experimentEnd: Date?
 
     @Published
     var experimentDescription: String = ""
+
+    @Published
+    var experimentDurationMinutes: Int = 27
 
     enum ExperimentStatus {
         case none
@@ -373,10 +401,10 @@ class LocalStore: ObservableObject {
     }
 
     var experimentStatus: ExperimentStatus {
-        if experimentStarted == nil {
+        if experimentStart == nil {
             return .none
         }
-        if experimentEnded == nil {
+        if experimentEnd == nil {
             return .started
         }
         return .completed
@@ -386,9 +414,9 @@ class LocalStore: ObservableObject {
         switch experimentStatus {
         case .none: return nil
         case .started:
-            return "Experiment started \(time: experimentStarted!)"
+            return "Experiment started \(time: experimentStart!)"
         case .completed:
-            return "Experiment ended \(time: experimentEnded!))"
+            return "Experiment ended \(time: experimentEnd!))"
         }
     }
 
@@ -406,15 +434,15 @@ class LocalStore: ObservableObject {
         significantActivites = nil
         timeSpentInActivity = nil
         SensorFusion.shared.startAccel()
-        experimentStarted = Date()
+        experimentStart = Date()
         addDiaryEntry(.startExperiment)
         framework.eraseKeys()
         framework.isEnabled = true
     }
 
     var experimentSummary: ExperimentSummary? {
-        if let started = experimentStarted,
-            let ended = experimentEnded {
+        if let started = experimentStart,
+            let ended = experimentEnd {
             return ExperimentSummary(started: started, ended: ended, description: experimentDescription)
         }
         return nil
@@ -423,8 +451,8 @@ class LocalStore: ObservableObject {
     func endScanningForExperiment(_ framework: ExposureFramework) {
         framework.isEnabled = false
         addDiaryEntry(.endExperiment)
-        experimentEnded = Date()
-        SensorFusion.shared.getSensorData(from: experimentStarted!, to: experimentEnded!) {
+        experimentEnd = Date()
+        SensorFusion.shared.getSensorData(from: experimentStart!, to: experimentEnd!) {
             significantActivities, timeSpentInActivity in
             self.significantActivites = significantActivities
             self.timeSpentInActivity = timeSpentInActivity
@@ -437,8 +465,8 @@ class LocalStore: ObservableObject {
 
     func resetExperiment(_: ExposureFramework) {
         viewShown = nil
-        experimentEnded = nil
-        experimentStarted = nil
+        experimentEnd = nil
+        experimentStart = nil
         experimentDescription = ""
         diary = []
         significantActivites = nil
@@ -458,6 +486,8 @@ class LocalStore: ObservableObject {
         if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
         }
+        self.deviceId = UserDefaults.standard.integer(forKey: Self.deviceIdKey)
+
         if let diaryData = UserDefaults.standard.object(forKey: Self.diaryKey) as? Data,
             let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData) {
             self.diary = loadedDiary
@@ -563,9 +593,9 @@ class LocalStore: ObservableObject {
         var result = EncountersWithUser.csvHeader(thresholds)
             + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n") + "\n"
 
-        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName()))\n"
-        if let start = experimentStarted,
-            let ended = experimentEnded {
+        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap))\n"
+        if let start = experimentStart,
+            let ended = experimentEnd {
             result += """
             experiment, \(userName), description, \(fullDate: start), \(csvSafe(experimentDescription))
             experiment, \(userName), duration, \(fullDate: ended), \(Int(ended.timeIntervalSince(start) / 60))\n
