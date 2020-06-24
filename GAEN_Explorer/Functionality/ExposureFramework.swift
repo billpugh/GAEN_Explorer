@@ -39,15 +39,29 @@ class ExposureFramework: ObservableObject {
         }
     }
 
+    func setExposureNotificationEnabledSync(_ enabled: Bool) {
+        let wasEnabled = manager.exposureNotificationEnabled
+        if wasEnabled == enabled { return }
+        let semaphore = DispatchSemaphore(value: 0)
+        manager.setExposureNotificationEnabled(enabled) { error in
+            if let error = error {
+                print(error)
+            }
+            print("Finished changing enabled from \(wasEnabled) to \(self.manager.exposureNotificationEnabled)")
+            semaphore.signal()
+        }
+        semaphore.wait()
+    }
+
     func setExposureNotificationEnabled(_ enabled: Bool, after: @escaping (Bool) -> Void) {
         let wasEnabled = manager.exposureNotificationEnabled
         print("Setting enabled to \(enabled)")
-//        guard enabled != wasEnabled else {
-//             print("Already set enabled to \(wasEnabled)")
-//            after(false)
-//            return
-//        }
-        objectWillChange.send()
+        guard enabled != wasEnabled else {
+            print("Already set enabled to \(wasEnabled)")
+            after(false)
+            return
+        }
+
         manager.setExposureNotificationEnabled(enabled) { error in
             if let error = error {
                 print(error)
@@ -126,9 +140,9 @@ class ExposureFramework: ObservableObject {
         manager.activate { _ in
             print("ENManager activiated")
             self.objectWillChange.send()
-//            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
-//                self.setExposureNotificationEnabled(true)
-//            }
+            //            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
+            //                self.setExposureNotificationEnabled(true)
+            //            }
         }
     }
 
@@ -321,23 +335,77 @@ class ExposureFramework: ObservableObject {
         return try getURLs(exportData, tekSignatureList)
     }
 
-//    func analyze(packagedKeys: PackagedKeys) {
-//        print("starting analysis")
-//        analysisQueue.async {
-//            do {
-//                let analysis = ExposureAnalysis(name: packagedKeys.userName)
-//                for pass in 0 ..< numberAnalysisPasses {
-//                    print("pass \(pass)")
-//                    let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
-//
-//                    analysis.analyze(pass: pass, exposures: try self.getExposureInfo(packagedKeys: packagedKeys, userExplanation: "Analyzing exposures, pass \(pass) of \(numberAnalysisPasses)", configuration: config))
-//                }
-//                analysis.printMe()
-//            } catch {
-//                print("\(error)")
-//            }
-//        }
-//    }
+    //    func analyze(packagedKeys: PackagedKeys) {
+    //        print("starting analysis")
+    //        analysisQueue.async {
+    //            do {
+    //                let analysis = ExposureAnalysis(name: packagedKeys.userName)
+    //                for pass in 0 ..< numberAnalysisPasses {
+    //                    print("pass \(pass)")
+    //                    let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
+    //
+    //                    analysis.analyze(pass: pass, exposures: try self.getExposureInfo(packagedKeys: packagedKeys, userExplanation: "Analyzing exposures, pass \(pass) of \(numberAnalysisPasses)", configuration: config))
+    //                }
+    //                analysis.printMe()
+    //            } catch {
+    //                print("\(error)")
+    //            }
+    //        }
+    //    }
+
+    func getExposureInfoSync(keys: [CodableDiagnosisKey],
+                             userExplanation: String,
+                             _ parameters: AnalysisParameters,
+                             configuration: CodableExposureConfiguration) throws
+        -> [CodableExposureInfo] {
+        assert(!Thread.current.isMainThread)
+        var result: [CodableExposureInfo]?
+        var resultError: Error?
+        let semaphore = DispatchSemaphore(value: 0)
+        let URLs = try getURLs(diagnosisKeys: keys)
+        print("Calling detect exposures with \(keys.count) keys")
+
+        os_signpost(.begin, log: pointsOfInterest, name: "detectExposures")
+
+        ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
+            summary, error in
+            os_signpost(.end, log: pointsOfInterest, name: "detectExposures")
+            if let error = error {
+                print("error description \(error.localizedDescription)")
+
+                resultError = error
+                semaphore.signal()
+                return
+            }
+            if summary?.matchedKeyCount == 0 {
+                print("No keys matched, skipping getExposureInfo")
+                result = []
+                semaphore.signal()
+                return
+            }
+            print("Calling getExposureInfo")
+            os_signpost(.begin, log: pointsOfInterest, name: "getExposureInfo")
+
+            ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in
+                os_signpost(.end, log: pointsOfInterest, name: "getExposureInfo")
+                if let error = error {
+                    print("error description \(error.localizedDescription)")
+                    resultError = error
+                    semaphore.signal()
+                    return
+                }
+                result = exposures!.map { exposure in CodableExposureInfo(exposure, trueDuration: parameters.trueDuration, config: configuration) }.sorted { $0.date > $1.date }
+                semaphore.signal()
+                return
+            }
+        } // detectExposures
+
+        semaphore.wait()
+        if let result = result {
+            return result
+        }
+        throw resultError!
+    }
 
     func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration, block: @escaping ([CodableExposureInfo]?, Error?) -> Void) throws {
         let URLs = try getURLs(diagnosisKeys: keys)

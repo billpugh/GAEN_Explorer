@@ -29,14 +29,26 @@ struct MultipeerExperimentView: View {
     @State var becomeActiveObserver: NSObjectProtocol? = nil
     @State var showingSheetToShareExposures: Bool = false
 
+    var canBeHost: Bool {
+        !declinedHost && multipeerService.mode != .host && framework.exposureLogsErased
+            && multipeerService.peers.isEmpty
+    }
+
     func askHost() {
-        guard !declinedHost, multipeerService.mode != .host, framework.exposureLogsErased, multipeerService.peers.isEmpty else { return }
+        guard canBeHost else { return }
         showingAlert = true
     }
 
+    func tryBecomingHost() {
+        guard canBeHost else { return }
+        multipeerService.mode = .host
+    }
+
     func updateView() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            self.askHost()
+        }
         withAnimation {
-            askHost()
             haveKeys = framework.keysAreCurrent
             self.multipeerService.mightBeReady()
         }
@@ -70,17 +82,18 @@ struct MultipeerExperimentView: View {
                     Text("Duration \(self.localStore.experimentDurationMinutes) minutes")
                 }
 
-                HStack(spacing: 10) {
-                    Text("mode: \(multipeerService.mode.rawValue)")
-                    Text("\(framework.exposureLogsErased ? "erased" : "not erased")")
-                    Text("peers: \(multipeerService.peers.count)")
-                    Button(action: { self.multipeerService.sendDesign() }) { Text("Send design") }
-                }
+                Text(framework.isEnabled ? "Scanning" : "Not scanning")
+//                HStack(spacing: 10) {
+//                    Text("mode: \(multipeerService.mode.rawValue)")
+//                    Text("\(framework.exposureLogsErased ? "erased" : "not erased")")
+//                    Text("peers: \(multipeerService.peers.count)")
+//                    Button(action: { self.multipeerService.sendDesign() }) { Text("Send design") }
+//                }
             }.disabled(multipeerService.mode != .host)
             if self.localStore.experimentStatus != .none {
-                Section(header: Text(String(describing: self.localStore.experimentStatus)).font(.title)) {
-                    Text("Experiment starts at \(timeFormatter.string(from: localStore.experimentStart!))")
-                    Text("Experiment ends at \(timeFormatter.string(from: localStore.experimentEnd!))")
+                Section(header: Text("Experiment: \(String(describing: self.localStore.experimentStatus))").font(.title)) {
+                    Text("starts at \(timeFormatter.string(from: localStore.experimentStart!))")
+                    Text("ends at \(timeFormatter.string(from: localStore.experimentEnd!))")
                     if self.localStore.experimentStatus == .analyzed {
                         Button(action: {
                             self.localStore.exportExposuresToURL()
@@ -147,8 +160,8 @@ struct MultipeerExperimentView: View {
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("There is no host"), message: Text("Do you wish to become host?"), primaryButton: .default(Text("Yes")) {
                     print("Becoming host")
-                    self.multipeerService.mode = .host
-                    self.actionHeader = "Hosting; Actions needed"
+                    self.tryBecomingHost()
+
                 }, secondaryButton: .cancel { self.declinedHost = true })
             }.onAppear {
                 self.updateView()

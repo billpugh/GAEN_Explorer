@@ -84,25 +84,33 @@ struct EncountersWithUser: Codable {
 
     mutating func reset() {
         analysisPasses = 0
+        noMatches = false
         exposures = []
     }
 
     var analysisPasses = 0
 
+    var noMatches: Bool = false
+
     var exposures: [CodableExposureInfo]
 
-    mutating func merge(newAnalysis: [CodableExposureInfo]) {
+    static func merge(existing: inout [CodableExposureInfo], newAnalysis: [CodableExposureInfo]) {
         var dict: [ExposureKey: CodableExposureInfo] = [:]
         for info in newAnalysis {
             dict[ExposureKey(info: info)] = info
         }
-        dateAnalyzed = Date()
-        for i in 0 ..< exposures.count {
-            let key = ExposureKey(info: exposures[i])
+
+        for i in 0 ..< existing.count {
+            let key = ExposureKey(info: existing[i])
             if let newValue = dict[key] {
-                exposures[i].merge(newValue)
+                existing[i].merge(newValue)
             }
         }
+    }
+
+    mutating func merge(newAnalysis: [CodableExposureInfo]) {
+        dateAnalyzed = Date()
+        EncountersWithUser.merge(existing: &exposures, newAnalysis: newAnalysis)
     }
 
     mutating func reanalyze() {
@@ -292,35 +300,90 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    func analyzeExperiment(_ parameters: AnalysisParameters = AnalysisParameters()) {
+        goDeeperQueue.async {
+            self.analyzeExperimentOffMainThread(parameters)
+        }
+    }
+
+    func analyzeExperimentOffMainThread(_ parameters: AnalysisParameters) {
+        print("AnalyzeExperiment, over \(allExposures.count) users")
+        assert(!Thread.current.isMainThread)
+        let allKeys = allExposures.filter { $0.analysisPasses == 0 && !$0.noMatches }.flatMap { $0.keys }
+        print("AnalyzeExperiment, over \(allExposures.count) users, \(allKeys.count) keys")
+        var combinedExposures: [[CodableExposureInfo]] = Array(repeating: [], count: allExposures.count)
+        print("Turning on exposure notifications")
+        ExposureFramework.shared.setExposureNotificationEnabledSync(true)
+        print("exposure notifications turned on: \(ExposureFramework.shared.isEnabled)")
+        for pass in 1 ... numberAnalysisPasses {
+            print("Performing analysis pass \(pass)")
+            let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
+            let exposures = try! ExposureFramework.shared.getExposureInfoSync(keys: allKeys, userExplanation: "Analyzing \(allKeys.count) keys, pass # \(pass)", parameters, configuration: config)
+
+            for i in 0 ..< allExposures.count {
+                let exposuresForThisUser = exposures.filter { $0.transmissionRiskLevel == allExposures[i].transmissionRiskLevel }
+                print("Got \(exposuresForThisUser.count) exposures for \(allExposures[i].userName)")
+                if pass == 1 {
+                    combinedExposures[i] = exposuresForThisUser
+                } else {
+                    EncountersWithUser.merge(existing: &combinedExposures[i], newAnalysis: exposuresForThisUser)
+                }
+            }
+        } // analysis pass
+        print("All analysis passes complete")
+        for i in 0 ..< combinedExposures.count {
+            print("Reanalyzing \(combinedExposures[i].count) exposures for \(allExposures[i].userName)")
+            for j in 0 ..< combinedExposures[i].count {
+                combinedExposures[i][j].reanalyze()
+            }
+        }
+
+        DispatchQueue.main.async {
+            print("Adding experiments results to local store")
+            for i in 0 ..< self.allExposures.count {
+                if !combinedExposures[i].isEmpty {
+                    print("Updates exposures for \(self.allExposures[i].userName)")
+                    self.allExposures[i].exposures = combinedExposures[i]
+                }
+            }
+            if let encoded = try? JSONEncoder().encode(self.allExposures) {
+                UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+            }
+        }
+    }
+
     func analyzeOffMainThread(_ pass: Int, _ parameters: AnalysisParameters, whenDone: @escaping () -> Void) {
         print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
         assert(!Thread.current.isMainThread)
-        let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
+        let allKeys = allExposures.filter { $0.analysisPasses == pass && !$0.noMatches }.flatMap { $0.keys }
         print("Have \(allKeys.count) keys")
 
-        ExposureFramework.shared.setExposureNotificationEnabled(true) { _ in
+        ExposureFramework.shared.setExposureNotificationEnabledSync(true)
 
-            try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
-                                                          userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
-                                                          parameters: parameters,
-                                                          configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1)) { exposures, error in
-                guard let exposures = exposures else {
-                    print("Didn't get any exposures")
-                    print("error: \(error)")
-                    if !parameters.wasEnabled {
-                        ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
-                    }
-                    whenDone()
-                    return
-                }
-                print("Got \(exposures.count) exposures")
-                if !parameters.wasEnabled && !parameters.doMaxAnalysis {
-                    ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
-                }
-                DispatchQueue.main.async {
-                    self.incorporateResults(exposures, pass: pass, parameters, whenDone: whenDone)
+        let exposures = try! ExposureFramework.shared.getExposureInfoSync(keys: allKeys,
+                                                                          userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
+                                                                          parameters,
+                                                                          configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
+
+        print("Got \(exposures.count) exposures")
+        if exposures.isEmpty {
+            print("Didn't get any exposures")
+            for i in 0 ..< allExposures.count {
+                if allExposures[i].analysisPasses == pass {
+                    allExposures[i].noMatches = true
                 }
             }
+            if !parameters.wasEnabled {
+                ExposureFramework.shared.setExposureNotificationEnabledSync(false)
+            }
+            return
+        }
+        print("Got \(exposures.count) exposures")
+        if !parameters.wasEnabled && !parameters.doMaxAnalysis {
+            ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
+        }
+        DispatchQueue.main.async {
+            self.incorporateResults(exposures, pass: pass, parameters, whenDone: whenDone)
         }
     }
 

@@ -127,6 +127,11 @@ class PeerState: Identifiable {
 
 class MultipeerService: NSObject, ObservableObject {
     @Published var peers: [MCPeerID: PeerState] = [:]
+    var oldParticipantCount = 0
+    var participantCount: Int {
+        1 + peers.count
+    }
+
     func printPeers() {
         print("\(peers.count) Peers:")
         for peerId in peers.keys {
@@ -237,9 +242,12 @@ class MultipeerService: NSObject, ObservableObject {
 
     @discardableResult func sendReady(_ peer: MCPeerID? = nil) -> Bool {
         guard isReady else { return false }
-
-        let message = MultipeerExperimentMessage(readyKeys: framework.keys!, participants: 1 + peers.count)
-        return send(message, peer)
+        let newPartipantCount = participantCount
+        let message = MultipeerExperimentMessage(readyKeys: framework.keys!, participants: newPartipantCount)
+        let countChanged = newPartipantCount != oldParticipantCount
+        oldParticipantCount = newPartipantCount
+        // if changed, send to everyone
+        return send(message, countChanged ? nil : peer)
     }
 
     @discardableResult func sendStart() -> Bool {

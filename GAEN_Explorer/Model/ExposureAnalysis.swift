@@ -39,7 +39,7 @@ let multipassThresholds = [58, 66, 64, 68, 56, 64, 60, 68, 52, 58, 54, 62, 48, 6
 
 let lowerThresholdMeaningful = 58
 let upperThresholdMeaningful = 64
-let numberAnalysisPasses = multipassThresholds.count / 2
+let numberAnalysisPasses = 1 // multipassThresholds.count / 2
 
 let phoneAttenuationHandicapValues = [
     "iPhone SE": 4,

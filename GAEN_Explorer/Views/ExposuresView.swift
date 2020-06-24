@@ -321,7 +321,10 @@ struct ExposuresView: View {
 
                                     }.padding(.top)
                                     HStack {
-                                        Text(d.analysisPasses == 0 ? "not analyzed" : "analyzed \(d.dateAnalyzed, formatter: relativeDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes") ")
+                                        Text(d.noMatches ? "no matches" :
+                                            (d.analysisPasses == 0
+                                                ? "not analyzed"
+                                                : "analyzed \(d.dateAnalyzed, formatter: relativeDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes")"))
 
                                     }.font(.subheadline).padding(.bottom, 8)
 
@@ -348,7 +351,7 @@ struct ExposuresView: View {
                             .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.5)
 
                         // Analyze
-                        Button(action: { LocalStore.shared.analyze {} }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
+                        Button(action: { LocalStore.shared.analyzeExperiment() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.5)
 
                         // Delete all
