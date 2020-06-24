@@ -7,6 +7,7 @@
 
 import ExposureNotification
 import Foundation
+import UIKit
 
 struct PackagedKeys: Codable {
     let userName: String
@@ -188,7 +189,7 @@ struct AnalysisParameters {
     }
 }
 
-class LocalStore: ObservableObject {
+class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = LocalStore()
 
     static let userNameKey = "userName"
@@ -247,7 +248,7 @@ class LocalStore: ObservableObject {
         analysisPassedCompleted < numberAnalysisPasses
     }
 
-    var canErase: Bool {
+    var haveKeysFromOthers: Bool {
         allExposures.count > 0
     }
 
@@ -269,13 +270,15 @@ class LocalStore: ObservableObject {
         return "Show encounters with \(allExposures.count) devices"
     }
 
-    func analyze(parameters: AnalysisParameters = AnalysisParameters()) {
+    func analyze(parameters: AnalysisParameters = AnalysisParameters(), whenDone: @escaping () -> Void) {
         if !canAnalyze {
             print("No analysis to do")
+            whenDone()
             return
         }
         if analysisInProgress {
             print("Analysis in progress")
+            whenDone()
             return
         }
 
@@ -285,32 +288,43 @@ class LocalStore: ObservableObject {
         }
         print("Analyzing")
         goDeeperQueue.async {
-            self.analyzeOffMainThread(pass, parameters)
+            self.analyzeOffMainThread(pass, parameters, whenDone: whenDone)
         }
     }
 
-    func analyzeOffMainThread(_ pass: Int, _ parameters: AnalysisParameters) {
+    func analyzeOffMainThread(_ pass: Int, _ parameters: AnalysisParameters, whenDone: @escaping () -> Void) {
         print("analyzeOffMainThread, pass \(pass) over \(allExposures.count) users")
         assert(!Thread.current.isMainThread)
         let allKeys = allExposures.filter { $0.analysisPasses == pass }.flatMap { $0.keys }
         print("Have \(allKeys.count) keys")
-        if !parameters.wasEnabled {
-            ExposureFramework.shared.setExposureNotificationEnabled(true)
-        }
-        let exposures = try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
-                                                                      userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
-                                                                      parameters: parameters,
-                                                                      configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1))
-        print("Got \(exposures.count) exposures")
-        if !parameters.wasEnabled && !parameters.doMaxAnalysis {
-            ExposureFramework.shared.setExposureNotificationEnabled(false)
-        }
-        DispatchQueue.main.async {
-            self.incorporateResults(exposures, pass: pass, parameters)
+
+        ExposureFramework.shared.setExposureNotificationEnabled(true) { _ in
+
+            try! ExposureFramework.shared.getExposureInfo(keys: allKeys,
+                                                          userExplanation: "Analyzing \(allKeys.count), pass # \(pass + 1)",
+                                                          parameters: parameters,
+                                                          configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass + 1)) { exposures, error in
+                guard let exposures = exposures else {
+                    print("Didn't get any exposures")
+                    print("error: \(error)")
+                    if !parameters.wasEnabled {
+                        ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
+                    }
+                    whenDone()
+                    return
+                }
+                print("Got \(exposures.count) exposures")
+                if !parameters.wasEnabled && !parameters.doMaxAnalysis {
+                    ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
+                }
+                DispatchQueue.main.async {
+                    self.incorporateResults(exposures, pass: pass, parameters, whenDone: whenDone)
+                }
+            }
         }
     }
 
-    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, _ parameters: AnalysisParameters) {
+    func incorporateResults(_ exposures: [CodableExposureInfo], pass: Int, _ parameters: AnalysisParameters, whenDone: @escaping () -> Void) {
         print("incorporateResults")
         assert(Thread.current.isMainThread)
         if viewShown != "experiment" {
@@ -333,13 +347,13 @@ class LocalStore: ObservableObject {
             addDiaryEntry(DiaryKind.analysisPerformed, "\(nextPass + 1)")
             print("Analyzing")
             goDeeperQueue.async {
-                self.analyzeOffMainThread(nextPass, parameters)
+                self.analyzeOffMainThread(nextPass, parameters, whenDone: whenDone)
             }
             return
         }
         analysisInProgress = false
         if !parameters.wasEnabled {
-            ExposureFramework.shared.setExposureNotificationEnabled(false)
+            ExposureFramework.shared.setExposureNotificationEnabled(false) { _ in }
         }
         print("Performing reanalysis")
         for i in 0 ..< allExposures.count {
@@ -348,6 +362,7 @@ class LocalStore: ObservableObject {
         if let encoded = try? JSONEncoder().encode(allExposures) {
             UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
         }
+        whenDone()
     }
 
     func eraseAnalysis() {
@@ -376,14 +391,9 @@ class LocalStore: ObservableObject {
 
     // MARK: - Experiment
 
-    var significantActivites: [SignificantActivity]?
-    var timeSpentInActivity: [Activity: Int]?
-
-    @Published
-    var diary: [DiaryEntry] = []
-
     @Published
     var experimentStart: Date?
+
     @Published
     var experimentEnd: Date?
 
@@ -391,51 +401,72 @@ class LocalStore: ObservableObject {
     var experimentDescription: String = ""
 
     @Published
-    var experimentDurationMinutes: Int = 27
+    var experimentDurationMinutes: Int = 1
 
     enum ExperimentStatus {
         case none
-        case started
-        case completed
+        case launching
+        case running
+        case analyzing
+        case analyzed
     }
 
-    var experimentStatus: ExperimentStatus {
-        if experimentStart == nil {
-            return .none
-        }
-        if experimentEnd == nil {
-            return .started
-        }
-        return .completed
-    }
+    var experimentStatus: ExperimentStatus = .none
 
     var experimentMessage: String? {
         switch experimentStatus {
         case .none: return nil
-        case .started:
+        case .running:
             return "Experiment started \(time: experimentStart!)"
-        case .completed:
-            return "Experiment ended \(time: experimentEnd!))"
+        case .analyzing:
+            return "Scanning ended at \(time: experimentEnd!))"
+        case .launching:
+            return "Experiment starts at \(time: experimentStart!)"
+        case .analyzed:
+            return "Experiment completed at \(time: experimentEnd!))"
         }
     }
 
-    func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
-        diary.append(DiaryEntry(Date(), kind, text))
+    func scheduleAt(fire: Date?, block: @escaping (Timer) -> Void) {
+        print("Scheduled action for \(time: fire!)")
+        let timer = Timer(fire: fire!, interval: 0, repeats: false, block: block)
+        timer.tolerance = 1
+        RunLoop.main.add(timer, forMode: .common)
     }
 
-    func addMemoToDiary(_ text: String) {
-        diary.append(DiaryEntry(Date(), .memo, "\"\(text)\""))
+    func launchExperiment(_ framework: ExposureFramework) {
+        assert(experimentStatus == .none)
+        print("Launching experiment")
+        experimentStatus = .launching
+        scheduleAt(fire: experimentStart) { _ in
+            self.startExperiment(framework)
+        }
     }
 
     func startExperiment(_ framework: ExposureFramework) {
-        deleteAllExposures()
+        switch experimentStatus {
+        case .none, .analyzed:
+            print("Starting experiment manually")
+            experimentStart = Date()
+        case .launching:
+            print("Experiment moving from launched to started")
+        case .running, .analyzing:
+            assert(false)
+        }
+        eraseAnalysis()
         diary = []
+        experimentStatus = .running
         significantActivites = nil
         timeSpentInActivity = nil
         SensorFusion.shared.startAccel()
-        experimentStart = Date()
+
         addDiaryEntry(.startExperiment)
         framework.isEnabled = true
+        if let ends = experimentEnd {
+            scheduleAt(fire: ends) { _ in
+                self.endScanningForExperiment(framework)
+            }
+        }
     }
 
     var experimentSummary: ExperimentSummary? {
@@ -447,9 +478,13 @@ class LocalStore: ObservableObject {
     }
 
     func endScanningForExperiment(_ framework: ExposureFramework) {
+        assert(experimentStatus == .running)
         framework.isEnabled = false
+        experimentStatus = .analyzing
         addDiaryEntry(.endExperiment)
-        experimentEnd = Date()
+        if experimentEnd == nil {
+            experimentEnd = Date()
+        }
         SensorFusion.shared.getSensorData(from: experimentStart!, to: experimentEnd!) {
             significantActivities, timeSpentInActivity in
             self.significantActivites = significantActivities
@@ -459,16 +494,86 @@ class LocalStore: ObservableObject {
                 self.diary.sort(by: { $0.at < $1.at })
             }
         }
+        if haveKeysFromOthers {
+            LocalStore.shared.analyze(parameters: AnalysisParameters(doMaxAnalysis: true)) {
+                self.experimentStatus = .analyzed
+                self.saveExperimentalResults(framework)
+            }
+        }
+    }
+
+    func saveExperimentalResults(_: ExposureFramework) {
+        print("save experimental results")
     }
 
     func resetExperiment(_: ExposureFramework) {
         viewShown = nil
         experimentEnd = nil
         experimentStart = nil
+        experimentStatus = .none
         experimentDescription = ""
         diary = []
         significantActivites = nil
         timeSpentInActivity = nil
+    }
+
+    // MARK: Diary
+
+    var significantActivites: [SignificantActivity]?
+    var timeSpentInActivity: [Activity: Int]?
+
+    @Published
+    var diary: [DiaryEntry] = []
+
+    func addDiaryEntry(_ kind: DiaryKind, _ text: String = "") {
+        diary.append(DiaryEntry(Date(), kind, text))
+    }
+
+    func addMemoToDiary(_ text: String) {
+        diary.append(DiaryEntry(Date(), .memo, "\"\(text)\""))
+    }
+
+    // MARK: Notifications
+
+    func registerLocalNotification() {
+        print("registerLocalNotification")
+        let notificationCenter = UNUserNotificationCenter.current()
+        notificationCenter.getNotificationSettings { settings in
+            print(settings)
+        }
+        notificationCenter.delegate = self
+        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+
+        notificationCenter.requestAuthorization(options: options) {
+            didAllow, _ in
+            if !didAllow {
+                print("User has declined notifications")
+            } else {
+                print("User allowed notifications")
+            }
+        }
+
+        let acceptAction = UNNotificationAction(identifier: "END_ACTION",
+                                                title: "End experiment",
+                                                options: UNNotificationActionOptions(rawValue: 0))
+        // Define the notification type
+        let endExperimentCategory =
+            UNNotificationCategory(identifier: "GAEN_END_EXPERIMENT",
+                                   actions: [acceptAction],
+                                   intentIdentifiers: [])
+        // Register the notification type.
+        notificationCenter.setNotificationCategories([endExperimentCategory])
+        print("Registered GAEN_END_EXPERIMENT notification")
+    }
+
+    func userNotificationCenter(_: UNUserNotificationCenter,
+                                didReceive _: UNNotificationResponse,
+                                withCompletionHandler completionHandler:
+                                @escaping () -> Void) {
+        print("Got local notification, ending scanning")
+        endScanningForExperiment(ExposureFramework.shared)
+        // Always call the completion handler when done.
+        completionHandler()
     }
 
     // MARK: - Lifecycle
@@ -480,7 +585,7 @@ class LocalStore: ObservableObject {
         self.diary = diary
     }
 
-    init() {
+    override init() {
         if let data = UserDefaults.standard.string(forKey: Self.userNameKey) {
             self.userName = data
         }
@@ -501,6 +606,8 @@ class LocalStore: ObservableObject {
                 print("mismatched count \(loadedExposures.count) \(loadedExposures.count)")
             }
         }
+        super.init()
+        registerLocalNotification()
     }
 
     func exposuresUpdated(newExposures: [EncountersWithUser]) {

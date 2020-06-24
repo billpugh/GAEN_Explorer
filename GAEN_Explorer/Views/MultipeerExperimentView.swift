@@ -8,8 +8,6 @@
 
 import SwiftUI
 
-var experimentRunningTimer: Timer?
-
 struct MultipeerExperimentView: View {
     let formatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
@@ -23,16 +21,13 @@ struct MultipeerExperimentView: View {
     @EnvironmentObject var localStore: LocalStore
     @EnvironmentObject var framework: ExposureFramework
     @EnvironmentObject var multipeerService: MultipeerService
-    @State var description: String = ""
-    @State var duration: Int = 27
-    @State var experimentRunning: Bool = false
+    @State var experimentInitiated: Bool = false
     @State var showingAlert: Bool = false
     @State var actionHeader: String = "Actions needed"
-    var timer: Timer?
-    @State var started: Bool = false
     @State var declinedHost: Bool = false
     @State var haveKeys: Bool = false
     @State var becomeActiveObserver: NSObjectProtocol? = nil
+    @State var showingSheetToShareExposures: Bool = false
 
     func askHost() {
         guard !declinedHost, multipeerService.mode != .host, framework.exposureLogsErased, multipeerService.peers.isEmpty else { return }
@@ -47,18 +42,27 @@ struct MultipeerExperimentView: View {
         }
     }
 
-    @State var remaining: String = "Not started"
+    var nextStartTime: Date {
+        Date(timeIntervalSinceReferenceDate: ((Date().timeIntervalSinceReferenceDate + 10) / 60).rounded(.up) * 60)
+    }
 
-    func startExperiment() {}
+    func startExperiment() {
+        experimentInitiated = true
+        multipeerService.collectKeys()
+        localStore.experimentStart = nextStartTime
+        localStore.experimentEnd = localStore.experimentStart!.addingTimeInterval(60.0 * Double(localStore.experimentDurationMinutes))
+        multipeerService.sendStart()
+        localStore.launchExperiment(framework)
+    }
 
     var body: some View {
         Form {
-            Section(header: Text("Experiment parameters").font(.title)) {
+            Section(header: Text("Experiment").font(.title)) {
                 HStack {
                     Text("Description:").font(.headline)
                     TextField("description", text: self.$localStore.experimentDescription, onCommit: { self.multipeerService.sendDesign() })
                 }
-                Stepper(value: self.$localStore.experimentDurationMinutes, in: 9 ... 59, step: 5, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
+                Stepper(value: self.$localStore.experimentDurationMinutes, in: 1 ... 12, step: 1, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
                     if !b {
                         self.multipeerService.sendDesign()
                     }
@@ -73,57 +77,51 @@ struct MultipeerExperimentView: View {
                     Button(action: { self.multipeerService.sendDesign() }) { Text("Send design") }
                 }
             }.disabled(multipeerService.mode != .host)
-            if experimentRunning {
-                Section(header: Text(started ? "Experiment running" : "Getting ready to start").font(.title)) {
-                    Text(remaining)
+            if self.localStore.experimentStatus != .none {
+                Section(header: Text(String(describing: self.localStore.experimentStatus)).font(.title)) {
+                    Text("Experiment starts at \(timeFormatter.string(from: localStore.experimentStart!))")
                     Text("Experiment ends at \(timeFormatter.string(from: localStore.experimentEnd!))")
-                    Text("User: \(self.localStore.userName)")
-                }.font(.headline).padding().navigationBarTitle("Multipeer experiment running", displayMode: .inline)
-                    .onAppear {
-                        experimentRunningTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-                            let remaining = Date().distance(to: self.started ? self.localStore.experimentEnd! : self.localStore.experimentStart!)
-                            print("Remaining time: \(remaining)")
-                            if remaining <= 0 {
-                                if self.started {
-                                    self.remaining = "Done"
-                                    timer.invalidate()
-                                    experimentRunningTimer = nil
-                                } else {
-                                    self.remaining = "Starting"
-                                    self.started = true
-                                }
-                            } else {
-                                self.remaining = self.formatter.string(from: remaining) ?? "--"
-                            }
+                    if self.localStore.experimentStatus == .analyzed {
+                        Button(action: {
+                            self.localStore.exportExposuresToURL()
+                            self.showingSheetToShareExposures = true
+                            self.localStore.experimentStatus = .none
+                            print("showingSheet set to true")
+
+                        }) {
+                            Text("export results")
                         }
-                    }.onDisappear {
-                        experimentRunningTimer?.invalidate()
-                        experimentRunningTimer = nil
                     }
+                    if self.localStore.experimentStatus != .running {
+                        Button(action: { self.localStore.experimentStatus = .none }) {
+                            Text("finish experiment")
+                        }
+                    }
+                }.font(.headline).padding().navigationBarTitle("Multipeer experiment running", displayMode: .inline)
+
             } else {
                 Section(header: Text(actionHeader).font(.title)) {
                     Button(action: {
-                        self.framework.currentKeys(localStore.userName) { _ in
-                            self.framework.currentKeys(localStore.userName) {
-                                _ in
-                                print("after calling currentKeys, \(self.framework.keysAreCurrent)")
-                                haveKeys = true
-                                self.updateView()
-                            }
+                        self.framework.currentKeys(self.localStore.userName) { _ in
+                            print("after calling currentKeys, \(self.framework.keysAreCurrent)")
+                            self.haveKeys = true
+                            self.updateView()
                         }
                     }) { Text("Get diagnosis key") }.disabled(self.haveKeys)
 
                     Button(action: {
                         withAnimation {
-                            self.framework.eraseExposureLogs()
+                            self.framework.setExposureNotificationEnabled(false) { _ in
+                                DispatchQueue.main.async {
+                                    self.framework.eraseExposureLogs()
+                                }
+                            }
                         }
                         }) { Text("Delete exposure log") }.disabled(self.framework.exposureLogsErased)
 
                     if multipeerService.mode == .host {
                         Button(action: { withAnimation {
-                            self.experimentRunning = true
-                            self.localStore.experimentStart = Date().addingTimeInterval(20)
-                            self.localStore.experimentEnd = self.localStore.experimentStart!.addingTimeInterval(60.0 * Double(self.duration))
+                            self.startExperiment()
                         } }) {
                             Text("Start experiment")
                         }
@@ -140,6 +138,12 @@ struct MultipeerExperimentView: View {
             }
 
         }.padding()
+            .sheet(isPresented: $showingSheetToShareExposures,
+                   content: {
+                       ActivityView(activityItems: [ExposuresItem(url: self.localStore.shareExposuresURL!,
+                                                                  title: "Encounters for \(self.localStore.userName) from GAEN Explorer")],
+                                    applicationActivities: nil, isPresented: self.$showingSheetToShareExposures)
+            })
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("There is no host"), message: Text("Do you wish to become host?"), primaryButton: .default(Text("Yes")) {
                     print("Becoming host")
@@ -147,16 +151,16 @@ struct MultipeerExperimentView: View {
                     self.actionHeader = "Hosting; Actions needed"
                 }, secondaryButton: .cancel { self.declinedHost = true })
             }.onAppear {
-                updateView()
+                self.updateView()
 
                 let center = NotificationCenter.default
                 let mainQueue = OperationQueue.main
-                becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
+                self.becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
                     print("become active")
-                    updateView()
+                    self.updateView()
                 }
             }.onDisappear {
-                if let o = becomeActiveObserver {
+                if let o = self.becomeActiveObserver {
                     NotificationCenter.default.removeObserver(o)
                 }
             }

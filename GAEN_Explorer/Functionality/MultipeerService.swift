@@ -19,7 +19,6 @@ struct MultipeerExperimentMessage: Codable {
     static let dateFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.timeZone = TimeZone.current
-        f.formatOptions = .withTime
         return f
     }()
 
@@ -75,7 +74,9 @@ struct MultipeerExperimentMessage: Codable {
     init(startAt: Date, endAt: Date) {
         self.kind = .startExperiment
         self.startAtString = MultipeerExperimentMessage.dateFormatter.string(from: startAt)
-        self.endAtString = ISO8601DateFormatter.string(from: endAt, timeZone: TimeZone.current, formatOptions: .withFullTime)
+
+        self.endAtString = MultipeerExperimentMessage.dateFormatter.string(from: endAt)
+        print("Sending launch message \(startAtString), \(endAtString)")
         self.description = nil
         self.durationMinutes = nil
 
@@ -198,6 +199,17 @@ class MultipeerService: NSObject, ObservableObject {
         sendReady()
     }
 
+    func collectKeys() {
+        LocalStore.shared.deleteAllExposures()
+        peers.values.forEach { peerState in
+            if let k = peerState.keys {
+                LocalStore.shared.addKeysFromUser(k)
+            } else {
+                print("No keys available from \(peerState.label)")
+            }
+        }
+    }
+
     @discardableResult func send(_ message: MultipeerExperimentMessage, _ peer: MCPeerID? = nil) -> Bool {
         do {
             let sendTo = peer != nil ? [peer!] : Array(peers.keys)
@@ -271,16 +283,16 @@ extension MultipeerService: MCNearbyServiceBrowserDelegate {
 extension MultipeerService: MCSessionDelegate {
     func session(_: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         NSLog("%@", "peer \(peerID) didChangeState: \(state.rawValue)")
-        DispatchQueue.main.async { [self] in
+        DispatchQueue.main.async {
             switch state {
             case .notConnected:
-                peers.removeValue(forKey: peerID)
+                self.peers.removeValue(forKey: peerID)
             case .connecting:
                 print("Ignoring connecting for \(peerID.displayName)")
             case .connected:
-                peers[peerID] = PeerState(peerID)
-                if isReady {
-                    sendReady(peerID)
+                self.peers[peerID] = PeerState(peerID)
+                if self.isReady {
+                    self.sendReady(peerID)
                 }
             }
         }
@@ -300,8 +312,13 @@ extension MultipeerService: MCSessionDelegate {
                     self.peers[peerID] = PeerState(peerID, message.key, message.participants)
 
                 case .startExperiment:
-                    LocalStore.shared.experimentStart = message.startAt
-                    LocalStore.shared.experimentEnd = message.endAt
+                    print("Got start Experiment")
+                    print(" start: \(message.startAtString)")
+                    print(" end: \(message.endAtString)")
+                    LocalStore.shared.experimentStart = message.startAt!
+                    LocalStore.shared.experimentEnd = message.endAt!
+                    self.collectKeys()
+                    LocalStore.shared.launchExperiment(self.framework)
                 }
             } catch {
                 print("\(error)")

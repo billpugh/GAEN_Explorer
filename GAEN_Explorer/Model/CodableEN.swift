@@ -419,7 +419,7 @@ struct CodableExposureInfo: Codable {
 
     func updated(duration: BoundedInt? = nil, thresholds: [Int], buckets: [Int]) -> CodableExposureInfo {
         var result = self
-        result.duration.intersection(duration)
+        result.duration = result.duration.intersection(duration)
         result.update(thresholds: thresholds, buckets: buckets)
         return result
     }

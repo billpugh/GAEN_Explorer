@@ -132,7 +132,7 @@ struct StatusView: View {
                     }
 
                     NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
-                        Text(localStore.experimentMessage ?? "Start experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
+                        Text(localStore.experimentMessage ?? "Experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
                     }.disabled(self.localStore.userName.isEmpty)
 
                     NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {

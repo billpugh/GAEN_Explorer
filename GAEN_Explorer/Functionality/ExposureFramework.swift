@@ -27,11 +27,33 @@ class ExposureFramework: ObservableObject {
             manager.exposureNotificationEnabled
         }
         set {
-            setExposureNotificationEnabled(newValue)
-            if newValue {
-                exposureLogsErased = false
+            setExposureNotificationEnabled(newValue) { changed in
+                guard changed else { return }
+                DispatchQueue.main.async {
+                    if newValue {
+                        self.exposureLogsErased = false
+                    }
+                    LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
+                }
             }
-            LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
+        }
+    }
+
+    func setExposureNotificationEnabled(_ enabled: Bool, after: @escaping (Bool) -> Void) {
+        let wasEnabled = manager.exposureNotificationEnabled
+        print("Setting enabled to \(enabled)")
+//        guard enabled != wasEnabled else {
+//             print("Already set enabled to \(wasEnabled)")
+//            after(false)
+//            return
+//        }
+        objectWillChange.send()
+        manager.setExposureNotificationEnabled(enabled) { error in
+            if let error = error {
+                print(error)
+            }
+            print("Finished changing enabled from \(wasEnabled) to \(self.manager.exposureNotificationEnabled)")
+            after(true)
         }
     }
 
@@ -110,17 +132,6 @@ class ExposureFramework: ObservableObject {
         }
     }
 
-    func setExposureNotificationEnabled(_ enabled: Bool) {
-        if enabled != manager.exposureNotificationEnabled {
-            manager.setExposureNotificationEnabled(enabled) { error in
-                if let error = error {
-                    print(error)
-                }
-                self.objectWillChange.send()
-            }
-        }
-    }
-
     func getCodableKey(_ key: ENTemporaryExposureKey) -> CodableDiagnosisKey {
         CodableDiagnosisKey(key)
     }
@@ -152,16 +163,17 @@ class ExposureFramework: ObservableObject {
             return
         }
         let wasEnabled = isEnabled
-        isEnabled = true
-        if callGetTestDiagnosisKeys {
-            manager.getTestDiagnosisKeys {
-                temporaryExposureKeys, error in
-                self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
-            }
-        } else {
-            manager.getDiagnosisKeys {
-                temporaryExposureKeys, error in
-                self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
+        setExposureNotificationEnabled(true) { _ in
+            if self.callGetTestDiagnosisKeys {
+                self.manager.getTestDiagnosisKeys {
+                    temporaryExposureKeys, error in
+                    self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
+                }
+            } else {
+                self.manager.getDiagnosisKeys {
+                    temporaryExposureKeys, error in
+                    self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
+                }
             }
         }
     }
@@ -171,16 +183,16 @@ class ExposureFramework: ObservableObject {
                      _ error: Error?,
                      _ result: @escaping (PackagedKeys) -> Void) {
         isEnabled = wasEnabled
-        DispatchQueue.main.async { [self] in
+        DispatchQueue.main.async {
             if let e = error {
                 print(e)
                 result(PackagedKeys(userName: userName, dateKeysSent: Date(), keys: []))
             } else {
-                let codableKeys = temporaryExposureKeys!.map { getCodableKey($0) }
+                let codableKeys = temporaryExposureKeys!.map { self.getCodableKey($0) }
                 print("Got \(temporaryExposureKeys!.count) diagnosis keys")
                 let newKeys = PackagedKeys(userName: userName, dateKeysSent: Date(), keys: codableKeys)
 
-                updateKeys(newKeys)
+                self.updateKeys(newKeys)
                 result(newKeys)
             }
         }
@@ -327,12 +339,15 @@ class ExposureFramework: ObservableObject {
 //        }
 //    }
 
-    func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration) throws -> [CodableExposureInfo] {
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: [CodableExposureInfo]?
-        var exposureDetectionError: Error?
+    func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration, block: @escaping ([CodableExposureInfo]?, Error?) -> Void) throws {
         let URLs = try getURLs(diagnosisKeys: keys)
-        print("Calling detect exposures")
+        print("Calling detect exposures with \(keys.count) keys")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        keys.forEach { key in
+            print("\(String(data: try! encoder.encode(key), encoding: .utf8)!)")
+        }
+
         os_signpost(.begin, log: pointsOfInterest, name: "detectExposures")
 
         ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
@@ -340,14 +355,13 @@ class ExposureFramework: ObservableObject {
             os_signpost(.end, log: pointsOfInterest, name: "detectExposures")
             if let error = error {
                 print("error description \(error.localizedDescription)")
-                exposureDetectionError = error
-                semaphore.signal()
+
+                block(nil, error)
                 return
             }
             if summary?.matchedKeyCount == 0 {
                 print("No keys matched, skipping getExposureInfo")
-                result = []
-                semaphore.signal()
+                block(nil, error)
                 return
             }
             print("Calling getExposureInfo")
@@ -357,20 +371,13 @@ class ExposureFramework: ObservableObject {
                 os_signpost(.end, log: pointsOfInterest, name: "getExposureInfo")
                 if let error = error {
                     print("error description \(error.localizedDescription)")
-                    exposureDetectionError = error
-                    semaphore.signal()
+                    block(nil, error)
                     return
                 }
-                result = exposures!.map { exposure in CodableExposureInfo(exposure, trueDuration: parameters.trueDuration, config: configuration) }.sorted { $0.date > $1.date }
-                semaphore.signal()
+                let result = exposures!.map { exposure in CodableExposureInfo(exposure, trueDuration: parameters.trueDuration, config: configuration) }.sorted { $0.date > $1.date }
+                block(result, nil)
             }
         } // detectExposures
-        semaphore.wait()
-        if let error = exposureDetectionError {
-            print("getExposureInfo failed error:  \(error.localizedDescription)")
-            throw error
-        }
-        return result!
     }
 
     func analyzeRandomKeys(numKeys: Int) {
@@ -383,8 +390,9 @@ class ExposureFramework: ObservableObject {
             }
             print("have \(keys.count) random keys")
             os_signpost(.end, log: pointsOfInterest, name: "generateRandomKeys")
-            let exposures = try! self.getExposureInfo(keys: keys, userExplanation: "Analyzing random keys", configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: 1))
-            print("Found \(exposures.count) exposures")
+            try! self.getExposureInfo(keys: keys, userExplanation: "Analyzing random keys", configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: 1)) { exposures, _ in
+                print("Found \(exposures!.count) exposures")
+            }
         }
     }
 }

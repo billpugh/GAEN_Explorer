@@ -348,7 +348,7 @@ struct ExposuresView: View {
                             .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.5)
 
                         // Analyze
-                        Button(action: { LocalStore.shared.analyze() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
+                        Button(action: { LocalStore.shared.analyze {} }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.5)
 
                         // Delete all
@@ -356,7 +356,7 @@ struct ExposuresView: View {
                             self.showingDeleteAlert = true
                         })
                         { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.canErase).opacity(self.localStore.canErase ? 1 : 0.5)
+                            .disabled(!self.localStore.haveKeysFromOthers).opacity(self.localStore.haveKeysFromOthers ? 1 : 0.5)
                             .alert(isPresented: self.$showingDeleteAlert) {
                                 self.makeAlert(title: "Really Erase all?",
                                                message: "Are you sure you want to delete all keys and analysis?",

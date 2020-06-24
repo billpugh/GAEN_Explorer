@@ -23,7 +23,7 @@ struct ExperimentView: View {
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
-        if localStore.experimentStatus != .completed {
+        if localStore.experimentStatus != .analyzing {
             return "Perform analysis"
         }
         if localStore.allExposures.count == 0 {
@@ -111,11 +111,11 @@ struct ExperimentView: View {
                         }
                     }) { Text("End scanning").font(.title) }.padding(.vertical)
 
-                    if self.localStore.experimentStatus != .completed {
+                    if self.localStore.experimentStatus != .analyzing {
                         Text("When it is time to end the experiment, everyone should stop scanning together")
                     }
 
-                }.disabled(self.localStore.experimentStatus != .started)
+                }.disabled(self.localStore.experimentStatus != .running)
 
                 // MARK: completed
 
@@ -132,7 +132,7 @@ struct ExperimentView: View {
                     }) { Text("Share keys") }
                         .font(.title).padding(.vertical)
 
-                    if self.localStore.experimentStatus == .completed && (self.localStore.allExposures.count == 0 || localStore.canAnalyze) {
+                    if self.localStore.experimentStatus == .analyzing && (self.localStore.allExposures.count == 0 || localStore.canAnalyze) {
                         Text(self.localStore.allExposures.count == 0 ? "You currently don't have keys from anyone else"
                             : "You currently have keys from \(self.localStore.allExposures.count) other people. When you share keys with someone, you share your keys and all the ones you have already received.")
                     }
@@ -140,7 +140,7 @@ struct ExperimentView: View {
                     Button(action: {
                         withAnimation {
                             if self.localStore.canAnalyze {
-                                LocalStore.shared.analyze(parameters: AnalysisParameters(doMaxAnalysis: true))
+                                LocalStore.shared.analyze(parameters: AnalysisParameters(doMaxAnalysis: true)) {}
                             } else {
                                 self.localStore.exportExposuresToURL()
                                 self.showingSheetToShareExposures = true
@@ -154,7 +154,7 @@ struct ExperimentView: View {
                         .padding(.vertical)
                         .disabled(self.localStore.allExposures.count == 0)
 
-                }.disabled(self.localStore.experimentStatus != .completed)
+                }.disabled(self.localStore.experimentStatus != .analyzing)
 
                 // MARK: End/Abort
 
@@ -162,7 +162,7 @@ struct ExperimentView: View {
                     self.localStore.resetExperiment(self.framework)
                     self.didExportExposures = false
                 }) {
-                    Text(self.localStore.experimentStatus == .completed && self.didExportExposures ? "End experiment" : "Abort experiment").font(.title)
+                    Text(self.localStore.experimentStatus == .analyzing && self.didExportExposures ? "End experiment" : "Abort experiment").font(.title)
                 }
                 .padding(.vertical)
                 .disabled(self.localStore.experimentStatus == .none)
