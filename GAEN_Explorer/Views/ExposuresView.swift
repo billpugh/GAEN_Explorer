@@ -291,6 +291,7 @@ struct ExposureButton: View {
 
 struct ExposuresView: View {
     @EnvironmentObject var localStore: LocalStore
+    @EnvironmentObject var framework: ExposureFramework
     @State private var showingDeleteAlert = false
     @State private var exportingExposures = false
 
@@ -346,12 +347,14 @@ struct ExposuresView: View {
 
                     HStack {
                         // Erase Analysis
-                        Button(action: { LocalStore.shared.eraseAnalysis() })
+                        Button(action: { self.localStore.eraseAnalysis()
+
+                        })
                         { ExposureButton(systemName: "backward.end.alt", label: "reset", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.5)
 
                         // Analyze
-                        Button(action: { LocalStore.shared.analyzeExperiment() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
+                        Button(action: { self.localStore.analyzeExperiment() }) { ExposureButton(systemName: "play", label: "analyze", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canAnalyze).opacity(self.localStore.canAnalyze ? 1 : 0.5)
 
                         // Delete all
@@ -365,6 +368,8 @@ struct ExposuresView: View {
                                                message: "Are you sure you want to delete all keys and analysis?",
                                                destructiveButton: "Delete",
                                                destructiveAction: { self.localStore.deleteAllExposures()
+                                                   self.framework.keys = nil
+                                                   print("keys: \(self.framework.keys != nil ? " Keys " : "no keys")")
                                                    self.showingDeleteAlert = false
                                                },
                                                cancelAction: { self.showingDeleteAlert = false })

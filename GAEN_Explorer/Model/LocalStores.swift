@@ -343,6 +343,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             for i in 0 ..< self.allExposures.count {
                 if !combinedExposures[i].isEmpty {
                     print("Updates exposures for \(self.allExposures[i].userName)")
+                    self.allExposures[i].analysisPasses = numberAnalysisPasses
                     self.allExposures[i].exposures = combinedExposures[i]
                 }
             }
@@ -464,7 +465,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     var experimentDescription: String = ""
 
     @Published
-    var experimentDurationMinutes: Int = 1
+    var experimentDurationMinutes: Int = 29
 
     enum ExperimentStatus {
         case none
@@ -542,7 +543,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func endScanningForExperiment(_ framework: ExposureFramework) {
         assert(experimentStatus == .running)
-        framework.isEnabled = false
+        // framework.isEnabled = false
         experimentStatus = .analyzing
         addDiaryEntry(.endExperiment)
         if experimentEnd == nil {
@@ -558,10 +559,12 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             }
         }
         if haveKeysFromOthers {
-            LocalStore.shared.analyze(parameters: AnalysisParameters(doMaxAnalysis: true)) {
-                self.experimentStatus = .analyzed
-                self.saveExperimentalResults(framework)
-            }
+            let parameters = AnalysisParameters(doMaxAnalysis: true,
+                                                trueDuration: experimentEnd!.timeIntervalSince(experimentStart!),
+                                                wasEnabled: true)
+            LocalStore.shared.analyzeExperiment(parameters)
+            experimentStatus = .analyzed
+            saveExperimentalResults(framework)
         }
     }
 

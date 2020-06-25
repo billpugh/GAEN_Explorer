@@ -27,6 +27,7 @@ class ExposureFramework: ObservableObject {
             manager.exposureNotificationEnabled
         }
         set {
+            print(manager.exposureNotificationEnabled)
             setExposureNotificationEnabled(newValue) { changed in
                 guard changed else { return }
                 DispatchQueue.main.async {
@@ -40,6 +41,7 @@ class ExposureFramework: ObservableObject {
     }
 
     func setExposureNotificationEnabledSync(_ enabled: Bool) {
+        assert(!Thread.current.isMainThread)
         let wasEnabled = manager.exposureNotificationEnabled
         if wasEnabled == enabled { return }
         let semaphore = DispatchSemaphore(value: 0)
@@ -54,19 +56,19 @@ class ExposureFramework: ObservableObject {
     }
 
     func setExposureNotificationEnabled(_ enabled: Bool, after: @escaping (Bool) -> Void) {
-        let wasEnabled = manager.exposureNotificationEnabled
-        print("Setting enabled to \(enabled)")
-        guard enabled != wasEnabled else {
-            print("Already set enabled to \(wasEnabled)")
-            after(false)
-            return
-        }
-
+//        let wasEnabled = manager.exposureNotificationEnabled
+//        print("Setting enabled to \(enabled)")
+//        guard enabled != wasEnabled else {
+//            print("Already set enabled to \(wasEnabled)")
+//            after(false)
+//            return
+//        }
+//        print("Changing enabled to \(enabled)")
         manager.setExposureNotificationEnabled(enabled) { error in
             if let error = error {
                 print(error)
             }
-            print("Finished changing enabled from \(wasEnabled) to \(self.manager.exposureNotificationEnabled)")
+            print("Finished changing enabled to \(self.manager.exposureNotificationEnabled)")
             after(true)
         }
     }
@@ -82,6 +84,7 @@ class ExposureFramework: ObservableObject {
     func eraseExposureLogs() {
         assert(!isEnabled)
         exposureLogsErased = true
+        keys = nil
         UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
     }
 
@@ -139,10 +142,12 @@ class ExposureFramework: ObservableObject {
 
         manager.activate { _ in
             print("ENManager activiated")
-            self.objectWillChange.send()
-            //            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
-            //                self.setExposureNotificationEnabled(true)
-            //            }
+
+//            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
+//                self.manager.setExposureNotificationEnabled(true) { _ in
+//                    print("turned on \(self.manager.exposureNotificationEnabled)")
+//                }
+//            }
         }
     }
 

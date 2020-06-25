@@ -25,12 +25,14 @@ struct MultipeerExperimentView: View {
     @State var showingAlert: Bool = false
     @State var actionHeader: String = "Actions needed"
     @State var declinedHost: Bool = false
-    @State var haveKeys: Bool = false
     @State var becomeActiveObserver: NSObjectProtocol? = nil
     @State var showingSheetToShareExposures: Bool = false
 
     var canBeHost: Bool {
-        !declinedHost && multipeerService.mode != .host && framework.exposureLogsErased
+        !declinedHost
+            && multipeerService.mode != .host
+            && framework.exposureLogsErased
+            && framework.keysAreCurrent
             && multipeerService.peers.isEmpty
     }
 
@@ -49,7 +51,6 @@ struct MultipeerExperimentView: View {
             self.askHost()
         }
         withAnimation {
-            haveKeys = framework.keysAreCurrent
             self.multipeerService.mightBeReady()
         }
     }
@@ -74,7 +75,7 @@ struct MultipeerExperimentView: View {
                     Text("Description:").font(.headline)
                     TextField("description", text: self.$localStore.experimentDescription, onCommit: { self.multipeerService.sendDesign() })
                 }
-                Stepper(value: self.$localStore.experimentDurationMinutes, in: 1 ... 12, step: 1, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
+                Stepper(value: self.$localStore.experimentDurationMinutes, in: 9 ... 54, step: 5, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
                     if !b {
                         self.multipeerService.sendDesign()
                     }
@@ -98,7 +99,6 @@ struct MultipeerExperimentView: View {
                         Button(action: {
                             self.localStore.exportExposuresToURL()
                             self.showingSheetToShareExposures = true
-                            self.localStore.experimentStatus = .none
                             print("showingSheet set to true")
 
                         }) {
@@ -115,14 +115,6 @@ struct MultipeerExperimentView: View {
             } else {
                 Section(header: Text(actionHeader).font(.title)) {
                     Button(action: {
-                        self.framework.currentKeys(self.localStore.userName) { _ in
-                            print("after calling currentKeys, \(self.framework.keysAreCurrent)")
-                            self.haveKeys = true
-                            self.updateView()
-                        }
-                    }) { Text("Get diagnosis key") }.disabled(self.haveKeys)
-
-                    Button(action: {
                         withAnimation {
                             self.framework.setExposureNotificationEnabled(false) { _ in
                                 DispatchQueue.main.async {
@@ -131,6 +123,13 @@ struct MultipeerExperimentView: View {
                             }
                         }
                         }) { Text("Delete exposure log") }.disabled(self.framework.exposureLogsErased)
+
+                    Button(action: {
+                        self.framework.currentKeys(self.localStore.userName) { _ in
+                            print("after calling currentKeys, \(self.framework.keysAreCurrent)")
+                            self.updateView()
+                        }
+                                      }) { Text("Get diagnosis key") }.disabled(!self.framework.exposureLogsErased || framework.keysAreCurrent)
 
                     if multipeerService.mode == .host {
                         Button(action: { withAnimation {

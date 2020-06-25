@@ -391,7 +391,6 @@ struct CodableExposureInfo: Codable {
         durationsExceeding.removeAll()
         totalDuration = duration
         for ra in rawAnalysis { incorporateDurations(ra) }
-
         updateConstraints()
     }
 
@@ -480,7 +479,10 @@ struct CodableDiagnosisKey: Codable, Equatable {
     }
 
     static func exportToURL(packages: [PackagedKeys]) -> URL? {
-        guard let encoded = try? JSONEncoder().encode(packages) else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+
+        guard let encoded = try? encoder.encode(packages) else { return nil }
 
         let documents = FileManager.default.urls(
             for: .documentDirectory,

@@ -97,7 +97,7 @@ struct StatusView: View {
 
             // MARK: Actions
 
-            Section {
+            Section(header: Text("Actions").font(.title)) {
                 // Share diagnosis keys
                 Button(action: {
                     self.computingKeys = true
@@ -115,7 +115,7 @@ struct StatusView: View {
                         HStack { Text(localStore.userName.isEmpty ? "Provide a user name before sharing keys" : "Share keys")
                             Spacer()
                             Image(systemName: "square.and.arrow.up")
-                        }.font(.headline)
+                        }.font(.headline).foregroundColor(.primary)
                         ActivityIndicatorView(isAnimating: $computingKeys)
                     }
                 }.padding().disabled(localStore.userName.isEmpty).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
@@ -123,21 +123,16 @@ struct StatusView: View {
                                                                             ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                                            })
 
-//
-//
-                Group {
-                    // Show exposures
-                    NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                        Text(localStore.showEncountersMsg).font(.headline).padding()
-                    }
+                // Show exposures
+                NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
+                    Text(localStore.showEncountersMsg).font(.headline).padding()
+                }
+                NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
+                    Text(localStore.experimentMessage ?? "Experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
+                }.disabled(self.localStore.userName.isEmpty)
 
-                    NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
-                        Text(localStore.experimentMessage ?? "Experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
-                    }.disabled(self.localStore.userName.isEmpty)
-
-                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-                        Text("Show Diary").font(.headline).padding()
-                    }
+                NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
+                    Text("Show Diary").font(.headline).padding()
                 }
             } // Section
         } // Form
