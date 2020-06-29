@@ -125,6 +125,27 @@ class SensorFusion {
 
     var sensorRecorder: CMSensorRecorder?
 
+    lazy var motionQueue: OperationQueue = {
+        var queue = OperationQueue()
+        queue.name = "Motion queue"
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
+
+    func requestMotionPermission(block: @escaping () -> Void) {
+        motionActivityManager.queryActivityStarting(from: Date(timeIntervalSinceNow: -500),
+                                                    to: Date(),
+                                                    to: motionQueue) { activities, _ in
+            guard let activities = activities else { return }
+            print("Got \(activities.count) activities")
+            block()
+        }
+    }
+
+    var motionPermission: CMAuthorizationStatus {
+        CMMotionActivityManager.authorizationStatus()
+    }
+
     func startAccel() {
         if CMSensorRecorder.isAccelerometerRecordingAvailable() {
             print("accelerometerRecordingAvailable")
@@ -281,7 +302,7 @@ class SensorFusion {
 
                 self.motionActivityManager.queryActivityStarting(from: from,
                                                                  to: to,
-                                                                 to: OperationQueue.main) { activities, _ in
+                                                                 to: self.motionQueue) { activities, _ in
                     guard let a = activities else {
                         results(nil, nil)
                         return
@@ -293,7 +314,7 @@ class SensorFusion {
 
                 self.motionActivityManager.queryActivityStarting(from: from,
                                                                  to: to,
-                                                                 to: OperationQueue.main) { activities, _ in
+                                                                 to: self.motionQueue) { activities, _ in
                     guard let a = activities else {
                         results(nil, nil)
                         return

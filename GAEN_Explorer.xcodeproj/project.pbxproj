@@ -26,6 +26,7 @@
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
 		165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */; };
 		165CBABE249EF25C009DFB7A /* Grid in Frameworks */ = {isa = PBXBuildFile; productRef = 165CBABD249EF25C009DFB7A /* Grid */; };
+		1674A84224A8D8A900607950 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1674A84124A8D8A900607950 /* OnboardingView.swift */; };
 		167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */; };
 		168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
 		16A4D83B246C902800A081EF /* keys_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D837246C902800A081EF /* keys_64.png */; };
@@ -87,6 +88,7 @@
 		164D1721246B357900267376 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerExperimentView.swift; sourceTree = "<group>"; };
 		166B69B8249FC012008C4B85 /* MultipeerExperiment.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MultipeerExperiment.md; sourceTree = "<group>"; };
+		1674A84124A8D8A900607950 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GAEN ExplorerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GAEN_ExplorerTests.swift; sourceTree = "<group>"; };
 		167BBC1D24926010007A7819 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -253,6 +255,7 @@
 				16CBDFF72476BE2E009AF285 /* ExposuresView.swift */,
 				16F6179C247B1FB000757986 /* ConfigurationView.swift */,
 				165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */,
+				1674A84124A8D8A900607950 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -380,6 +383,7 @@
 				164D16D5246A10D800267376 /* AppDelegate.swift in Sources */,
 				165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */,
 				16C3E71D2476D14900B4EA2B /* AboutView.swift in Sources */,
+				1674A84224A8D8A900607950 /* OnboardingView.swift in Sources */,
 				164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */,
 				160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */,
 				164D16D9246A10D800267376 /* ContentView.swift in Sources */,

@@ -22,7 +22,6 @@ struct MultipeerExperimentView: View {
     @EnvironmentObject var framework: ExposureFramework
     @EnvironmentObject var multipeerService: MultipeerService
     @State var experimentInitiated: Bool = false
-    @State var showingAlert: Bool = false
     @State var actionHeader: String = "Actions needed"
     @State var declinedHost: Bool = false
     @State var becomeActiveObserver: NSObjectProtocol? = nil
@@ -33,12 +32,13 @@ struct MultipeerExperimentView: View {
             && multipeerService.mode != .host
             && framework.exposureLogsErased
             && framework.keysAreCurrent
+            && localStore.experimentStatus == .none
             && multipeerService.peers.isEmpty
     }
 
     func askHost() {
         guard canBeHost else { return }
-        showingAlert = true
+        multipeerService.askToBecomeHost = true
     }
 
     func tryBecomingHost() {
@@ -55,15 +55,16 @@ struct MultipeerExperimentView: View {
         }
     }
 
-    var nextStartTime: Date {
-        Date(timeIntervalSinceReferenceDate: ((Date().timeIntervalSinceReferenceDate + 10) / 60).rounded(.up) * 60)
+    func nextMinute(after: Date, andMinutes: Int) -> Date {
+        Date(timeIntervalSinceReferenceDate: (after.timeIntervalSinceReferenceDate / 60 + Double(andMinutes)).rounded(.up) * 60)
     }
 
     func startExperiment() {
         experimentInitiated = true
         multipeerService.collectKeys()
-        localStore.experimentStart = nextStartTime
-        localStore.experimentEnd = localStore.experimentStart!.addingTimeInterval(60.0 * Double(localStore.experimentDurationMinutes))
+        let start = Date(timeIntervalSinceNow: 20)
+        localStore.experimentStart = start
+        localStore.experimentEnd = nextMinute(after: start, andMinutes: localStore.experimentDurationMinutes)
         multipeerService.sendStart()
         localStore.launchExperiment(framework)
     }
@@ -75,7 +76,9 @@ struct MultipeerExperimentView: View {
                     Text("Description:").font(.headline)
                     TextField("description", text: self.$localStore.experimentDescription, onCommit: { self.multipeerService.sendDesign() })
                 }
-                Stepper(value: self.$localStore.experimentDurationMinutes, in: 9 ... 54, step: 5, onEditingChanged: { b in print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
+                Stepper(value: self.$localStore.experimentDurationMinutes, in: 4 ... 54, step: 5, onEditingChanged: { b in
+                    hideKeyboard()
+                    print("onEditingChanged \(b) \(self.localStore.experimentDurationMinutes)")
                     if !b {
                         self.multipeerService.sendDesign()
                     }
@@ -95,6 +98,7 @@ struct MultipeerExperimentView: View {
                 Section(header: Text("Experiment: \(String(describing: self.localStore.experimentStatus))").font(.title)) {
                     Text("starts at \(timeFormatter.string(from: localStore.experimentStart!))")
                     Text("ends at \(timeFormatter.string(from: localStore.experimentEnd!))")
+
                     if self.localStore.experimentStatus == .analyzed {
                         Button(action: {
                             self.localStore.exportExposuresToURL()
@@ -105,9 +109,21 @@ struct MultipeerExperimentView: View {
                             Text("export results")
                         }
                     }
-                    if self.localStore.experimentStatus != .running {
-                        Button(action: { self.localStore.experimentStatus = .none }) {
+                    if self.localStore.experimentStatus == .analyzed {
+                        Button(action: { self.localStore.viewShown = ""
+                            self.localStore.experimentStatus = .none
+                            self.multipeerService.mode = .joiner
+                        }) {
                             Text("finish experiment")
+                        }
+                    }
+                    if self.localStore.experimentStatus != .analyzed {
+                        Button(action: {
+                            self.localStore.resetExperiment(self.framework)
+                            print("aborting experiment")
+
+                                           }) {
+                            Text("Abort experiment")
                         }
                     }
                 }.font(.headline).padding().navigationBarTitle("Multipeer experiment running", displayMode: .inline)
@@ -133,6 +149,7 @@ struct MultipeerExperimentView: View {
 
                     if multipeerService.mode == .host {
                         Button(action: { withAnimation {
+                            hideKeyboard()
                             self.startExperiment()
                         } }) {
                             Text("Start experiment")
@@ -156,7 +173,7 @@ struct MultipeerExperimentView: View {
                                                                   title: "Encounters for \(self.localStore.userName) from GAEN Explorer")],
                                     applicationActivities: nil, isPresented: self.$showingSheetToShareExposures)
             })
-            .alert(isPresented: $showingAlert) {
+            .alert(isPresented: $multipeerService.askToBecomeHost) {
                 Alert(title: Text("There is no host"), message: Text("Do you wish to become host?"), primaryButton: .default(Text("Yes")) {
                     print("Becoming host")
                     self.tryBecomingHost()
@@ -164,7 +181,7 @@ struct MultipeerExperimentView: View {
                 }, secondaryButton: .cancel { self.declinedHost = true })
             }.onAppear {
                 self.updateView()
-
+                UIApplication.shared.isIdleTimerDisabled = true
                 let center = NotificationCenter.default
                 let mainQueue = OperationQueue.main
                 self.becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
@@ -175,6 +192,7 @@ struct MultipeerExperimentView: View {
                 if let o = self.becomeActiveObserver {
                     NotificationCenter.default.removeObserver(o)
                 }
+                UIApplication.shared.isIdleTimerDisabled = false
             }
             .navigationBarTitle("Multipeer experiment", displayMode: .inline)
     }

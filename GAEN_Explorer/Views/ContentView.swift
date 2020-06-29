@@ -77,65 +77,78 @@ struct StatusView: View {
     @EnvironmentObject var framework: ExposureFramework
     @State var computingKeys = false
     var body: some View {
-        Form {
-            // MARK: User Info
-
-            Section(header: Text("Status").font(.title)) {
-                HStack {
-                    Text("User name: ")
-                    TextField("User name", text: self.$localStore.userName)
-                }.padding(.horizontal)
-                Toggle(isOn: self.$framework.isEnabled) {
-                    Text("Scanning for encounters")
-                }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
-
-                // About
-                NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
-                    Text("About").font(.headline).padding(.horizontal)
-                }
+        VStack {
+            // Onboarding
+            NavigationLink(destination: OnboardingView(), tag: "onboarding", selection: $localStore.viewShown) {
+                // Text("Onboarding").font(.headline).padding()
+                EmptyView()
             }
+            Form {
+                // MARK: Status
 
-            // MARK: Actions
+                Section(header: Text("Status").font(.title)) {
+                    HStack {
+                        Text("User name: ")
+                        TextField("User name", text: self.$localStore.userName)
+                    }.padding(.horizontal)
 
-            Section(header: Text("Actions").font(.title)) {
-                // Share diagnosis keys
-                Button(action: {
-                    self.computingKeys = true
-                    self.localStore.getAndPackageKeys { url in
-                        print("getAndPackageKeys done")
-                        if url != nil {
-                            self.showingSheet = true
-                            LocalStore.shared.addDiaryEntry(.keysShared)
+                    Toggle(isOn: self.$framework.isEnabled) {
+                        Text("Scanning for encounters")
+                    }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
+
+                    // About
+                    NavigationLink(destination: MyAboutView(), tag: "about", selection: $localStore.viewShown) {
+                        Text("About").font(.headline).padding(.horizontal)
+                    }
+                } // Section
+
+                // MARK: Actions
+
+                Section(header: Text("Actions").font(.title)) {
+                    // Share diagnosis keys
+                    Button(action: {
+                        self.computingKeys = true
+                        self.localStore.getAndPackageKeys { url in
+                            print("getAndPackageKeys done")
+                            if url != nil {
+                                self.showingSheet = true
+                                LocalStore.shared.addDiaryEntry(.keysShared)
+                            }
+                            self.computingKeys = false
                         }
-                        self.computingKeys = false
                     }
-                }
-                ) {
-                    ZStack {
-                        HStack { Text(localStore.userName.isEmpty ? "Provide a user name before sharing keys" : "Share keys")
-                            Spacer()
-                            Image(systemName: "square.and.arrow.up")
-                        }.font(.headline).foregroundColor(.primary)
-                        ActivityIndicatorView(isAnimating: $computingKeys)
-                    }
-                }.padding().disabled(localStore.userName.isEmpty).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
-                                                                        content: {
-                                                                            ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
+                    ) {
+                        ZStack {
+                            HStack { Text(localStore.userName.isEmpty ? "Provide a user name before sharing keys" : "Share keys")
+                                Spacer()
+                                Image(systemName: "square.and.arrow.up")
+                            }.font(.headline).foregroundColor(.primary)
+                            ActivityIndicatorView(isAnimating: $computingKeys)
+                        }
+                    }.padding().disabled(localStore.userName.isEmpty).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
+                                                                            content: {
+                                                                                ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
                                            })
 
-                // Show exposures
-                NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
-                    Text(localStore.showEncountersMsg).font(.headline).padding()
-                }
-                NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
-                    Text(localStore.experimentMessage ?? "Experiment").font(localStore.experimentStart == nil ? .headline : .subheadline).padding()
-                }.disabled(self.localStore.userName.isEmpty)
+                    // Show exposures
+                    NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
+                        Text(localStore.showEncountersMsg).font(.headline).padding()
+                    }
+                    NavigationLink(destination: MultipeerExperimentView(), tag: "experiment", selection: $localStore.viewShown) {
+                        Text(localStore.experimentMessage ?? "Experiment").font(.headline).padding()
+                    }.disabled(self.localStore.userName.isEmpty)
 
-                NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-                    Text("Show Diary").font(.headline).padding()
-                }
-            } // Section
-        } // Form
+//                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
+//                        Text("Show Diary").font(.headline).padding()
+//                    }
+                } // Section
+            } // Form
+        } // VStack
+        .onAppear {
+            if self.framework.permission == .unknown {
+                self.localStore.viewShown = "onboarding"
+            }
+        }
     } // var body
 } // end status view
 

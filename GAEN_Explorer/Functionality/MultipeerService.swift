@@ -132,6 +132,8 @@ class MultipeerService: NSObject, ObservableObject {
         1 + peers.count
     }
 
+    @Published var askToBecomeHost: Bool = false
+
     func printPeers() {
         print("\(peers.count) Peers:")
         for peerId in peers.keys {
@@ -299,6 +301,9 @@ extension MultipeerService: MCSessionDelegate {
                 print("Ignoring connecting for \(peerID.displayName)")
             case .connected:
                 self.peers[peerID] = PeerState(peerID)
+                if self.mode == .joiner {
+                    self.askToBecomeHost = false
+                }
                 if self.isReady {
                     self.sendReady(peerID)
                 }

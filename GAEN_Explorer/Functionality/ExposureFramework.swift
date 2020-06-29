@@ -22,6 +22,10 @@ class ExposureFramework: ObservableObject {
 
     var manager = ENManager()
 
+    var permission: ENAuthorizationStatus {
+        ENManager.authorizationStatus
+    }
+
     var isEnabled: Bool {
         get {
             manager.exposureNotificationEnabled
@@ -37,6 +41,30 @@ class ExposureFramework: ObservableObject {
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
             }
+        }
+    }
+
+    func requestENPermission() {
+        print("requesting en permission")
+        objectWillChange.send()
+        switch ENManager.authorizationStatus {
+        case .unknown:
+            manager.setExposureNotificationEnabled(true) { error in
+                if let error = error {
+                    print("Error: \(error)")
+                }
+                DispatchQueue.main.async {
+                    self.objectWillChange.send()
+                }
+            }
+        case .authorized:
+            print("en already authorized")
+        case .notAuthorized:
+            print("en denied")
+        case .restricted:
+            print("en restricted")
+        default:
+            print("unknown ENManager.authorizationStatus")
         }
     }
 
@@ -388,7 +416,7 @@ class ExposureFramework: ObservableObject {
                 semaphore.signal()
                 return
             }
-            print("Calling getExposureInfo")
+            print("Calling getExposureInfo, true duration is \(parameters.trueDuration)")
             os_signpost(.begin, log: pointsOfInterest, name: "getExposureInfo")
 
             ExposureFramework.shared.manager.getExposureInfo(summary: summary!, userExplanation: userExplanation) { exposures, error in

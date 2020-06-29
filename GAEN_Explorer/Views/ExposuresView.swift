@@ -7,7 +7,7 @@
 import Foundation
 import SwiftUI
 
-let thresholdDebug = true
+let thresholdDebug = false
 struct ThresholdDataDebugView: View {
     let t: ThresholdData
     let width: CGFloat
@@ -22,10 +22,8 @@ struct ThresholdDataView: View {
     var body: some View {
         HStack {
             Text(
-                t.prevAttenuation > 0
-                    ? "\(t.prevAttenuation) dB <  \(t.timeInBucketString) min"
-                    : "\(t.timeInBucketString) min").frame(width: width / 2, alignment: .trailing)
-            Text(t.attenuation < maxAttenuation ? "<= \(t.attenuation) dB" : "").frame(width: width / 4, alignment: .leading)
+                "\(t.totalTime.ub) min").frame(width: width / 2.2, alignment: .trailing)
+            Text(t.attenuation < maxAttenuation ? "<= \(t.attenuation) dB" : "total").frame(width: width / 2.2, alignment: .leading)
         }
     }
 }
@@ -37,7 +35,7 @@ struct ExposureDurationViewLarge: View {
     var body: some View {
         VStack {
             ZStack(alignment: .bottom) {
-                if !thresholdData.totalTime.isNearlyExact {
+                if false && !thresholdData.totalTime.isNearlyExact {
                     Capsule()
                         .fill(LinearGradient(gradient: Gradient(colors: [.green, .gray]), startPoint: .bottom, endPoint: .top))
                         .frame(width: 2.5 * ExposureDurationViewLarge.scale,
@@ -47,15 +45,15 @@ struct ExposureDurationViewLarge: View {
                 }
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.ub) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
 
                 //                Capsule()
                 //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
                 //                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.timeInBucket.lb) * ExposureDurationViewLarge.scale)
-                    .offset(x: 0, y: CGFloat(thresholdData.timeInBucket.lb - thresholdData.totalTime.lb) * ExposureDurationViewLarge.scale).foregroundColor(.green)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.ub - thresholdData.prevTotalTime.ub) * ExposureDurationViewLarge.scale)
+                    .offset(x: 0, y: CGFloat(-thresholdData.prevTotalTime.ub) * ExposureDurationViewLarge.scale).foregroundColor(.green)
 
                 //                Capsule()
                 //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.maxThisDuration.value) * ExposureDurationViewLarge.scale)
@@ -144,7 +142,7 @@ struct ExposureDetailViewDetail: View {
     @EnvironmentObject var localStore: LocalStore
     var body: some View {
         ForEach(self.info.thresholdData
-            .filter { !($0.timeInBucket == 0) },
+            .filter { $0.prevTotalTime.ub < $0.totalTime.ub },
                 
             id: \.attenuation) { t in
             ThresholdDataView(t: t, width: self.width)
@@ -196,15 +194,14 @@ struct ExposureDetailView: View {
     var body: some View { GeometryReader { geometry in
         VStack {
             ScrollView {
-                ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration.lb).padding()
+                ExposureDurationsViewLarge(thresholdData: self.info.thresholdData, maxDuration: self.info.calculatedTotalDuration.ub).padding()
                 VStack(alignment: .leading, spacing: 6) {
                     Text(self.line1)
-                    Text(self.line2)
+                    // Text(self.line2)
 
                     Spacer()
                     Text("This encounter occurred on \(self.info.date, formatter: dayFormatter)")
                     Group {
-                        Text("encounter lasted  \(self.info.calculatedTotalDuration.description) minutes")
                         Text("meaningful duration: \(self.info.meaningfulDuration.description) minutes")
                         Spacer()
 

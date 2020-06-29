@@ -201,7 +201,8 @@ struct CodableExposureInfo: Codable {
     }
 
     var thresholdData: [ThresholdData] {
-        let sortedDurations = durations.keys.sorted() + [maxAttenuation]
+        let firstDb = durations.filter { _, v in v > 0 }.keys.sorted().first ?? maxAttenuation
+        let sortedDurations = durations.keys.filter { $0 >= firstDb }.sorted() + [maxAttenuation]
         return sortedDurations.map { thresholdData(dB: $0) }
     }
 
@@ -226,7 +227,8 @@ struct CodableExposureInfo: Codable {
         self.id = UUID()
         self.date = info.date
 
-        self.duration = trueDuration == nil ? BoundedInt(Int(info.duration / 60)) : BoundedInt(precise: Int((trueDuration! + 59) / 60))
+        self.duration = trueDuration == nil ? BoundedInt(Int(info.duration / 60)) :
+            BoundedInt(Int((trueDuration!) / 60), Int((trueDuration! + 180 + 59) / 60))
         self.exposureInfoDuration = Int(info.duration / 60)
         self.totalRiskScore = info.totalRiskScore
         self.transmissionRiskLevel = info.transmissionRiskLevel
@@ -370,7 +372,7 @@ struct CodableExposureInfo: Codable {
     mutating func incorporateDurations(_ ra: RawAttenuationData) {
         let bBucket = ra.bucket.map { BoundedInt($0) }
 
-        totalDuration = (bBucket[0] + bBucket[1] + bBucket[2]).intersection(totalDuration)
+        totalDuration = totalDuration.applyBounds(ub: bBucket[0] + bBucket[1] + bBucket[2])
         let bBucket2: [BoundedInt] = [bBucket[0].intersection(totalDuration - (bBucket[1] + bBucket[2])).applyBounds(ub: totalDuration),
                                       bBucket[1].intersection(totalDuration - (bBucket[0] + bBucket[2])).applyBounds(ub: totalDuration),
                                       bBucket[2].intersection(totalDuration - (bBucket[0] + bBucket[1])).applyBounds(ub: totalDuration)]
@@ -519,16 +521,16 @@ struct CodableExposureConfiguration: Codable {
 
     static func getExposureConfigurationString() -> String {
         """
-        {"minimumRiskScore":0,
+        {"minimumRiskScore":5,
         "attenuationLevelValues":[2,7,1,8, 3,6,5,4],
-        "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
-        "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "daysSinceLastExposureLevelValues":[7, 5, 1, 1, 1, 1, 1, 1],
+        "durationLevelValues":[3, 4, 1, 1, 1, 1, 1, 1],
+        "transmissionRiskLevelValues":[5, 4, 1, 1, 1, 1, 1, 1],
         "attenuationDurationThresholds": [50, 56]}
         """
     }
 
-    private static func getCodableExposureConfiguration() -> CodableExposureConfiguration {
+    static func getCodableExposureConfiguration() -> CodableExposureConfiguration {
         let dataFromServer = getExposureConfigurationString().data(using: .utf8)!
 
         let codableExposureConfiguration = try! JSONDecoder().decode(CodableExposureConfiguration.self, from: dataFromServer)

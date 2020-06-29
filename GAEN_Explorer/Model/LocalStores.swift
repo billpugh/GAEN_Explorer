@@ -17,7 +17,7 @@ struct PackagedKeys: Codable {
     static let testData = PackagedKeys(userName: "Bob", dateKeysSent: hoursAgo(26, minutes: 17), keys: [])
 }
 
-private let goDeeperQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.goDeeper", attributes: .concurrent)
+private let analysisQueue = DispatchQueue(label: "com.ninjamonkeycoders.gaen.analysis", attributes: .concurrent)
 
 struct EncountersWithUser: Codable {
     static let exposureDateFormat: DateFormatter = {
@@ -295,13 +295,13 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             addDiaryEntry(DiaryKind.analysisPerformed, "\(pass + 1)")
         }
         print("Analyzing")
-        goDeeperQueue.async {
+        analysisQueue.async {
             self.analyzeOffMainThread(pass, parameters, whenDone: whenDone)
         }
     }
 
     func analyzeExperiment(_ parameters: AnalysisParameters = AnalysisParameters()) {
-        goDeeperQueue.async {
+        analysisQueue.async {
             self.analyzeExperimentOffMainThread(parameters)
         }
     }
@@ -410,7 +410,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             let nextPass = pass + 1
             addDiaryEntry(DiaryKind.analysisPerformed, "\(nextPass + 1)")
             print("Analyzing")
-            goDeeperQueue.async {
+            analysisQueue.async {
                 self.analyzeOffMainThread(nextPass, parameters, whenDone: whenDone)
             }
             return
@@ -461,7 +461,6 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     @Published
     var experimentEnd: Date?
 
-    @Published
     var experimentDescription: String = ""
 
     @Published
@@ -475,6 +474,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case analyzed
     }
 
+    @Published
     var experimentStatus: ExperimentStatus = .none
 
     var experimentMessage: String? {
@@ -491,23 +491,41 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func scheduleAt(fire: Date?, block: @escaping (Timer) -> Void) {
-        print("Scheduled action for \(time: fire!)")
+    func scheduleAt(fire: Date?, function: String = #function, block: @escaping (Timer) -> Void) -> Timer {
+        print("Scheduled action for \(time: fire!) from \(function) \(Thread.current.isMainThread ? " on main thread" : "")")
         let timer = Timer(fire: fire!, interval: 0, repeats: false, block: block)
         timer.tolerance = 1
         RunLoop.main.add(timer, forMode: .common)
+        return timer
     }
 
+    func trackThread(funcname: String = #function) {
+        let thread = Thread.current
+        if thread.isMainThread {
+            print("main Thread calling \(funcname)")
+        } else {
+            print("nonmain Thread calling \(funcname) - \(thread.name)")
+        }
+    }
+
+    var startExperimentTimer: Timer?
+    var endExperimentTimer: Timer?
     func launchExperiment(_ framework: ExposureFramework) {
+        trackThread()
+        SensorFusion.shared.startAccel()
         assert(experimentStatus == .none)
         print("Launching experiment")
         experimentStatus = .launching
-        scheduleAt(fire: experimentStart) { _ in
-            self.startExperiment(framework)
+        scheduleExperimentEndedNotification(at: experimentEnd!)
+        analysisQueue.async {
+            self.startExperimentTimer = self.scheduleAt(fire: self.experimentStart) { _ in
+                self.startExperiment(framework)
+            }
         }
     }
 
     func startExperiment(_ framework: ExposureFramework) {
+        trackThread()
         switch experimentStatus {
         case .none, .analyzed:
             print("Starting experiment manually")
@@ -517,6 +535,11 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case .running, .analyzing:
             assert(false)
         }
+        if !Thread.current.isMainThread {
+            Thread.callStackSymbols.forEach { print($0) }
+        }
+        startExperimentTimer?.invalidate()
+        startExperimentTimer = nil
         eraseAnalysis()
         diary = []
         experimentStatus = .running
@@ -527,8 +550,10 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         addDiaryEntry(.startExperiment)
         framework.isEnabled = true
         if let ends = experimentEnd {
-            scheduleAt(fire: ends) { _ in
-                self.endScanningForExperiment(framework)
+            analysisQueue.async {
+                self.endExperimentTimer = self.scheduleAt(fire: ends) { _ in
+                    self.endScanningForExperiment(framework)
+                }
             }
         }
     }
@@ -542,12 +567,33 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     }
 
     func endScanningForExperiment(_ framework: ExposureFramework) {
+        trackThread()
+        if !Thread.current.isMainThread {
+            Thread.callStackSymbols.forEach { print($0) }
+        }
+        if experimentStatus == .analyzing || experimentStatus == .analyzed {
+            print("Experiment already analyzed")
+            return
+        }
         assert(experimentStatus == .running)
+        endExperimentTimer?.invalidate()
+        endExperimentTimer = nil
         // framework.isEnabled = false
         experimentStatus = .analyzing
         addDiaryEntry(.endExperiment)
         if experimentEnd == nil {
             experimentEnd = Date()
+        }
+        notificationCenter.removeAllPendingNotificationRequests()
+        if haveKeysFromOthers {
+            let duration = experimentEnd!.timeIntervalSince(experimentStart!)
+            print("Experiment duration: \(duration)")
+            let parameters = AnalysisParameters(doMaxAnalysis: true,
+                                                trueDuration: duration,
+                                                wasEnabled: true)
+            LocalStore.shared.analyzeExperiment(parameters)
+            experimentStatus = .analyzed
+            saveExperimentalResults(framework)
         }
         SensorFusion.shared.getSensorData(from: experimentStart!, to: experimentEnd!) {
             significantActivities, timeSpentInActivity in
@@ -558,14 +604,6 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                 self.diary.sort(by: { $0.at < $1.at })
             }
         }
-        if haveKeysFromOthers {
-            let parameters = AnalysisParameters(doMaxAnalysis: true,
-                                                trueDuration: experimentEnd!.timeIntervalSince(experimentStart!),
-                                                wasEnabled: true)
-            LocalStore.shared.analyzeExperiment(parameters)
-            experimentStatus = .analyzed
-            saveExperimentalResults(framework)
-        }
     }
 
     func saveExperimentalResults(_: ExposureFramework) {
@@ -573,6 +611,15 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     }
 
     func resetExperiment(_: ExposureFramework) {
+        trackThread()
+        if !Thread.current.isMainThread {
+            Thread.callStackSymbols.forEach { print($0) }
+        }
+        startExperimentTimer?.invalidate()
+        startExperimentTimer = nil
+        endExperimentTimer?.invalidate()
+        endExperimentTimer = nil
+        notificationCenter.removeAllPendingNotificationRequests()
         viewShown = nil
         experimentEnd = nil
         experimentStart = nil
@@ -599,37 +646,103 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         diary.append(DiaryEntry(Date(), .memo, "\"\(text)\""))
     }
 
-    // MARK: Notifications
+    // MARK: - - Notifications
+
+    let notificationCenter = UNUserNotificationCenter.current()
+
+    var userNotificationAuthorization: UNAuthorizationStatus = .notDetermined
+
+    func scheduleExperimentEndedNotification(at: Date) {
+        print("Scheduling local notification for \(time: at)")
+        let content = UNMutableNotificationContent()
+        content.title = "GAEN Experiment ended"
+        content.body = "Please return promptly to GAEN Explorer to end the experiment."
+        content.categoryIdentifier = "GAEN_END_EXPERIMENT"
+        content.sound = UNNotificationSound.default
+
+        let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: at)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Unable to Add Notification Request (\(error), \(error.localizedDescription))")
+            } else {
+                print("added experiment end notification")
+            }
+        }
+    }
+
+    func updateNotificationPermissions() {
+        print("calling updateNotificationPermissions")
+        objectWillChange.send()
+        notificationCenter.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized:
+                print("authorized")
+
+            case .denied:
+                print("denied")
+
+            case .notDetermined:
+                print("notDetermined")
+            default:
+                print("status: \(settings.authorizationStatus.rawValue)")
+            }
+            self.userNotificationAuthorization = settings.authorizationStatus
+        }
+    }
+
+    func requestNotificationPermission() {
+        print("calling requestNotificationPermission")
+        notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, error in
+
+            if let error = error {
+                print("\(error)")
+
+            } else {
+                print("granted")
+                self.updateNotificationPermissions()
+            }
+        }
+    }
 
     func registerLocalNotification() {
         print("registerLocalNotification")
-        let notificationCenter = UNUserNotificationCenter.current()
+        guard notificationCenter.delegate == nil else {
+            print("already registered")
+            return
+        }
         notificationCenter.getNotificationSettings { settings in
-            print(settings)
-        }
-        notificationCenter.delegate = self
-        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
-
-        notificationCenter.requestAuthorization(options: options) {
-            didAllow, _ in
-            if !didAllow {
-                print("User has declined notifications")
-            } else {
-                print("User allowed notifications")
+            self.userNotificationAuthorization = settings.authorizationStatus
+            guard settings.authorizationStatus == .authorized else {
+                print("Notification authorization status is \(settings.authorizationStatus.rawValue)")
+                return
             }
-        }
+            self.notificationCenter.delegate = self
+            let options: UNAuthorizationOptions = [.alert, .sound, .badge]
 
-        let acceptAction = UNNotificationAction(identifier: "END_ACTION",
-                                                title: "End experiment",
-                                                options: UNNotificationActionOptions(rawValue: 0))
-        // Define the notification type
-        let endExperimentCategory =
-            UNNotificationCategory(identifier: "GAEN_END_EXPERIMENT",
-                                   actions: [acceptAction],
-                                   intentIdentifiers: [])
-        // Register the notification type.
-        notificationCenter.setNotificationCategories([endExperimentCategory])
-        print("Registered GAEN_END_EXPERIMENT notification")
+            self.notificationCenter.requestAuthorization(options: options) {
+                didAllow, _ in
+                if !didAllow {
+                    print("User has declined notifications")
+                } else {
+                    print("User allowed notifications")
+                }
+            }
+
+            let acceptAction = UNNotificationAction(identifier: "END_ACTION",
+                                                    title: "End experiment",
+                                                    options: UNNotificationActionOptions(rawValue: 0))
+            // Define the notification type
+            let endExperimentCategory =
+                UNNotificationCategory(identifier: "GAEN_END_EXPERIMENT",
+                                       actions: [acceptAction],
+                                       intentIdentifiers: [])
+            // Register the notification type.
+            self.notificationCenter.setNotificationCategories([endExperimentCategory])
+            print("Registered GAEN_END_EXPERIMENT notification")
+        }
     }
 
     func userNotificationCenter(_: UNUserNotificationCenter,

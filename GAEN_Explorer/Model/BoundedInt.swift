@@ -163,6 +163,7 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
             }
             let result = BoundedInt(lb, max(self.ub, rhs.ub))
             print("3 Must have grown \(self) & \(rhs) -> \(result)")
+            Thread.callStackSymbols.forEach { print($0) }
             return result
         }
         return BoundedInt(lb, ub)

@@ -22,23 +22,35 @@ struct MyAboutView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(spacing: 15) {
-                    GAENExplorerImage(width: geometry.size.width * 0.5)
+                VStack(alignment: .leading, spacing: 15) {
+                    VStack(spacing: 15) {
+                        GAENExplorerImage(width: geometry.size.width * 0.25)
+                            .alignmentGuide(.leading) { _ in -geometry.size.width * 0.25 }
 
-                    Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
-                    Text("No information is sent to any server. You need to exchange keys by sharing them via airdrop or email").font(.subheadline).padding(.horizontal)
-                    Text("This app is designed to allow you to experiment with the Google/Apple Exposure Notification (GAEN) framework. Even without looking inside the code, you can can have several people install the app on their phone, go through an encounter, and then exchange diagnosis keys and find out the charactertistics of the encounters that were reported by the framework. If you want to use this app, it is very helpful if you understand how the framework works (e.g., you know what a diagnosis key is).")
+                        Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
+                        Text("""
+                        The Google Apple Exposure Notification Framework is designed to allow the use of Bluetooth in a privacy preserving way to detect close encounters with other smartphones also using the protocol, and if one of those people later reports and verifies a positive diagnosis for COVID-19, allow people they were in contact with to be notified that they were exposed.
+                        """)
+                        Button(action: {
+                            UIApplication.shared.open(URL(string: "https://www.google.com/covid19/exposurenotifications/")!)
+                        }) { Text("Exposure Notification framework").font(.footnote) }
+                        Text("""
+                        This app, GAEN Explorer, allows evaluation of the ability of the framework to accurately detect close encounters, and assists in defining the parameters used by a GAEN app to which encounters should be reported, and compare that with the encounters should be reported, which might be defined by a public health authority as 15 or more minutes within 6 feet.
+                        """)
 
-                    Button(action: {
-                        UIApplication.shared.open(URL(string: "https://github.com/billpugh/GAEN_Explorer")!)
-                }) { Text("https://github.com/billpugh/GAEN_Explorer").font(.footnote) }
+                        Button(action: {
+                            UIApplication.shared.open(URL(string: "https://github.com/billpugh/GAEN_Explorer")!)
+                        }) { Text("https://github.com/billpugh/GAEN_Explorer").font(.footnote) }
+                        Text("""
+                        This app is not intended nor suitable for dealing with actual reports of a diganosis of COVID-19. All information is kept private to the app and other devices participating in experiments.
+                        """).font(.footnote)
+                        Text("You must have the special entitlements that Apple is giving out in order to be able to run this code, and they are only giving out those entitlements to developers working with public health organizations. I can't help you get those entitlements. ").font(.footnote)
 
-                    Text("You must have the special entitlements that Apple is giving out in order to be able to run this code, and they are only giving out those entitlements to developers working with public health organizations. I can't help you get those entitlements. The app uses a special entitlement that allows it to get the diagnosis key for the current day.").font(.footnote)
-
-                }.padding(.all)
+                    }.padding(.horizontal)
+                }
             }
+            .navigationBarTitle("About GAEN Explorer", displayMode: .inline)
         }
-        .navigationBarTitle("About GAEN Explorer", displayMode: .inline)
     }
 }
 

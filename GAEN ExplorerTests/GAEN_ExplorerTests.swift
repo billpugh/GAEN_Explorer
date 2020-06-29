@@ -24,6 +24,19 @@ func XCTAssertMatches(_ boundedInt: BoundedInt?, _ expected: BoundedInt, _ msg: 
     XCTAssert(expected.matches(bi), "XCTAssertMatch failed: \(bi) doesn't match \(expected) \(msg)")
 }
 
+class ConfigurationTests: XCTestCase {
+    func testConfig() throws {
+        let configString = CodableExposureConfiguration.getExposureConfigurationString()
+        let config = CodableExposureConfiguration.getCodableExposureConfiguration()
+        let enConfig = config.asExposureConfiguration()
+        print("configString: \(configString)\n")
+        print("config: \(config)\n")
+        print("enConfig: \(enConfig)\n")
+        print("enConfig.attenuationDurationThresholds \(enConfig.value(forKey: "attenuationDurationThresholds")!)\n")
+        print("enConfig.metadata[\"attenuationDurationThresholds\"]:  \(enConfig.metadata!["attenuationDurationThresholds"]!)\n")
+    }
+}
+
 class GAEN_ExplorerTests: XCTestCase {
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -50,6 +63,9 @@ class GAEN_ExplorerTests: XCTestCase {
         let combination = z.intersection(exactly30)
         XCTAssertEqual(combination.lb, 30)
         XCTAssertEqual(combination.ub, 30)
+
+        let w = BoundedInt(0, 4)
+        print(w)
     }
 
     func testCodableExposureInfo() throws {
