@@ -26,6 +26,7 @@
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
 		165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */; };
 		165CBABE249EF25C009DFB7A /* Grid in Frameworks */ = {isa = PBXBuildFile; productRef = 165CBABD249EF25C009DFB7A /* Grid */; };
+		1662C0B424ABA5670037F2DD /* Playground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1662C0B324ABA5670037F2DD /* Playground.swift */; };
 		1674A84224A8D8A900607950 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1674A84124A8D8A900607950 /* OnboardingView.swift */; };
 		167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */; };
 		168D79082473261C00472889 /* TemporaryExposureKeyExport.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168D79072473261C00472889 /* TemporaryExposureKeyExport.pb.swift */; };
@@ -72,6 +73,7 @@
 		160660ED248D7B870045D08C /* ExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentView.swift; sourceTree = "<group>"; };
 		160660EF248EEA2E0045D08C /* SensorFusion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorFusion.swift; sourceTree = "<group>"; };
 		1627E16D2498653E003BE502 /* ExhaustiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExhaustiveTests.swift; sourceTree = "<group>"; };
+		1629BDC024AE3CE700FC1CDC /* Analysis.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Analysis.md; sourceTree = "<group>"; };
 		164D16D1246A10D800267376 /* GAEN Explorer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GAEN Explorer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		164D16D4246A10D800267376 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		164D16D6246A10D800267376 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 		164D16F9246AD19500267376 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		164D1721246B357900267376 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerExperimentView.swift; sourceTree = "<group>"; };
+		1662C0B324ABA5670037F2DD /* Playground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playground.swift; sourceTree = "<group>"; };
 		166B69B8249FC012008C4B85 /* MultipeerExperiment.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MultipeerExperiment.md; sourceTree = "<group>"; };
 		1674A84124A8D8A900607950 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		167BBC1924926010007A7819 /* GAEN ExplorerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GAEN ExplorerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -219,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				166B69B8249FC012008C4B85 /* MultipeerExperiment.md */,
+				1629BDC024AE3CE700FC1CDC /* Analysis.md */,
 			);
 			path = Documentation;
 			sourceTree = "<group>";
@@ -227,6 +231,7 @@
 			isa = PBXGroup;
 			children = (
 				167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */,
+				1662C0B324ABA5670037F2DD /* Playground.swift */,
 				16C90A2524967C920038A9E6 /* GroundTruthTests.swift */,
 				1627E16D2498653E003BE502 /* ExhaustiveTests.swift */,
 				167BBC1D24926010007A7819 /* Info.plist */,
@@ -411,6 +416,7 @@
 				16C90A2024952C3B0038A9E6 /* SensorFusion.swift in Sources */,
 				16C90A1F24952C370038A9E6 /* ExposureFramework.swift in Sources */,
 				16C90A2124952C610038A9E6 /* Diary.swift in Sources */,
+				1662C0B424ABA5670037F2DD /* Playground.swift in Sources */,
 				167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */,
 				16C90A2624967C930038A9E6 /* GroundTruthTests.swift in Sources */,
 				16C90A2224952C9F0038A9E6 /* TemporaryExposureKeyExport.pb.swift in Sources */,
@@ -605,10 +611,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = H2Z73245NN;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -616,6 +623,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.GAEN-ExplorerTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GAEN Explorer.app/GAEN Explorer";
@@ -626,10 +635,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = H2Z73245NN;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -637,6 +647,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.GAEN-ExplorerTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GAEN Explorer.app/GAEN Explorer";
