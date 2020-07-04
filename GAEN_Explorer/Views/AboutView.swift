@@ -19,6 +19,7 @@ struct GAENExplorerImage: View {
 }
 
 struct MyAboutView: View {
+    @EnvironmentObject var localStore: LocalStore
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
@@ -27,13 +28,16 @@ struct MyAboutView: View {
                         GAENExplorerImage(width: geometry.size.width * 0.25)
                             .alignmentGuide(.leading) { _ in -geometry.size.width * 0.25 }
 
-                        Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
-                        Text("""
-                        The Google Apple Exposure Notification Framework is designed to allow the use of Bluetooth in a privacy preserving way to detect close encounters with other smartphones also using the protocol, and if one of those people later reports and verifies a positive diagnosis for COVID-19, allow people they were in contact with to be notified that they were exposed.
-                        """)
-                        Button(action: {
-                            UIApplication.shared.open(URL(string: "https://www.google.com/covid19/exposurenotifications/")!)
+                        Group {
+                            Text("Not to be used for actual reporting of COVID-19").font(.subheadline)
+                            Text("Version \(self.localStore.version), build \(self.localStore.build)").font(.subheadline)
+                            Text("""
+                            The Google Apple Exposure Notification Framework is designed to allow the use of Bluetooth in a privacy preserving way to detect close encounters with other smartphones also using the protocol, and if one of those people later reports and verifies a positive diagnosis for COVID-19, allow people they were in contact with to be notified that they were exposed.
+                            """)
+                            Button(action: {
+                                UIApplication.shared.open(URL(string: "https://www.google.com/covid19/exposurenotifications/")!)
                         }) { Text("Exposure Notification framework").font(.footnote) }
+                        }
                         Text("""
                         This app, GAEN Explorer, allows evaluation of the ability of the framework to accurately detect close encounters, and assists in defining the parameters used by a GAEN app to which encounters should be reported, and compare that with the encounters should be reported, which might be defined by a public health authority as 15 or more minutes within 6 feet.
                         """)
@@ -58,7 +62,7 @@ struct MyAboutView_Previews: PreviewProvider {
     static let models: [String] = ["iPhone SE", "iPhone 11 Pro Max"]
     static var previews: some View {
         ForEach(models, id: \.self) { name in
-            NavigationView { MyAboutView() }
+            NavigationView { MyAboutView() }.environmentObject(LocalStore.shared)
                 .previewDevice(PreviewDevice(rawValue: name))
                 .previewDisplayName(name)
         }

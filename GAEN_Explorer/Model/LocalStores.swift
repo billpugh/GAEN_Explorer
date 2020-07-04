@@ -776,6 +776,22 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Lifecycle
 
+    var version: String {
+        let bundle = Bundle.main.infoDictionary
+        guard let b = bundle else {
+            return "no bundle"
+        }
+        return b["CFBundleShortVersionString"] as? String ?? "no version"
+    }
+
+    var build: String {
+        let bundle = Bundle.main.infoDictionary
+        guard let b = bundle else {
+            return "no bundle"
+        }
+        return b["CFBundleVersion"] as? String ?? "no build"
+    }
+
     init(userName: String, testData: [EncountersWithUser], diary: [DiaryEntry] = []) {
         self.userName = userName
         self.allExposures = testData
@@ -897,6 +913,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n") + "\n"
 
         result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap))\n"
+        result += "version, \(userName), \(version), \(build)\n"
         if let start = experimentStart,
             let ended = experimentEnd {
             result += """

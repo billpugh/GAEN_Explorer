@@ -92,6 +92,8 @@ struct MultipeerExperimentMessage: Codable {
         self.durationMinutes = nil
         self.key = nil
         self.participants = nil
+        self.startAtString = nil
+        self.endAtString = nil
     }
 }
 
@@ -283,7 +285,15 @@ class MultipeerService: NSObject, ObservableObject {
         let message = MultipeerExperimentMessage(startAt: starts, endAt: ends)
         let result = send(message)
         if result {
-            mode = .off
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                self.send(message)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    self.mode = .off
+                }
+            }
+
+        } else {
+            print("send start failed")
         }
         return result
     }

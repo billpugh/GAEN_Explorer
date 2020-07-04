@@ -28,8 +28,9 @@ struct MultipeerExperimentView: View {
     @State var showingSheetToShareExposures: Bool = false
     @State var showingAlertToLeaveExperiment: Bool = false
     var canBeHost: Bool {
-        !declinedHost
-            && multipeerService.mode != .host
+        print("can be host: \(!declinedHost) \(multipeerService.mode == .joiner) \(framework.exposureLogsErased) \(framework.keysAreCurrent) \(localStore.observedExperimentStatus == .none) \(multipeerService.peers.isEmpty)")
+        return !declinedHost
+            && multipeerService.mode == .joiner
             && framework.exposureLogsErased
             && framework.keysAreCurrent
             && localStore.observedExperimentStatus == .none
@@ -39,6 +40,7 @@ struct MultipeerExperimentView: View {
     func askHost() {
         guard canBeHost else { return }
         multipeerService.askToBecomeHost = true
+        print("Asked to become host")
     }
 
     func tryBecomingHost() {
@@ -137,6 +139,7 @@ struct MultipeerExperimentView: View {
                 Section(header: Text(actionHeader).font(.title)) {
                     Button(action: {
                         withAnimation {
+                            self.declinedHost = false
                             self.framework.setExposureNotificationEnabled(false) { _ in
                                 DispatchQueue.main.async {
                                     self.framework.eraseExposureLogs()
@@ -161,12 +164,19 @@ struct MultipeerExperimentView: View {
                         }
                     } else {
                         Text("wait for experiment to be started")
-                        Button(action: { showingAlertToLeaveExperiment = true })
-                        {
-                            Text("Decline experiment")
-                        }
                     }
+                    Button(action: { self.showingAlertToLeaveExperiment = true })
+                    {
+                        Text("Decline experiment")
+                    }.disabled(self.multipeerService.mode == .host)
+                        .alert(isPresented: $showingAlertToLeaveExperiment) {
+                            Alert(title: Text("Abandon experiment"), message: Text("Do you wish to abandon this experiment"), primaryButton: .destructive(Text("Yes")) {
+                                self.multipeerService.leaveExperiment()
+                                self.localStore.viewShown = nil
+                                       }, secondaryButton: .cancel())
+                        }
                 }
+
                 Section(header: Text("Participants").font(.title)) {
                     ForEach(Array(multipeerService.peers.values), id: \.id) {
                         Text($0.label)
@@ -189,12 +199,8 @@ struct MultipeerExperimentView: View {
 
                     }, secondaryButton: .cancel { self.declinedHost = true })
             }
-            .alert(isPresented: $showingAlertToLeaveExperiment) {
-                Alert(title: Text("Abandon experiment"), message: Text("Do you wish to abandon this experiment"), primaryButton: .destructive(Text("Yes")) {
-                    self.multipeerService.leaveExperiment()
-                    self.localStore.viewShown = nil
-                }, secondaryButton: .cancel())
-            }.onAppear {
+
+            .onAppear {
                 self.updateView()
                 UIApplication.shared.isIdleTimerDisabled = true
                 let center = NotificationCenter.default
