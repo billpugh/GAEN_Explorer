@@ -26,18 +26,32 @@ class ExposureFramework: ObservableObject {
         ENManager.authorizationStatus
     }
 
+    var becomeActiveObserver: NSObjectProtocol?
+
+    @Published
+    var observedIsEnabled: Bool = false {
+        willSet {
+            isEnabled = newValue
+        }
+    }
+
     var isEnabled: Bool {
         get {
             manager.exposureNotificationEnabled
         }
         set {
-            print(manager.exposureNotificationEnabled)
+            if manager.exposureNotificationEnabled == newValue {
+                print("isEnabled is already \(newValue)")
+                return
+            }
+            print("changing isEnabled \(manager.exposureNotificationEnabled) to \(newValue)")
             setExposureNotificationEnabled(newValue) { changed in
                 guard changed else { return }
                 DispatchQueue.main.async {
                     if newValue {
                         self.exposureLogsErased = false
                     }
+                    self.observedIsEnabled = newValue
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
             }
@@ -77,21 +91,21 @@ class ExposureFramework: ObservableObject {
             if let error = error {
                 print(error)
             }
-            print("Finished changing enabled from \(wasEnabled) to \(self.manager.exposureNotificationEnabled)")
+            print("Finished changing enabled sync from \(wasEnabled) to \(self.manager.exposureNotificationEnabled)")
             semaphore.signal()
         }
         semaphore.wait()
     }
 
     func setExposureNotificationEnabled(_ enabled: Bool, after: @escaping (Bool) -> Void) {
-//        let wasEnabled = manager.exposureNotificationEnabled
-//        print("Setting enabled to \(enabled)")
-//        guard enabled != wasEnabled else {
-//            print("Already set enabled to \(wasEnabled)")
-//            after(false)
-//            return
-//        }
-//        print("Changing enabled to \(enabled)")
+        let wasEnabled = manager.exposureNotificationEnabled
+        print("Setting enabled to \(enabled)")
+        guard enabled != wasEnabled else {
+            print("Already set enabled to \(wasEnabled)")
+            after(false)
+            return
+        }
+        print("Changing enabled to \(enabled)")
         manager.setExposureNotificationEnabled(enabled) { error in
             if let error = error {
                 print(error)
@@ -177,6 +191,13 @@ class ExposureFramework: ObservableObject {
 //                }
 //            }
         }
+        self.observedIsEnabled = isEnabled
+        let center = NotificationCenter.default
+        let mainQueue = OperationQueue.main
+        self.becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
+            print("framework become active")
+            self.observedIsEnabled = self.isEnabled
+        }
     }
 
     func getCodableKey(_ key: ENTemporaryExposureKey) -> CodableDiagnosisKey {
@@ -217,6 +238,7 @@ class ExposureFramework: ObservableObject {
                     self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
                 }
             } else {
+                print("Calling self.manager.getDiagnosisKeys")
                 self.manager.getDiagnosisKeys {
                     temporaryExposureKeys, error in
                     self.packageKeys(userName, temporaryExposureKeys, wasEnabled: wasEnabled, error, result)
@@ -246,7 +268,7 @@ class ExposureFramework: ObservableObject {
     }
 
     func updateKeys(_ keys: PackagedKeys) {
-        assert(keysCurrent(keys))
+        assert(keysCurrent(keys) || !callGetTestDiagnosisKeys)
         objectWillChange.send()
         self.keys = keys
         if let encoded = try? JSONEncoder().encode(keys) {

@@ -153,7 +153,7 @@ class SensorFusion {
             print("startAccel")
             analyzeMotionQueue.async {
                 self.sensorRecorder!.recordAccelerometer(forDuration: 2 * 60 * 60) // Record for 20 minutes
-                print("started recording")
+                print("started record accelerometer")
             }
         } else {
             print("accelerometerRecording not available")

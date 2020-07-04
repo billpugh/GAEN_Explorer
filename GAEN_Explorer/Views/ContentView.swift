@@ -92,7 +92,7 @@ struct StatusView: View {
                         TextField("User name", text: self.$localStore.userName)
                     }.padding(.horizontal)
 
-                    Toggle(isOn: self.$framework.isEnabled) {
+                    Toggle(isOn: self.$framework.observedIsEnabled) {
                         Text("Scanning for encounters")
                     }.padding(.horizontal).foregroundColor(self.framework.feasible ? .primary : .red)
 

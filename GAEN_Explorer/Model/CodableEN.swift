@@ -9,7 +9,7 @@ import ExposureNotification
 import Foundation
 
 let attenuationDurationThresholdsKey = "attenuationDurationThresholds"
-let maxAttenuation = 90
+let maxAttenuation = 99
 struct ThresholdData: Hashable, CustomStringConvertible {
     var description: String {
         if true {

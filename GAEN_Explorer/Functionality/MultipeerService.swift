@@ -13,6 +13,7 @@ enum MultipeerExperimentMessageKind: String, Codable {
     case design
     case i_am_ready
     case startExperiment
+    case leaveExperiment
 }
 
 struct MultipeerExperimentMessage: Codable {
@@ -84,6 +85,14 @@ struct MultipeerExperimentMessage: Codable {
         self.key = nil
         self.participants = nil
     }
+
+    init(leave: String) {
+        self.kind = .leaveExperiment
+        self.description = leave
+        self.durationMinutes = nil
+        self.key = nil
+        self.participants = nil
+    }
 }
 
 enum MultipeerMode: String, CaseIterable {
@@ -121,7 +130,8 @@ class PeerState: Identifiable {
             let p = participantsSeen else {
             return id.displayName
         }
-        return "\(id.displayName) \(p)"
+
+        return "\(id.displayName)"
     }
 }
 
@@ -142,14 +152,20 @@ class MultipeerService: NSObject, ObservableObject {
     }
 
     @Published
-    var mode: MultipeerMode = .joiner {
+    var mode: MultipeerMode = .off {
         didSet {
             print("Set mode \(mode)")
             switch mode {
             case .off:
                 serviceAdvertiser.stopAdvertisingPeer()
                 serviceBrowser.stopBrowsingForPeers()
+                peers = [:]
+                session?.disconnect()
+                session = nil
             case .joiner:
+                session = MCSession(peer: myPeerId, securityIdentity: nil, encryptionPreference: .required)
+                session!.delegate = self
+
                 serviceBrowser.stopBrowsingForPeers()
                 serviceAdvertiser.startAdvertisingPeer()
             case .host:
@@ -166,11 +182,7 @@ class MultipeerService: NSObject, ObservableObject {
     private let serviceAdvertiser: MCNearbyServiceAdvertiser
     private let serviceBrowser: MCNearbyServiceBrowser
 
-    lazy var session: MCSession = {
-        let session = MCSession(peer: self.myPeerId, securityIdentity: nil, encryptionPreference: .required)
-        session.delegate = self
-        return session
-    }()
+    var session: MCSession?
 
     init(_ framework: ExposureFramework) {
         self.serviceAdvertiser = MCNearbyServiceAdvertiser(peer: myPeerId, discoveryInfo: nil, serviceType: gaenServiceType)
@@ -179,9 +191,10 @@ class MultipeerService: NSObject, ObservableObject {
         super.init()
 
         serviceAdvertiser.delegate = self
-        serviceAdvertiser.startAdvertisingPeer()
 
         serviceBrowser.delegate = self
+        serviceAdvertiser.stopAdvertisingPeer()
+        serviceBrowser.stopBrowsingForPeers()
     }
 
     deinit {
@@ -202,6 +215,8 @@ class MultipeerService: NSObject, ObservableObject {
             wasReady = ready
             return
         }
+        mode = .joiner
+
         wasReady = ready
         sendReady()
     }
@@ -225,13 +240,20 @@ class MultipeerService: NSObject, ObservableObject {
             }
             let encoded = try JSONEncoder().encode(message)
             print("sending \(message.kind.rawValue) to \(sendTo.map { $0.displayName })")
-            try session.send(encoded, toPeers: sendTo, with: .reliable)
+            try session!.send(encoded, toPeers: sendTo, with: .reliable)
             print("sent")
             return true
         } catch {
             print("\(error)")
             return false
         }
+    }
+
+    func leaveExperiment() {
+        assert(mode == .joiner)
+        let message = MultipeerExperimentMessage(leave: "leaving")
+        send(message)
+        mode = .off
     }
 
     @discardableResult func sendDesign(_ peer: MCPeerID? = nil) -> Bool {
@@ -259,7 +281,11 @@ class MultipeerService: NSObject, ObservableObject {
             return false
         }
         let message = MultipeerExperimentMessage(startAt: starts, endAt: ends)
-        return send(message)
+        let result = send(message)
+        if result {
+            mode = .off
+        }
+        return result
     }
 }
 
@@ -282,7 +308,8 @@ extension MultipeerService: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo _: [String: String]?) {
         NSLog("%@", "foundPeer: \(peerID)")
         NSLog("%@", "invitePeer: \(peerID)")
-        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
+        browser.invitePeer(peerID, to: session!, withContext: nil, timeout: 10)
+        sendDesign(peerID)
     }
 
     func browser(_: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
@@ -320,6 +347,9 @@ extension MultipeerService: MCSessionDelegate {
                 case .design:
                     LocalStore.shared.experimentDescription = message.description!
                     LocalStore.shared.experimentDurationMinutes = message.durationMinutes!
+                case .leaveExperiment:
+                    self.peers.removeValue(forKey: peerID)
+                    print("Removing participant \(peerID)")
 
                 case .i_am_ready:
                     self.peers[peerID] = PeerState(peerID, message.key, message.participants)
@@ -332,6 +362,7 @@ extension MultipeerService: MCSessionDelegate {
                     LocalStore.shared.experimentEnd = message.endAt!
                     self.collectKeys()
                     LocalStore.shared.launchExperiment(self.framework)
+                    self.mode = .off
                 }
             } catch {
                 print("\(error)")

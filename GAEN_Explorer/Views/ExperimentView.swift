@@ -23,7 +23,7 @@ struct ExperimentView: View {
     @State var lastMemo = ""
 
     var analysisButtonTitle: String {
-        if localStore.experimentStatus != .analyzing {
+        if localStore.observedExperimentStatus != .analyzing {
             return "Perform analysis"
         }
         if localStore.allExposures.count == 0 {
@@ -60,18 +60,18 @@ struct ExperimentView: View {
                         withAnimation {
                             self.framework.isEnabled = false
                         }
-                    }) { Text("Turn off exposure scanning") }.font(.title).padding(.vertical).disabled(!framework.isEnabled)
+                    }) { Text("Turn off exposure scanning") }.font(.title).padding(.vertical).disabled(!framework.observedIsEnabled)
 
-                    if self.localStore.experimentStatus == .none {
+                    if self.localStore.observedExperimentStatus == .none {
                         Text("This will turn off scanning and broadcasting of Bluetooth advertisements so we can get a clean start")
                     }
 
                     Button(action: {
                         hideKeyboard()
                         self.framework.eraseExposureLogs()
-                    }) { Text("Delete exposure Log") }.font(.title).padding(.vertical).disabled(framework.exposureLogsErased || framework.isEnabled)
+                    }) { Text("Delete exposure Log") }.font(.title).padding(.vertical).disabled(framework.exposureLogsErased || framework.observedIsEnabled)
 
-                    if self.localStore.experimentStatus == .none {
+                    if self.localStore.observedExperimentStatus == .none {
                         Text("You have to go to Settings->Privacy->Health->COVID-19 Exposure Logging, scroll all the way down to the bottom, and then select the \"Delete Exposure Log\" button once (twice if it allows you to).").font(.subheadline)
                     }
 
@@ -81,12 +81,12 @@ struct ExperimentView: View {
                             self.localStore.startExperiment(self.framework)
                             self.didExportExposures = false
                         }
-                    }) { Text("Start scanning").font(.title) }.padding(.vertical).disabled(framework.isEnabled || !framework.exposureLogsErased)
+                    }) { Text("Start scanning").font(.title) }.padding(.vertical).disabled(framework.observedIsEnabled || !framework.exposureLogsErased)
 
-                    if self.localStore.experimentStatus == .none {
+                    if self.localStore.observedExperimentStatus == .none {
                         Text("This will resume exposure scanning and start the experiment.")
                     }
-                }.disabled(self.localStore.experimentStatus != .none)
+                }.disabled(self.localStore.observedExperimentStatus != .none)
 
                 // MARK: started
 
@@ -101,7 +101,7 @@ struct ExperimentView: View {
                     { Text("Add memo") }.font(.title).padding(.leading)
                     TextField("memo", text: self.$lastMemo)
                 }
-                .disabled(self.localStore.experimentStatus == .none)
+                .disabled(self.localStore.observedExperimentStatus == .none)
 
                 Group {
                     Button(action: {
@@ -111,11 +111,11 @@ struct ExperimentView: View {
                         }
                     }) { Text("End scanning").font(.title) }.padding(.vertical)
 
-                    if self.localStore.experimentStatus != .analyzing {
+                    if self.localStore.observedExperimentStatus != .analyzing {
                         Text("When it is time to end the experiment, everyone should stop scanning together")
                     }
 
-                }.disabled(self.localStore.experimentStatus != .running)
+                }.disabled(self.localStore.observedExperimentStatus != .running)
 
                 // MARK: completed
 
@@ -132,7 +132,7 @@ struct ExperimentView: View {
                     }) { Text("Share keys") }
                         .font(.title).padding(.vertical)
 
-                    if self.localStore.experimentStatus == .analyzing && (self.localStore.allExposures.count == 0 || localStore.canAnalyze) {
+                    if self.localStore.observedExperimentStatus == .analyzing && (self.localStore.allExposures.count == 0 || localStore.canAnalyze) {
                         Text(self.localStore.allExposures.count == 0 ? "You currently don't have keys from anyone else"
                             : "You currently have keys from \(self.localStore.allExposures.count) other people. When you share keys with someone, you share your keys and all the ones you have already received.")
                     }
@@ -154,7 +154,7 @@ struct ExperimentView: View {
                         .padding(.vertical)
                         .disabled(self.localStore.allExposures.count == 0)
 
-                }.disabled(self.localStore.experimentStatus != .analyzing)
+                }.disabled(self.localStore.observedExperimentStatus != .analyzing)
 
                 // MARK: End/Abort
 
@@ -162,10 +162,10 @@ struct ExperimentView: View {
                     self.localStore.resetExperiment(self.framework)
                     self.didExportExposures = false
                 }) {
-                    Text(self.localStore.experimentStatus == .analyzing && self.didExportExposures ? "End experiment" : "Abort experiment").font(.title)
+                    Text(self.localStore.observedExperimentStatus == .analyzing && self.didExportExposures ? "End experiment" : "Abort experiment").font(.title)
                 }
                 .padding(.vertical)
-                .disabled(self.localStore.experimentStatus == .none)
+                .disabled(self.localStore.observedExperimentStatus == .none)
 
             }.sheet(isPresented: $showingSheet,
                     onDismiss: { self.showingSheetToShareExposures = false },
