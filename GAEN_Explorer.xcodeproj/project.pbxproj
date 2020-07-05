@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		160660EA248D55D80045D08C /* Diary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660E9248D55D80045D08C /* Diary.swift */; };
 		160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EB248D5DDF0045D08C /* DiaryView.swift */; };
-		160660EE248D7B870045D08C /* ExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660ED248D7B870045D08C /* ExperimentView.swift */; };
 		160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
 		1627E16E2498653E003BE502 /* ExhaustiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1627E16D2498653E003BE502 /* ExhaustiveTests.swift */; };
 		163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F0246A118200267376 /* ExposureFramework.swift */; };
@@ -70,7 +69,6 @@
 /* Begin PBXFileReference section */
 		160660E9248D55D80045D08C /* Diary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diary.swift; sourceTree = "<group>"; };
 		160660EB248D5DDF0045D08C /* DiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryView.swift; sourceTree = "<group>"; };
-		160660ED248D7B870045D08C /* ExperimentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentView.swift; sourceTree = "<group>"; };
 		160660EF248EEA2E0045D08C /* SensorFusion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorFusion.swift; sourceTree = "<group>"; };
 		1627E16D2498653E003BE502 /* ExhaustiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExhaustiveTests.swift; sourceTree = "<group>"; };
 		1629BDC024AE3CE700FC1CDC /* Analysis.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Analysis.md; sourceTree = "<group>"; };
@@ -253,7 +251,6 @@
 		16C3E71E2476D53300B4EA2B /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				160660ED248D7B870045D08C /* ExperimentView.swift */,
 				164D16D8246A10D800267376 /* ContentView.swift */,
 				160660EB248D5DDF0045D08C /* DiaryView.swift */,
 				16C3E71C2476D14900B4EA2B /* AboutView.swift */,
@@ -272,6 +269,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 164D16E5246A10DC00267376 /* Build configuration list for PBXNativeTarget "GAEN_Explorer" */;
 			buildPhases = (
+				16EE9BAD24B12EBA00362385 /* Update version number */,
 				164D16CD246A10D800267376 /* Sources */,
 				164D16CE246A10D800267376 /* Frameworks */,
 				164D16CF246A10D800267376 /* Resources */,
@@ -377,6 +375,27 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		16EE9BAD24B12EBA00362385 /* Update version number */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Update version number";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\ngit=`sh /etc/profile; which git`\nbundleVersion=`\"$git\" rev-list --all | wc -l`\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $bundleVersion\" \"${PRODUCT_SETTINGS_PATH}\"\npwd\necho \"Updated build number in ${PRODUCT_SETTINGS_PATH} to $bundleVersion\"\n\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		164D16CD246A10D800267376 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -401,7 +420,6 @@
 				160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */,
 				163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */,
 				16AB372C24A18B520095E568 /* MultipeerService.swift in Sources */,
-				160660EE248D7B870045D08C /* ExperimentView.swift in Sources */,
 				164D16F8246A1CE200267376 /* CodableEN.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -570,6 +588,7 @@
 				CODE_SIGN_ENTITLEMENTS = GAEN_Explorer/GAEN_Explorer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
@@ -592,6 +611,7 @@
 				CODE_SIGN_ENTITLEMENTS = GAEN_Explorer/GAEN_Explorer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 35;
 				DEVELOPMENT_ASSET_PATHS = "\"GAEN_Explorer/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
