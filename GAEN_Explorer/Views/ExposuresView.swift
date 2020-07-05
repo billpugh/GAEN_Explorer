@@ -187,7 +187,7 @@ struct ExposureDetailView: View {
         if let _ = batch.experiment {
             return "Encounter with \(batch.userName)"
         }
-        return "Analyzed \(batch.analysisPasses) times at \(date: batch.dateAnalyzed)"
+        return "Analyzed at \(date: batch.dateAnalyzed)"
     }
 
     @EnvironmentObject var localStore: LocalStore
@@ -319,10 +319,9 @@ struct ExposuresView: View {
 
                                     }.padding(.top)
                                     HStack {
-                                        Text(d.noMatches ? "no matches" :
-                                            (d.analysisPasses == 0
-                                                ? "not analyzed"
-                                                : "analyzed \(d.dateAnalyzed, formatter: relativeDateFormatter), \(d.analysisPasses) \(d.analysisPasses == 1 ? "pass" : "passes")"))
+                                        Text(!d.analyzed ? "Not analyzed" :
+                                            (d.exposures.isEmpty ? "No exposures found"
+                                                : "analyzed"))
 
                                     }.font(.subheadline).padding(.bottom, 8)
 
@@ -382,21 +381,6 @@ struct ExposuresView: View {
                         })
                         { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
                     }
-                    // Erase button
-                    //                Button(action: { self.showingDeleteAlert = true }) {
-                    //                    Text("Erase all encounters").foregroundColor(.red)
-                    //
-                    //                }.alert(isPresented: self.$showingDeleteAlert) {
-                    //                    Alert(title: Text("Really Erase all?"),
-                    //                          message: Text("Are you sure you want to delete the information on all of the exposures?"),
-                    //                          primaryButton: .destructive(Text("Delete")) { self.localStore.deleteAllExposures()
-                    //                              self.showingDeleteAlert = false
-                    //                          },
-                    //                          secondaryButton: .cancel {
-                    //                              self.showingDeleteAlert = false
-                    //
-                    //                            })
-                    //                } // Erase button
                 }
             }
             .navigationBarTitle(self.localStore.allExposures.count == 0 ?

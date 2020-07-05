@@ -74,7 +74,7 @@ struct MultipeerExperimentView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Experiment").font(.title)) {
+            Section(header: Text("Experiment \(localStore.userName)").font(.title)) {
                 HStack {
                     Text("Description:").font(.headline)
                     TextField("description", text: self.$localStore.experimentDescription, onCommit: { self.multipeerService.sendDesign() })
@@ -165,22 +165,28 @@ struct MultipeerExperimentView: View {
                     } else {
                         Text("wait for experiment to be started")
                     }
-                    Button(action: { self.showingAlertToLeaveExperiment = true })
-                    {
-                        Text("Decline experiment")
-                    }.disabled(self.multipeerService.mode == .host)
-                        .alert(isPresented: $showingAlertToLeaveExperiment) {
-                            Alert(title: Text("Abandon experiment"), message: Text("Do you wish to abandon this experiment"), primaryButton: .destructive(Text("Yes")) {
-                                self.multipeerService.leaveExperiment()
-                                self.localStore.viewShown = nil
-                                       }, secondaryButton: .cancel())
-                        }
                 }
 
-                Section(header: Text("Participants").font(.title)) {
-                    ForEach(Array(multipeerService.peers.values), id: \.id) {
-                        Text($0.label)
-                            .foregroundColor($0.color(self.multipeerService))
+                if self.multipeerService.mode != .off {
+                    Section(header:
+                        HStack {
+                            Text("\(1 + multipeerService.peers.count) Participants").font(.title)
+                            Spacer()
+                            Button(action: { self.showingAlertToLeaveExperiment = true })
+                            {
+                                Text("Abandon")
+                            }.disabled(self.multipeerService.mode == .host)
+                        }
+                    ) {
+                        ForEach(Array(multipeerService.peers.values), id: \.id) {
+                            Text($0.label)
+                                .foregroundColor($0.color(self.multipeerService))
+                        }
+                    }.alert(isPresented: $showingAlertToLeaveExperiment) {
+                        Alert(title: Text("Abandon experiment"), message: Text("Do you wish to abandon this experiment"), primaryButton: .destructive(Text("Yes")) {
+                            self.multipeerService.leaveExperiment()
+                            self.localStore.viewShown = nil
+                                                     }, secondaryButton: .cancel())
                     }
                 }
             }

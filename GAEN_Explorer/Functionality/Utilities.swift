@@ -24,6 +24,10 @@ func openSettings(from viewController: UIViewController) {
     viewController.view.window?.windowScene?.open(URL(string: UIApplication.openSettingsURLString)!, options: nil, completionHandler: nil)
 }
 
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+
 class ExposuresItem: NSObject, UIActivityItemSource {
     let url: URL
     let title: String
