@@ -319,7 +319,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             print("Adding experiments results to local store")
             for i in 0 ..< self.allExposures.count {
                 if self.allExposures[i].analyzed {
-                    print("Already analyzed exposures for \(self.allExposures[i].userName)")                 
+                    print("Already analyzed exposures for \(self.allExposures[i].userName)")
                     continue
                 }
                 self.allExposures[i].analyzed = true
