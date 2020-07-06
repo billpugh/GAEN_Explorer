@@ -51,14 +51,21 @@ struct EncountersWithUser: Codable {
             return "rawAnalysis, \(to), \(pair), \(exposureInfo.day), \(pass), \(ra.thresholdsCSV), \(ra.bucketsCSV)"
         }
     }
+    func teksCSV(_ to: String, _ pair: String, exposureInfo: CodableExposureInfo) -> [String] {
+        keys.map {
+            return "tek, \(to), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)"
+        }
+    }
 
     func csvFormat(to: String) -> [String] {
         let pair = [to, userName].sorted().joined(separator: "-")
         return exposures.flatMap { exposureInfo in
             ["""
-            exposure, \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV),
+            exposure, \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
             exposure, \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
-            """] + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
+            """]
+            + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
+            + teksCSV(to, pair, exposureInfo: exposureInfo)
         }
     }
 
