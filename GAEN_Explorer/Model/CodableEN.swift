@@ -458,10 +458,12 @@ struct CodableDiagnosisKey: Codable, Equatable {
         self.rollingStartNumber = key.rollingStartNumber
         self.transmissionRiskLevel = key.transmissionRiskLevel
     }
+
     var keyString: String {
         let encoded = try! JSONEncoder().encode(keyData)
-        return String(data: encoded,  encoding: .utf8)!
+        return String(data: encoded, encoding: .utf8)!
     }
+
     static let rollingPeriod: ENIntervalNumber = 144
     init(randomFromDaysAgo daysAgo: UInt32) {
         let dNumber = UInt32(Date().timeIntervalSince1970 / 24 / 60 / 60)

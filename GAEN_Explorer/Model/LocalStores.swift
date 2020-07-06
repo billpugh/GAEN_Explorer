@@ -51,9 +51,10 @@ struct EncountersWithUser: Codable {
             return "rawAnalysis, \(to), \(pair), \(exposureInfo.day), \(pass), \(ra.thresholdsCSV), \(ra.bucketsCSV)"
         }
     }
-    func teksCSV(_ to: String, _ pair: String, exposureInfo: CodableExposureInfo) -> [String] {
+
+    func teksCSV(_ pair: String) -> [String] {
         keys.map {
-            return "tek, \(to), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)"
+            "tek, \(userName), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)"
         }
     }
 
@@ -64,9 +65,9 @@ struct EncountersWithUser: Codable {
             exposure, \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
             exposure, \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
             """]
-            + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
-            + teksCSV(to, pair, exposureInfo: exposureInfo)
-        }
+                + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
+
+        } + teksCSV(pair)
     }
 
     static func csvHeader(_ thresholds: [Int]) -> String {
@@ -802,11 +803,20 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Export exposures
 
+    // __C.UIActivityType(_rawValue: com.apple.CloudDocsUI.AddToiCloudDrive)
+
     func csvSafe(_ txt: String) -> String {
         if txt.isEmpty {
             return ""
         }
         return "\"\(txt)\""
+    }
+
+    func myKeysCSV() -> String {
+        if let keys = ExposureFramework.shared.keys?.keys {
+            return keys.map { "tek, \(userName), , \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)" }.joined(separator: "\n") + "\n"
+        }
+        return ""
     }
 
     func csvExport() -> String {
@@ -820,6 +830,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
         result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap))\n"
         result += "version, \(userName), \(version), \(build)\n"
+        result += myKeysCSV()
         if let start = experimentStart,
             let ended = experimentEnd {
             result += """
