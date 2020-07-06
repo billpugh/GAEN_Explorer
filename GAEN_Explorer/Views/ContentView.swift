@@ -46,7 +46,9 @@ struct ActivityView: UIViewControllerRepresentable {
                                         UIActivity.ActivityType.postToVimeo,
                                         UIActivity.ActivityType.postToWeibo,
                                         UIActivity.ActivityType.print,
-                                        UIActivity.ActivityType.saveToCameraRoll]
+                                        UIActivity.ActivityType.saveToCameraRoll,
+                                        UIActivity.ActivityType(rawValue: "com.apple.reminders.sharingextension"),
+                                        UIActivity.ActivityType(rawValue: "com.apple.mobilenotes.SharingExtension")]
         result.completionWithItemsHandler = { (activityType: UIActivity.ActivityType?, completed:
             Bool, _: [Any]?, error: Error?) in
         print("activity: \(String(describing: activityType))")
