@@ -27,6 +27,7 @@ struct MultipeerExperimentView: View {
     @State var becomeActiveObserver: NSObjectProtocol? = nil
     @State var showingSheetToShareExposures: Bool = false
     @State var showingAlertToLeaveExperiment: Bool = false
+    @State var resultsExported: Bool = false
     var canBeHost: Bool {
         print("can be host: \(!declinedHost) \(multipeerService.mode == .joiner) \(framework.exposureLogsErased) \(framework.keysAreCurrent) \(localStore.observedExperimentStatus == .none) \(multipeerService.peers.isEmpty)")
         return !declinedHost
@@ -53,7 +54,7 @@ struct MultipeerExperimentView: View {
             self.localStore.experimentStatus = .none
             self.multipeerService.mightBeReady()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
             self.askHost()
         }
     }
@@ -70,6 +71,7 @@ struct MultipeerExperimentView: View {
         localStore.experimentEnd = nextMinute(after: start, andMinutes: localStore.experimentDurationMinutes)
         multipeerService.sendStart()
         localStore.launchExperiment(framework)
+        resultsExported = false
     }
 
     var body: some View {
@@ -110,10 +112,11 @@ struct MultipeerExperimentView: View {
                         Button(action: {
                             self.localStore.exportExposuresToURL()
                             self.showingSheetToShareExposures = true
+                            self.resultsExported = true
                             print("showingSheet set to true")
 
                         }) {
-                            Text("export results")
+                            Text(resultsExported ? "results exported" : "export results")
                         }
                     }
                     if self.localStore.observedExperimentStatus == .analyzed {
@@ -185,6 +188,7 @@ struct MultipeerExperimentView: View {
                     }.alert(isPresented: $showingAlertToLeaveExperiment) {
                         Alert(title: Text("Abandon experiment"), message: Text("Do you wish to abandon this experiment"), primaryButton: .destructive(Text("Yes")) {
                             self.multipeerService.leaveExperiment()
+                            self.framework.keys = nil
                             self.localStore.viewShown = nil
                                                      }, secondaryButton: .cancel())
                     }

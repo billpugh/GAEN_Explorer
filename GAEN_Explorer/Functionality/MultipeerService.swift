@@ -260,7 +260,6 @@ class MultipeerService: NSObject, ObservableObject {
 
     @discardableResult func sendDesign(_ peer: MCPeerID? = nil) -> Bool {
         if mode != .host { return false }
-        if LocalStore.shared.experimentDescription.isEmpty { return false }
 
         let message = MultipeerExperimentMessage(designDescription: LocalStore.shared.experimentDescription, durationMinutes: LocalStore.shared.experimentDurationMinutes)
         return send(message, peer)
