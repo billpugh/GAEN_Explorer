@@ -54,7 +54,7 @@ struct EncountersWithUser: Codable {
 
     func teksCSV(_ pair: String) -> [String] {
         keys.map {
-            "tek, \(userName), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)"
+            "tek, \(userName), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
         }
     }
 
@@ -814,7 +814,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func myKeysCSV() -> String {
         if let keys = ExposureFramework.shared.keys?.keys {
-            return keys.map { "tek, \(userName), , \($0.rollingStartNumber),  \($0.rollingPeriod), \($0.keyString)" }.joined(separator: "\n") + "\n"
+            return keys.map { "tek, \(userName), , \($0.rollingStartNumber),  \($0.rollingPeriod), ,\($0.keyString)" }.joined(separator: "\n") + "\n"
         }
         return ""
     }
