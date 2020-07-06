@@ -311,7 +311,7 @@ struct ExposuresView: View {
             GeometryReader { geometry in
                 VStack {
                     List {
-                        ForEach(self.localStore.allExposures.reversed(), id: \.userName) { d in
+                        ForEach(self.localStore.allExposures.sorted(by: { $0.userName <= $1.userName }), id: \.userName) { d in
                             Section(header:
                                 VStack(alignment: .leading) {
                                     HStack {
