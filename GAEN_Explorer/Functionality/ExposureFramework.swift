@@ -32,6 +32,7 @@ class ExposureFramework: ObservableObject {
     var observedIsEnabled: Bool = false {
         willSet {
             isEnabled = newValue
+            print("Changed observedIsEnabled to \(newValue)")
         }
     }
 
@@ -46,11 +47,16 @@ class ExposureFramework: ObservableObject {
             }
             print("changing isEnabled \(manager.exposureNotificationEnabled) to \(newValue)")
             setExposureNotificationEnabled(newValue) { changed in
-                guard changed else { return }
+                guard changed else {
+                    print("isEnabled didn't need to be changed")
+                    return
+                }
                 DispatchQueue.main.async {
                     if newValue {
                         self.exposureLogsErased = false
+                        print("Marking exposureLogs erased to false")
                     }
+                    print("Changing observedIsEnabled to \(newValue)")
                     self.observedIsEnabled = newValue
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
@@ -126,6 +132,7 @@ class ExposureFramework: ObservableObject {
     func eraseExposureLogs() {
         assert(!isEnabled)
         exposureLogsErased = true
+        prevKeys = keys
         keys = nil
         UIApplication.shared.open(URL(string: "App-prefs:root=Privacy")!)
     }
@@ -214,6 +221,8 @@ class ExposureFramework: ObservableObject {
 
     var keys: PackagedKeys?
 
+    var prevKeys: PackagedKeys?
+
     var keysAreCurrent: Bool {
         guard let p = keys else { return false }
         return keysCurrent(p)
@@ -222,6 +231,22 @@ class ExposureFramework: ObservableObject {
     func keysCurrent(_ p: PackagedKeys) -> Bool {
         let currentRollingStart = currentRollingStartDate
         return !p.keys.filter { $0.rollingStartNumber == currentRollingStart }.isEmpty
+    }
+
+    func verifyKeysAreNew() -> Bool {
+        if let k = keys,
+            let prev = prevKeys {
+            for pKey in prev.keys {
+                let matchingKeys = k.keys.filter { $0.keyData == pKey.keyData && $0.rollingStartNumber == pKey.rollingStartNumber }
+                if !matchingKeys.isEmpty {
+                    print("found \(matchingKeys.count) matching keys")
+                    exposureLogsErased = false
+                    return false
+                }
+            } // for pKey
+        } // if let
+        prevKeys = nil
+        return true
     }
 
     func currentKeys(_ userName: String, result: @escaping (PackagedKeys) -> Void) {
