@@ -289,17 +289,42 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    func updateAllExposures(_ combinedExposures: inout [[CodableExposureInfo]]) {
+        print("Adding experiments results to local store")
+        for i in 0 ..< allExposures.count {
+            if allExposures[i].analyzed {
+                print("Already analyzed exposures for \(allExposures[i].userName)")
+                continue
+            }
+            allExposures[i].analyzed = true
+            if !combinedExposures[i].isEmpty {
+                print("Updates exposures for \(allExposures[i].userName)")
+                allExposures[i].exposures = combinedExposures[i]
+            }
+        }
+        if let encoded = try? JSONEncoder().encode(allExposures) {
+            UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
+        }
+    }
+
+    fileprivate func combinePasses(_ combinedExposures: inout [[CodableExposureInfo]]) {
+        // analysis pass
+        print("All analysis passes complete")
+        for i in 0 ..< combinedExposures.count {
+            print("Reanalyzing \(combinedExposures[i].count) exposures for \(allExposures[i].userName)")
+            for j in 0 ..< combinedExposures[i].count {
+                combinedExposures[i][j].reanalyze()
+            }
+        }
+    }
+
     func analyzeExperimentOffMainThread(_ parameters: AnalysisParameters) {
         assert(!Thread.current.isMainThread)
-
+        assert( ExposureFramework.shared.manager.exposureNotificationEnabled)
         let allKeys = allExposures.filter { !$0.analyzed }.flatMap { $0.keys }
         print("AnalyzeExperiment at \(time: Date()) over \(allExposures.count) users, \(allKeys.count) keys")
         var combinedExposures: [[CodableExposureInfo]] = Array(repeating: [], count: allExposures.count)
-        if false {
-            print("Turning on exposure notifications")
-            ExposureFramework.shared.setExposureNotificationEnabledSync(true)
-            print("exposure notifications turned on: \(ExposureFramework.shared.isEnabled)")
-        }
+        
         for pass in 1 ... numberAnalysisPasses {
             print("Performing analysis pass \(pass)")
             let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
@@ -314,31 +339,10 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                     EncountersWithUser.merge(existing: &combinedExposures[i], newAnalysis: exposuresForThisUser)
                 }
             }
-        } // analysis pass
-        print("All analysis passes complete")
-        for i in 0 ..< combinedExposures.count {
-            print("Reanalyzing \(combinedExposures[i].count) exposures for \(allExposures[i].userName)")
-            for j in 0 ..< combinedExposures[i].count {
-                combinedExposures[i][j].reanalyze()
-            }
         }
-
+        combinePasses(&combinedExposures)
         DispatchQueue.main.async {
-            print("Adding experiments results to local store")
-            for i in 0 ..< self.allExposures.count {
-                if self.allExposures[i].analyzed {
-                    print("Already analyzed exposures for \(self.allExposures[i].userName)")
-                    continue
-                }
-                self.allExposures[i].analyzed = true
-                if !combinedExposures[i].isEmpty {
-                    print("Updates exposures for \(self.allExposures[i].userName)")
-                    self.allExposures[i].exposures = combinedExposures[i]
-                }
-            }
-            if let encoded = try? JSONEncoder().encode(self.allExposures) {
-                UserDefaults.standard.set(encoded, forKey: Self.allExposuresKey)
-            }
+            self.updateAllExposures(&combinedExposures)
         }
     }
 
