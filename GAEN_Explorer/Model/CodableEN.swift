@@ -526,12 +526,12 @@ struct CodableExposureConfiguration: Codable {
 
     static func getExposureConfigurationString() -> String {
         """
-        {"minimumRiskScore":5,
+        {"minimumRiskScore":0,
         "attenuationLevelValues":[2,7,1,8, 3,6,5,4],
-        "daysSinceLastExposureLevelValues":[7, 5, 1, 1, 1, 1, 1, 1],
-        "durationLevelValues":[3, 4, 1, 1, 1, 1, 1, 1],
-        "transmissionRiskLevelValues":[5, 4, 1, 1, 1, 1, 1, 1],
-        "attenuationDurationThresholds": [50, 56]}
+        "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "durationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
+        "attenuationDurationThresholds": [53, 66]}
         """
     }
 
