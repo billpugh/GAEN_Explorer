@@ -45,34 +45,34 @@ struct EncountersWithUser: Codable {
         PackagedKeys(userName: userName, dateKeysSent: dateKeysSent, keys: keys)
     }
 
-    func rawAnalysisCSV(_ to: String, _ pair:String, exposureInfo: CodableExposureInfo) -> [String] {
+    func rawAnalysisCSV(_ owner: String, _ pair:String, exposureInfo: CodableExposureInfo) -> [String] {
         (1 ... exposureInfo.rawAnalysis.count).map { pass in
             let ra = exposureInfo.rawAnalysis[pass - 1]
-            return "rawAnalysis, \(userName), \(to), \(pair), \(exposureInfo.day), \(pass),  \(ra.thresholdsCSV),  \(ra.bucketsCSV)"
+            return "rawAnalysis, \(owner), \(userName),  \(pair), \(exposureInfo.day), \(pass),  \(ra.thresholdsCSV),  \(ra.bucketsCSV)"
         }
     }
 
-    func teksCSV(to: String, pair: String) -> [String] {
+    func teksCSV(owner: String, pair: String) -> [String] {
         return keys.map {
-            "tek, \(userName), \(to), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
+            "tek, \(owner), \(userName), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
         }
     }
 
-    func csvFormat(to: String) -> [String] {
-        let pair = [to, userName].sorted().joined(separator: "-")
+    func csvFormat(owner: String) -> [String] {
+        let pair = [owner, userName].sorted().joined(separator: "=")
         return exposures.flatMap { exposureInfo in
             ["""
-            exposure, \(userName), \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
-            exposure, \(userName), \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
+            exposure, \(owner), \(userName),  \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
+            exposure, \(owner), \(userName),  \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
             """]
-                + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
+                + rawAnalysisCSV(owner, pair, exposureInfo: exposureInfo)
 
-            } + teksCSV(to: to, pair: pair)
+            } + teksCSV(owner: owner, pair: pair)
     }
 
     static func csvHeader(_ thresholds: [Int]) -> String {
         let thresholdsHeader = thresholds.map { String($0) }.joined(separator: ", ")
-        return "kind, user, to, pair, when, detail, \(thresholdsHeader)\n"
+        return "kind, owner, from, pair, when, detail, \(thresholdsHeader)\n"
     }
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, experiment: ExperimentSummary? = nil, exposures: [CodableExposureInfo] = []) {
@@ -828,10 +828,10 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
 
         var result = EncountersWithUser.csvHeader(thresholds)
-            + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n") + "\n"
+            + allExposures.flatMap { exposure in exposure.csvFormat(owner: userName) }.joined(separator: "\n") + "\n"
 
         result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap)\n"
-        result += "version, \(userName), \(version), \(build)\n"
+        result += "version, \(userName), \(version), \(build), \(UIDevice.current.systemVersion)\n"
         result += myKeysCSV()
         if let start = experimentStart,
             let ended = experimentEnd {
