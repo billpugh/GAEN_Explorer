@@ -29,6 +29,9 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
         if v == 0 || v == BoundedInt.infinity {
             return v
         }
+        if v == 5 {
+            return 3
+        }
         assert(v % 5 == 0)
         return v - 4
     }
@@ -46,6 +49,10 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
 
     var isLowerBound: Bool {
         ub == BoundedInt.infinity
+    }
+
+    var isUnknown: Bool {
+        lb == 0 && ub == BoundedInt.infinity
     }
 
     init(precise: Int) {
