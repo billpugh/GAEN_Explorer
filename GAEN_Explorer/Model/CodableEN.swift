@@ -158,6 +158,12 @@ struct CodableExposureInfo: Codable {
     }
 
     func csvNumber(_ v: BoundedInt) -> String {
+        if false {
+            if v == 0 {
+                return ""
+            }
+            return v.description
+        }
         return "\(v.ub)"
     }
 
@@ -223,6 +229,9 @@ struct CodableExposureInfo: Codable {
     init(_ info: ENExposureInfo, trueDuration: TimeInterval?, config: CodableExposureConfiguration) {
         self.id = UUID()
         self.date = info.date
+
+        print("ExposureInfo.duration = \(info.duration)")
+        print("ExposureInfo.attenuationDurations = \(info.attenuationDurations)")
 
         self.duration = trueDuration == nil ? BoundedInt(Int(info.duration / 60)) :
             BoundedInt(Int((trueDuration!) / 60), Int((trueDuration! + 180 + 59) / 60))
@@ -371,14 +380,23 @@ struct CodableExposureInfo: Codable {
         let bBucketSum = bBucket.reduce(BoundedInt(0), +)
 
         totalDuration = totalDuration.applyBounds(ub: bBucketSum)
-        let bBucket2: [BoundedInt] = [bBucket[0].intersection(totalDuration - (bBucket[1] + bBucket[2])).applyBounds(ub: totalDuration),
-                                      bBucket[1].intersection(totalDuration - (bBucket[0] + bBucket[2])).applyBounds(ub: totalDuration),
-                                      bBucket[2].intersection(totalDuration - (bBucket[0] + bBucket[1])).applyBounds(ub: totalDuration)]
+        var bBucket2: [BoundedInt] = []
+        for i in 0 ... ra.thresholds.count {
+            var time = BoundedInt(0)
+            for j in 0 ... ra.thresholds.count {
+                if i != j {
+                    time = time + bBucket[j]
+                }
+            }
+            let v = bBucket[i].intersection(totalDuration - time).applyBounds(ub: totalDuration)
+            bBucket2.append(v)
+        }
 
-        update(&durations, dB: ra.thresholds[0], newValue: bBucket2[0])
-        update(&durations, dB: ra.thresholds[1], newValue: (bBucket2[0] + bBucket2[1]).applyBounds(ub: totalDuration))
-        update(&durationsExceeding, dB: ra.thresholds[1], newValue: bBucket2[2])
-        update(&durationsExceeding, dB: ra.thresholds[0], newValue: (bBucket2[1] + bBucket2[2]).applyBounds(ub: totalDuration))
+        for i in 0 ..< ra.thresholds.count {
+            update(&durations, dB: ra.thresholds[i], newValue: bBucket2[0 ... i].reduce(BoundedInt.Zero, +))
+
+            update(&durationsExceeding, dB: ra.thresholds[i], newValue: bBucket2[i + 1 ... ra.thresholds.count].reduce(BoundedInt.Zero, +))
+        }
     }
 
     mutating func reanalyze() {
