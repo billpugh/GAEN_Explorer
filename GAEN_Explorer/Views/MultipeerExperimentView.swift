@@ -158,7 +158,12 @@ struct MultipeerExperimentView: View {
                                 }
                             }
                         }
-                    }) { Text("Delete exposure log") }.disabled(self.framework.exposureLogsErased)
+                    }) { HStack {
+                        if self.framework.exposureLogsErased {
+                            Image(systemName: "checkmark").font(.title)
+                        }
+                        Text("Delete exposure log")
+                    } }.disabled(self.framework.exposureLogsErased)
 
                     Button(action: {
                         self.framework.currentKeys(self.localStore.userName) { _ in
@@ -170,15 +175,18 @@ struct MultipeerExperimentView: View {
                                 self.showingSheetKeysArentNew = true
                             }
                         }
-                    }) {
+                    }) { HStack {
+                        if self.framework.keysAreCurrent && self.framework.exposureLogsErased {
+                            Image(systemName: "checkmark").font(.title)
+                        }
                         Text("Get diagnosis key")
-                    }
-                    .disabled(!self.framework.exposureLogsErased || framework.keysAreCurrent)
-                    .alert(isPresented: $showingSheetKeysArentNew) {
-                        Alert(title: Text("The diagnosis keys aren't new"),
-                              message: Text("The diagnosis keys aren't new, erasing the log must not have worked"),
-                              dismissButton: .default(Text("Got it!")))
-                    }
+                    } }
+                        .disabled(!self.framework.exposureLogsErased || framework.keysAreCurrent)
+                        .alert(isPresented: $showingSheetKeysArentNew) {
+                            Alert(title: Text("The diagnosis keys aren't new"),
+                                  message: Text("The diagnosis keys aren't new, erasing the log must not have worked"),
+                                  dismissButton: .default(Text("Got it!")))
+                        }
 
                     if multipeerService.mode == .host {
                         Button(action: { withAnimation {
