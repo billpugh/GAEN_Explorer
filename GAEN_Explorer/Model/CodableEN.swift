@@ -161,7 +161,7 @@ struct CodableExposureInfo: Codable {
         if v == 0 {
             return ""
         }
-        return v.description
+        return "\(v.ub)"
     }
 
     var sortedThresholds: [Int] {
@@ -397,8 +397,12 @@ struct CodableExposureInfo: Codable {
     }
 
     @discardableResult mutating func update(duration: BoundedInt? = nil, thresholds: [Int], buckets intBuckets: [Int]) -> CodableExposureInfo {
-        self.duration = self.duration.intersectionMaybe(duration)
+        let dduration: BoundedInt =
+            duration != nil ? duration! : BoundedInt(intBuckets[0]) + BoundedInt(intBuckets[1]) + BoundedInt(intBuckets[2])
+
+        self.duration = self.duration.intersectionMaybe(dduration)
         rawAnalysis.append(RawAttenuationData(thresholds: thresholds, bucket: intBuckets))
+
         needsReanalysis = true
         reanalyze()
         return self
