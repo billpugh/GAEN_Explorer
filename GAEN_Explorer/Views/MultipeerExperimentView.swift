@@ -118,7 +118,14 @@ struct MultipeerExperimentView: View {
                             print("showingSheet set to true")
 
                         }) {
-                            Text(resultsExported ? "results exported" : "export results")
+                            if resultsExported {
+                                HStack {
+                                    Image(systemName: "checkmark").font(.title)
+                                    Text("results exported")
+                                }
+                            } else {
+                                Text("export results")
+                            }
                         }
                     }
                     if self.localStore.observedExperimentStatus == .analyzed {
@@ -250,6 +257,7 @@ struct ExperimentSetupView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView { MultipeerExperimentView() }
             .environmentObject(localStore)
+            .environmentObject(ExposureFramework.shared)
             .environmentObject(MultipeerService(ExposureFramework.shared))
             .previewDevice(PreviewDevice(rawValue: "iPhone SE (2nd generation"))
     }
