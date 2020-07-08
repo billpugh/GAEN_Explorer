@@ -822,7 +822,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     }
 
     func csvExport() -> String {
-        var thresholds: [Int] = Set(multipassThresholds).sorted() + [maxAttenuation]
+        var thresholds: [Int] = uniqueSortedThresholds() + [maxAttenuation]
         if let sample = allExposures.first?.exposures.first {
             thresholds = sample.sortedThresholds
         }
