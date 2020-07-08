@@ -15,6 +15,7 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
         self.ub = BoundedInt.infinity
     }
 
+    static let Zero = BoundedInt(0, 0)
     static let unknown = BoundedInt(0, BoundedInt.infinity)
     static let infinity = 999
 
