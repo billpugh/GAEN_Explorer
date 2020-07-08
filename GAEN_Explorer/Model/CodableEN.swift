@@ -158,9 +158,6 @@ struct CodableExposureInfo: Codable {
     }
 
     func csvNumber(_ v: BoundedInt) -> String {
-        if v == 0 {
-            return ""
-        }
         return "\(v.ub)"
     }
 
@@ -371,7 +368,7 @@ struct CodableExposureInfo: Codable {
 
     mutating func incorporateDurations(_ ra: RawAttenuationData) {
         let bBucket = ra.bucket.map { BoundedInt($0) }
-        let bBucketSum = bBucket.reduce( BoundedInt(0), +)
+        let bBucketSum = bBucket.reduce(BoundedInt(0), +)
 
         totalDuration = totalDuration.applyBounds(ub: bBucketSum)
         let bBucket2: [BoundedInt] = [bBucket[0].intersection(totalDuration - (bBucket[1] + bBucket[2])).applyBounds(ub: totalDuration),
@@ -398,7 +395,7 @@ struct CodableExposureInfo: Codable {
     }
 
     @discardableResult mutating func update(duration: BoundedInt? = nil, thresholds: [Int], buckets intBuckets: [Int]) -> CodableExposureInfo {
-        let bucketSum = intBuckets.map { BoundedInt($0)} .reduce(BoundedInt(0),+)
+        let bucketSum = intBuckets.map { BoundedInt($0) }.reduce(BoundedInt(0),+)
         let dduration: BoundedInt =
             duration != nil ? duration! : bucketSum
 

@@ -45,15 +45,15 @@ struct EncountersWithUser: Codable {
         PackagedKeys(userName: userName, dateKeysSent: dateKeysSent, keys: keys)
     }
 
-    func rawAnalysisCSV(_ owner: String, _ pair:String, exposureInfo: CodableExposureInfo) -> [String] {
+    func rawAnalysisCSV(_ owner: String, _ pair: String, exposureInfo: CodableExposureInfo) -> [String] {
         (1 ... exposureInfo.rawAnalysis.count).map { pass in
             let ra = exposureInfo.rawAnalysis[pass - 1]
             return "rawAnalysis, \(owner), \(userName),  \(pair), \(exposureInfo.day), \(pass),  \(ra.thresholdsCSV),  \(ra.bucketsCSV)"
         }
     }
 
-    func teksCSV(owner: String, pair: String) -> [String] {
-        return keys.map {
+    func teksCSV(owner: String, pair _: String) -> [String] {
+        keys.map {
             "tek, \(owner), \(userName), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
         }
     }
@@ -67,7 +67,7 @@ struct EncountersWithUser: Codable {
             """]
                 + rawAnalysisCSV(owner, pair, exposureInfo: exposureInfo)
 
-            } + teksCSV(owner: owner, pair: pair)
+        } + teksCSV(owner: owner, pair: pair)
     }
 
     static func csvHeader(_ thresholds: [Int]) -> String {
