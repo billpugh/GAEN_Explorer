@@ -45,16 +45,16 @@ struct EncountersWithUser: Codable {
         PackagedKeys(userName: userName, dateKeysSent: dateKeysSent, keys: keys)
     }
 
-    func rawAnalysisCSV(_ to: String, _ pair: String, exposureInfo: CodableExposureInfo) -> [String] {
+    func rawAnalysisCSV(_ to: String, _ pair:String, exposureInfo: CodableExposureInfo) -> [String] {
         (1 ... exposureInfo.rawAnalysis.count).map { pass in
             let ra = exposureInfo.rawAnalysis[pass - 1]
-            return "rawAnalysis, \(to), \(pair), \(exposureInfo.day), \(pass), \(ra.thresholdsCSV), \(ra.bucketsCSV)"
+            return "rawAnalysis, \(userName), \(to), \(pair), \(exposureInfo.day), \(pass),  \(ra.thresholdsCSV),  \(ra.bucketsCSV)"
         }
     }
 
-    func teksCSV(_ pair: String) -> [String] {
-        keys.map {
-            "tek, \(userName), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
+    func teksCSV(to: String, pair: String) -> [String] {
+        return keys.map {
+            "tek, \(userName), \(to), \(pair), \($0.rollingStartNumber),  \($0.rollingPeriod), \(exposures.isEmpty ? "unseen" : ""), \($0.keyString)"
         }
     }
 
@@ -62,17 +62,17 @@ struct EncountersWithUser: Codable {
         let pair = [to, userName].sorted().joined(separator: "-")
         return exposures.flatMap { exposureInfo in
             ["""
-            exposure, \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
-            exposure, \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
+            exposure, \(userName), \(to), \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
+            exposure, \(userName), \(to), \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
             """]
                 + rawAnalysisCSV(to, pair, exposureInfo: exposureInfo)
 
-        } + teksCSV(pair)
+            } + teksCSV(to: to, pair: pair)
     }
 
     static func csvHeader(_ thresholds: [Int]) -> String {
         let thresholdsHeader = thresholds.map { String($0) }.joined(separator: ", ")
-        return "kind, user, what, when, detail, \(thresholdsHeader)\n"
+        return "kind, user, to, pair, when, detail, \(thresholdsHeader)\n"
     }
 
     init(packedKeys: PackagedKeys, transmissionRiskLevel: ENRiskLevel, experiment: ExperimentSummary? = nil, exposures: [CodableExposureInfo] = []) {
@@ -289,7 +289,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func updateAllExposures(_ combinedExposures: inout [[CodableExposureInfo]]) {
+    func updateAllExposures(_ combinedExposures: [[CodableExposureInfo]]) {
         print("Adding experiments results to local store")
         for i in 0 ..< allExposures.count {
             if allExposures[i].analyzed {
@@ -307,24 +307,15 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    fileprivate func combinePasses(_ combinedExposures: inout [[CodableExposureInfo]]) {
-        // analysis pass
-        print("All analysis passes complete")
-        for i in 0 ..< combinedExposures.count {
-            print("Reanalyzing \(combinedExposures[i].count) exposures for \(allExposures[i].userName)")
-            for j in 0 ..< combinedExposures[i].count {
-                combinedExposures[i][j].reanalyze()
-            }
-        }
-    }
+    fileprivate func combinePasses(_: inout [[CodableExposureInfo]]) {}
 
     func analyzeExperimentOffMainThread(_ parameters: AnalysisParameters) {
         assert(!Thread.current.isMainThread)
-        assert( ExposureFramework.shared.manager.exposureNotificationEnabled)
+        assert(ExposureFramework.shared.manager.exposureNotificationEnabled)
         let allKeys = allExposures.filter { !$0.analyzed }.flatMap { $0.keys }
         print("AnalyzeExperiment at \(time: Date()) over \(allExposures.count) users, \(allKeys.count) keys")
         var combinedExposures: [[CodableExposureInfo]] = Array(repeating: [], count: allExposures.count)
-        
+
         for pass in 1 ... numberAnalysisPasses {
             print("Performing analysis pass \(pass)")
             let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
@@ -340,9 +331,16 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                 }
             }
         }
-        combinePasses(&combinedExposures)
+        // reanalysis pass
+        print("All analysis passes complete, performing reanalysis")
+        for i in 0 ..< combinedExposures.count {
+            print("Reanalyzing \(combinedExposures[i].count) exposures for \(allExposures[i].userName)")
+            for j in 0 ..< combinedExposures[i].count {
+                combinedExposures[i][j].reanalyze()
+            }
+        }
         DispatchQueue.main.async {
-            self.updateAllExposures(&combinedExposures)
+            self.updateAllExposures(combinedExposures)
         }
     }
 
@@ -832,7 +830,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         var result = EncountersWithUser.csvHeader(thresholds)
             + allExposures.flatMap { exposure in exposure.csvFormat(to: userName) }.joined(separator: "\n") + "\n"
 
-        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap))\n"
+        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap)\n"
         result += "version, \(userName), \(version), \(build)\n"
         result += myKeysCSV()
         if let start = experimentStart,
