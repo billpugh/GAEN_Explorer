@@ -52,13 +52,18 @@ struct ExhaustiveCase {
         }.values.reduce(0,+)
     }
 
+    func durations(gt: Int, leq: Int) -> Int {
+        truth.filter {
+            gt < $0.key && $0.key <= leq
+        }.values.reduce(0,+)
+    }
+
     func getBuckets(thresholds: [Int]) -> [Int] {
-        assert(thresholds.count == 2)
-        return [min(30, durations(dB: thresholds[0])),
-                min(30, truth.filter {
-                    thresholds[0] < $0.key && $0.key <= thresholds[1]
-                }.values.reduce(0,+)),
-                min(30, durations(exceeding: thresholds[1]))]
+        var result: [Int] = []
+        for i in 0 ... thresholds.count {
+            result.append(min(30, durations(gt: i == 0 ? 0 : thresholds[i - 1], leq: i == thresholds.count ? maxAttenuation : thresholds[i])))
+        }
+        return result
     }
 
     func check(listBad: Bool = false) -> Bool {
