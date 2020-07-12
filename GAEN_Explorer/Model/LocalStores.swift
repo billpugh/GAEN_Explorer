@@ -5,6 +5,7 @@
 //  Created by Bill on 5/24/20.
 //
 
+import AVFoundation
 import ExposureNotification
 import Foundation
 import UIKit
@@ -61,12 +62,7 @@ struct EncountersWithUser: Codable {
     func csvFormat(owner: String) -> [String] {
         let pair = [owner, userName].sorted().joined(separator: "=")
         return exposures.flatMap { exposureInfo in
-            ["""
-            exposure, \(owner), \(userName),  \(pair), \(exposureInfo.day), cumulative,  \(exposureInfo.durationsCSV)
-            exposure, \(owner), \(userName),  \(pair), \(exposureInfo.day), inBucket,  \(exposureInfo.timeInBucketCSV)
-            """]
-                + rawAnalysisCSV(owner, pair, exposureInfo: exposureInfo)
-
+            exposureInfo.csvFormat(owner: owner, from: userName, pair: pair)
         } + teksCSV(owner: owner, pair: pair)
     }
 
@@ -167,6 +163,11 @@ let relativeDateFormatter: DateFormatter = makeDateFormatter {
 
 let timeFormatter: DateFormatter = makeDateFormatter {
     $0.timeStyle = .short
+    return $0
+}
+
+let timeFormatterLong: DateFormatter = makeDateFormatter {
+    $0.timeStyle = .long
     return $0
 }
 
@@ -444,7 +445,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         if measureMotions {
             SensorFusion.shared.startAccel()
         }
+        AudioServicesPlayAlertSound(SystemSoundID(1002))
         print("Launching experiment from \(experimentStatus)")
+
         assert(experimentStatus == .none)
         experimentStatus = .launching
         if let experimentEnd = experimentEnd {
@@ -468,7 +471,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case .running, .analyzing:
             assert(false)
         }
-
+        AudioServicesPlayAlertSound(SystemSoundID(1113))
         startExperimentTimer?.cancel()
         startExperimentTimer = nil
         diary = []
@@ -500,7 +503,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func endScanningForExperiment(_ framework: ExposureFramework) {
         trackThread()
-
+        AudioServicesPlayAlertSound(SystemSoundID(1114))
         if experimentStatus == .analyzing || experimentStatus == .analyzed {
             print("Experiment already analyzed")
             return
@@ -521,7 +524,6 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                                                 trueDuration: duration,
                                                 wasEnabled: true)
             LocalStore.shared.analyzeExperiment(parameters) // done asynchronously
-            experimentStatus = .analyzed
             saveExperimentalResults(framework) // currently no-op
         }
         if measureMotions {
