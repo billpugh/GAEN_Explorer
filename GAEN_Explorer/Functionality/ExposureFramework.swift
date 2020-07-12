@@ -457,6 +457,9 @@ class ExposureFramework: ObservableObject {
                 semaphore.signal()
                 return
             }
+            if LocalStore.shared.experimentStatus == .analyzing {
+                LocalStore.shared.experimentStatus = .analyzed
+            }
             if summary?.matchedKeyCount == 0 {
                 print("No keys matched, skipping getExposureInfo")
                 result = []
@@ -489,7 +492,7 @@ class ExposureFramework: ObservableObject {
 
     func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration, block: @escaping ([CodableExposureInfo]?, Error?) -> Void) throws {
         let URLs = try getURLs(diagnosisKeys: keys)
-        print("Calling detect exposures with \(keys.count) keys")
+        print("Calling  detect exposures with \(keys.count) keys")
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         keys.forEach { key in
