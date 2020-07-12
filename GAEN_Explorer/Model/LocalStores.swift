@@ -440,12 +440,14 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     var startExperimentTimer: DispatchWorkItem?
     var endExperimentTimer: DispatchWorkItem?
-    func launchExperiment(_ framework: ExposureFramework) {
+    func launchExperiment(host: Bool = false, _ framework: ExposureFramework) {
         trackThread()
         if measureMotions {
             SensorFusion.shared.startAccel()
         }
-        AudioServicesPlayAlertSound(SystemSoundID(1002))
+        if (!host) {
+            AudioServicesPlayAlertSound(SystemSoundID(1002))
+        }
         print("Launching experiment from \(experimentStatus)")
 
         assert(experimentStatus == .none)
