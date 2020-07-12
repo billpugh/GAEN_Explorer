@@ -23,18 +23,15 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
         if v == 0 || v == BoundedInt.infinity {
             return v
         }
-        return (v + 4) / 5 * 5
+        return v + 2
     }
 
     static func unrounded(_ v: Int) -> Int {
         if v == 0 || v == BoundedInt.infinity {
             return v
         }
-        if v == 5 {
-            return 3
-        }
-        assert(v % 5 == 0)
-        return v - 4
+
+        return max(1, v - 2)
     }
 
     let preciseLB: Int
@@ -152,6 +149,18 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
     //        return self
     //    }
 
+    func minimum(_ rhs: BoundedInt) -> BoundedInt {
+        let ub = min(self.ub, rhs.ub)
+        let lb = max(preciseLB, rhs.preciseLB)
+        if lb <= ub {
+            return BoundedInt(lb, ub)
+        }
+        if self.ub < rhs.ub {
+            return self
+        }
+        return rhs
+    }
+
     func intersection(_ rhsMaybe: BoundedInt?) -> BoundedInt {
         guard let rhs = rhsMaybe else {
             return self
@@ -171,7 +180,7 @@ struct BoundedInt: Equatable, ExpressibleByIntegerLiteral, CustomStringConvertib
             }
             let result = BoundedInt(lb, max(self.ub, rhs.ub))
             print("3 Must have grown \(self) & \(rhs) -> \(result)")
-            Thread.callStackSymbols.forEach { print($0) }
+            print(Thread.callStackSymbols[1])
             return result
         }
         return BoundedInt(lb, ub)
