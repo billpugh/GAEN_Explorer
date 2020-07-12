@@ -375,6 +375,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     @Published
     var experimentEnd: Date?
+    
+        @Published var currentTime = Date()
+    var timer: Timer? = nil
 
     var experimentDescription: String = ""
 
@@ -440,6 +443,16 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     var startExperimentTimer: DispatchWorkItem?
     var endExperimentTimer: DispatchWorkItem?
+    func startUpdatingCurrentTime() {
+        timer =  Timer.scheduledTimer(withTimeInterval: 1, repeats: true,
+                                      block: {_ in
+                                    self.currentTime = Date()
+                                  })
+    }
+    func endUpdatingCurrentTime() {
+        timer?.invalidate()
+        timer = nil
+       }
     func launchExperiment(host: Bool = false, _ framework: ExposureFramework) {
         trackThread()
         if measureMotions {
@@ -505,6 +518,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func endScanningForExperiment(_ framework: ExposureFramework) {
         trackThread()
+        endUpdatingCurrentTime()
         AudioServicesPlayAlertSound(SystemSoundID(1114))
         if experimentStatus == .analyzing || experimentStatus == .analyzed {
             print("Experiment already analyzed")
@@ -547,7 +561,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func resetExperiment(_: ExposureFramework) {
         trackThread()
-
+        endUpdatingCurrentTime()
         startExperimentTimer?.cancel()
         startExperimentTimer = nil
         endExperimentTimer?.cancel()

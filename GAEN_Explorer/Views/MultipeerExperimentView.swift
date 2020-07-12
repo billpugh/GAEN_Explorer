@@ -27,8 +27,11 @@ struct MultipeerExperimentView: View {
     @State var becomeActiveObserver: NSObjectProtocol? = nil
     @State var showingSheetToShareExposures: Bool = false
     @State var showingAlertToLeaveExperiment: Bool = false
+    @State var showingAlertToFinishExperiment: Bool = false
+    
     @State var resultsExported: Bool = false
     @State var showingSheetKeysArentNew: Bool = false
+
 
     var canBeHost: Bool {
         print("can be host: \(!declinedHost) \(multipeerService.mode == .joiner) \(framework.exposureLogsErased) \(framework.keysAreCurrent) \(localStore.observedExperimentStatus == .none) \(multipeerService.peers.isEmpty)")
@@ -51,10 +54,10 @@ struct MultipeerExperimentView: View {
         multipeerService.mode = .host
     }
 
-    func updateView() {
+    func systemsGo() {
         withAnimation {
             self.localStore.experimentStatus = .none
-            self.multipeerService.mightBeReady()
+            self.multipeerService.findPeers()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
             self.askHost()
@@ -70,10 +73,16 @@ struct MultipeerExperimentView: View {
         multipeerService.collectKeys()
         let start = Date(timeIntervalSinceNow: 20)
         localStore.experimentStart = start
-        localStore.experimentEnd = nextMinute(after: start, andMinutes: localStore.experimentDurationMinutes)
+        localStore.experimentEnd = start.addingTimeInterval(60.0 * Double(localStore.experimentDurationMinutes))
         multipeerService.sendStart()
-        localStore.launchExperiment(framework)
+        localStore.launchExperiment(host:true, framework)
         resultsExported = false
+    }
+
+    fileprivate func finishExperiment() {
+        localStore.viewShown = ""
+        localStore.observedExperimentStatus = .none
+        multipeerService.mode = .off
     }
 
     var body: some View {
@@ -107,8 +116,9 @@ struct MultipeerExperimentView: View {
             }.disabled(multipeerService.mode != .host)
             if self.localStore.observedExperimentStatus != .none {
                 Section(header: Text("Experiment: \(String(describing: self.localStore.observedExperimentStatus))").font(.title)) {
-                    Text("starts at \(timeFormatter.string(from: localStore.experimentStart!))")
-                    Text("ends at \(timeFormatter.string(from: localStore.experimentEnd!))")
+                    Text("now at \(timeFormatterLong.string(from: localStore.currentTime))")
+                    Text("starts at \(timeFormatterLong.string(from: localStore.experimentStart!))")
+                    Text("ends at \(timeFormatterLong.string(from: localStore.experimentEnd!))")
 
                     if self.localStore.observedExperimentStatus == .analyzed {
                         Button(action: {
@@ -129,11 +139,17 @@ struct MultipeerExperimentView: View {
                         }
                     }
                     if self.localStore.observedExperimentStatus == .analyzed {
-                        Button(action: { self.localStore.viewShown = ""
-                            self.localStore.observedExperimentStatus = .none
-                            self.multipeerService.mode = .off
+                        Button(action: { if self.resultsExported {
+                            self.finishExperiment()
+                            } else {
+                                self.showingAlertToFinishExperiment = true
+                            }
                         }) {
                             Text("finish experiment")
+                        }.alert(isPresented: $showingAlertToFinishExperiment) {
+                            Alert(title: Text("Finish without exporting experiment?"), message: Text("Do you wish to finish this experiment without exporting the results?"), primaryButton: .destructive(Text("Yes")) {
+                                self.finishExperiment()
+                                }, secondaryButton: .cancel())
                         }
                     }
                     if self.localStore.observedExperimentStatus != .analyzed {
@@ -170,7 +186,7 @@ struct MultipeerExperimentView: View {
                             let keysNew = self.framework.verifyKeysAreNew()
                             print("after calling currentKeys, \(self.framework.keysAreCurrent)) \(keysNew)")
                             if keysNew {
-                                self.updateView()
+                                self.systemsGo()
                             } else {
                                 self.showingSheetKeysArentNew = true
                             }
@@ -194,8 +210,8 @@ struct MultipeerExperimentView: View {
                             self.launchExperiment()
                             } }) {
                             Text("Start experiment")
-                        }
-                    } else {
+                        }.disabled(multipeerService.peers.isEmpty)
+                    } else if multipeerService.mode == .joiner {
                         Text("wait for experiment to be started")
                     }
                 }
@@ -241,13 +257,16 @@ struct MultipeerExperimentView: View {
             }
 
             .onAppear {
-                self.updateView()
                 UIApplication.shared.isIdleTimerDisabled = true
                 let center = NotificationCenter.default
                 let mainQueue = OperationQueue.main
                 self.becomeActiveObserver = center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: mainQueue) { _ in
                     print("become active")
-                    self.updateView()
+                    if self.canBeHost {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
+                            self.askHost()
+                        }
+                    }
                 }
             }.onDisappear {
                 if let o = self.becomeActiveObserver {
