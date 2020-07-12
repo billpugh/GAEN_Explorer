@@ -111,10 +111,10 @@ struct CodableExposureInfo: Codable {
             return BoundedInt(0)
         }
         if let v = durations[atNoMoreThan] {
-            return v.applyBounds( ub: totalDuration)
+            return v.applyBounds(ub: totalDuration)
         }
         let db = durations.keys.filter { $0 <= atNoMoreThan }.sorted().last!
-        return durations[db]!.asLowerBound().applyBounds( ub: totalDuration)
+        return durations[db]!.asLowerBound().applyBounds(ub: totalDuration)
     }
 
     func totalTime(exceeding: Int) -> BoundedInt {
@@ -193,7 +193,7 @@ struct CodableExposureInfo: Codable {
         let cumulativeDurationFromBelow = totalTime(atNoMoreThan: dB)
         let cumulativeDurationFromAbove = totalDuration - totalTime(exceeding: dB)
         print("cumulativeDuration( \(dB) ) = \(cumulativeDurationFromBelow), \(cumulativeDurationFromAbove)")
-        return cumulativeDurationFromBelow.intersection(cumulativeDurationFromAbove).applyBounds( ub: totalDuration)
+        return cumulativeDurationFromBelow.intersection(cumulativeDurationFromAbove).applyBounds(ub: totalDuration)
     }
 
     func thresholdData(dB: Int) -> ThresholdData {
@@ -455,7 +455,7 @@ struct CodableExposureInfo: Codable {
         var result: [Int] = []
         inBucket.sorted { $0.key < $1.key }.forEach { dB, time in
             residue = Double(time)
-            while residue > threshold  && dB < maxAttenuation {
+            while residue > threshold, dB < maxAttenuation {
                 residue -= scanQuantum
                 result.append(dB)
             }
@@ -466,7 +466,7 @@ struct CodableExposureInfo: Codable {
     func csvFormat(owner: String, from userName: String, pair: String) -> [String] {
         let timeInBuckets = Dictionary(uniqueKeysWithValues: sortedThresholds.map { ($0, timeInBucket(upperBound: $0).ub) }).sorted { $0.key < $1.key }
         let timeLeqBuckets = Dictionary(uniqueKeysWithValues: sortedThresholds.map { ($0, cumulativeDuration($0).ub) }).sorted { $0.key < $1.key }
-              
+
         let result =
             ["""
             exposure, \(owner), \(userName),  \(pair), \(day), cumulative,  \(durationsCSV)
@@ -477,7 +477,7 @@ struct CodableExposureInfo: Codable {
                 return "rawAnalysis, \(owner), \(userName),  \(pair), \(day), \(pass),  \(ra.thresholdsCSV),  \(ra.bucketsCSV)"
             }
         let scans: [Int] = CodableExposureInfo.quantizeScans(timeInBuckets)
-         let leqsCSV = timeLeqBuckets.map { "leq, \(owner), \(userName), \(pair), \(day),  \($0), \($1)" }
+        let leqsCSV = timeLeqBuckets.map { "leq, \(owner), \(userName), \(pair), \(day),  \($0), \($1)" }
         let scanCSV = scans.map { "scan, \(owner), \(userName), \(pair), \(day),  \($0)" }
         return result + leqsCSV + scanCSV
     }
