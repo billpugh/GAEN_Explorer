@@ -272,9 +272,9 @@ class MultipeerService: NSObject, ObservableObject {
         let message = MultipeerExperimentMessage(startAt: starts, endAt: ends)
         let result = send(message)
         if result {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 self.send(message)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     self.mode = .off
                 }
             }

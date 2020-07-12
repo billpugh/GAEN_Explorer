@@ -375,9 +375,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     @Published
     var experimentEnd: Date?
-    
-        @Published var currentTime = Date()
-    var timer: Timer? = nil
+
+    @Published var currentTime = Date()
+    var timer: Timer?
 
     var experimentDescription: String = ""
 
@@ -444,21 +444,25 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     var startExperimentTimer: DispatchWorkItem?
     var endExperimentTimer: DispatchWorkItem?
     func startUpdatingCurrentTime() {
-        timer =  Timer.scheduledTimer(withTimeInterval: 1, repeats: true,
-                                      block: {_ in
-                                    self.currentTime = Date()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true,
+                                     block: { _ in
+                                         self.currentTime = Date()
                                   })
     }
+
     func endUpdatingCurrentTime() {
         timer?.invalidate()
         timer = nil
-       }
+    }
+
     func launchExperiment(host: Bool = false, _ framework: ExposureFramework) {
         trackThread()
+        self.currentTime = Date()
+        startUpdatingCurrentTime()
         if measureMotions {
             SensorFusion.shared.startAccel()
         }
-        if (!host) {
+        if !host {
             AudioServicesPlayAlertSound(SystemSoundID(1002))
         }
         print("Launching experiment from \(experimentStatus)")

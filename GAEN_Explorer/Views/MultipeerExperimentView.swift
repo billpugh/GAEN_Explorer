@@ -28,10 +28,9 @@ struct MultipeerExperimentView: View {
     @State var showingSheetToShareExposures: Bool = false
     @State var showingAlertToLeaveExperiment: Bool = false
     @State var showingAlertToFinishExperiment: Bool = false
-    
+
     @State var resultsExported: Bool = false
     @State var showingSheetKeysArentNew: Bool = false
-
 
     var canBeHost: Bool {
         print("can be host: \(!declinedHost) \(multipeerService.mode == .joiner) \(framework.exposureLogsErased) \(framework.keysAreCurrent) \(localStore.observedExperimentStatus == .none) \(multipeerService.peers.isEmpty)")
@@ -71,11 +70,11 @@ struct MultipeerExperimentView: View {
     func launchExperiment() {
         experimentInitiated = true
         multipeerService.collectKeys()
-        let start = Date(timeIntervalSinceNow: 20)
+        let start = Date(timeIntervalSinceNow: 10)
         localStore.experimentStart = start
         localStore.experimentEnd = start.addingTimeInterval(60.0 * Double(localStore.experimentDurationMinutes))
         multipeerService.sendStart()
-        localStore.launchExperiment(host:true, framework)
+        localStore.launchExperiment(host: true, framework)
         resultsExported = false
     }
 
@@ -116,7 +115,9 @@ struct MultipeerExperimentView: View {
             }.disabled(multipeerService.mode != .host)
             if self.localStore.observedExperimentStatus != .none {
                 Section(header: Text("Experiment: \(String(describing: self.localStore.observedExperimentStatus))").font(.title)) {
-                    Text("now at \(timeFormatterLong.string(from: localStore.currentTime))")
+                    if self.localStore.observedExperimentStatus == .launching || self.localStore.observedExperimentStatus == .running {
+                        Text("now at \(timeFormatterLong.string(from: localStore.currentTime))")
+                    }
                     Text("starts at \(timeFormatterLong.string(from: localStore.experimentStart!))")
                     Text("ends at \(timeFormatterLong.string(from: localStore.experimentEnd!))")
 
