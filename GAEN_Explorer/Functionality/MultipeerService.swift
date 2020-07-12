@@ -203,24 +203,12 @@ class MultipeerService: NSObject, ObservableObject {
         self.mode = .off
     }
 
-    var wasReady = false
     var isReady: Bool {
         framework.exposureLogsErased && framework.keysAreCurrent
     }
 
-    func mightBeReady() {
-        let ready = isReady
-        if ready == wasReady {
-            return
-        }
-        if !ready {
-            wasReady = ready
-            return
-        }
+    func findPeers() {
         mode = .joiner
-
-        wasReady = ready
-        sendReady()
     }
 
     func collectKeys() {
