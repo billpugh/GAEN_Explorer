@@ -197,13 +197,10 @@ extension String.StringInterpolation {
 // MARK: - LocalStore
 
 struct AnalysisParameters {
-    let doMaxAnalysis: Bool
     let trueDuration: TimeInterval?
     let wasEnabled: Bool
-    init(doMaxAnalysis: Bool = false,
-         trueDuration: TimeInterval? = nil,
+    init(trueDuration: TimeInterval? = nil,
          wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled) {
-        self.doMaxAnalysis = doMaxAnalysis
         self.trueDuration = trueDuration
         self.wasEnabled = wasEnabled
     }
@@ -288,9 +285,14 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         return msg.joined(separator: ", ")
     }
 
-    func analyzeExperiment(_ parameters: AnalysisParameters = AnalysisParameters()) {
-        analysisQueue.async {
-            self.analyzeExperimentOffMainThread(parameters)
+    func analyzeExperiment(trueDuration: TimeInterval? = nil) {
+        let parameters = AnalysisParameters(trueDuration: trueDuration,
+                                            wasEnabled: ExposureFramework.shared.isEnabled)
+        ExposureFramework.shared.setExposureNotificationEnabled(true) { _ in
+            self.experimentStatus = .analyzing
+            analysisQueue.async {
+                self.analyzeExperimentOffMainThread(parameters)
+            }
         }
     }
 
@@ -569,21 +571,10 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func analyzeExperiment(_ framework: ExposureFramework) {
-        framework.setExposureNotificationEnabled(true) { _ in
-            self.experimentStatus = .analyzing
-            let duration = self.experimentEnd!.timeIntervalSince(self.experimentStart!)
-            print("Experiment duration: \(duration)")
-            let parameters = AnalysisParameters(doMaxAnalysis: true,
-                                                trueDuration: duration,
-                                                wasEnabled: true)
-            LocalStore.shared.analyzeExperiment(parameters) // done asynchronously
-            self.saveExperimentalResults(framework) // currently no-op
-        }
-    }
-
-    func saveExperimentalResults(_: ExposureFramework) {
-        print("save experimental results \(time: Date())")
+    func analyzeExperiment(_: ExposureFramework) {
+        let duration = experimentEnd!.timeIntervalSince(experimentStart!)
+        print("Experiment duration: \(duration)")
+        LocalStore.shared.analyzeExperiment(trueDuration: duration) // done asynchronously
     }
 
     func resetExperiment(_: ExposureFramework) {
