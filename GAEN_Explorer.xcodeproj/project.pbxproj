@@ -33,6 +33,7 @@
 		16A4D83C246C902800A081EF /* keys_44.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D838246C902800A081EF /* keys_44.png */; };
 		16A4D83D246C902800A081EF /* keys_22.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D839246C902800A081EF /* keys_22.png */; };
 		16A4D83E246C902800A081EF /* keys_320.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D83A246C902800A081EF /* keys_320.png */; };
+		16AA7CE624BBDBF70078EF02 /* Reachability in Frameworks */ = {isa = PBXBuildFile; productRef = 16AA7CE524BBDBF70078EF02 /* Reachability */; };
 		16AB372C24A18B520095E568 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AB372B24A18B520095E568 /* MultipeerService.swift */; };
 		16B4184F24773C670054D622 /* GAEN_Explorer.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 164D16E8246A111700267376 /* GAEN_Explorer.entitlements */; };
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
@@ -118,6 +119,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				164D16EB246A112600267376 /* ExposureNotification.framework in Frameworks */,
+				16AA7CE624BBDBF70078EF02 /* Reachability in Frameworks */,
 				165CBABE249EF25C009DFB7A /* Grid in Frameworks */,
 				164D16EF246A116F00267376 /* SwiftProtobuf in Frameworks */,
 			);
@@ -282,6 +284,7 @@
 			packageProductDependencies = (
 				164D16EE246A116F00267376 /* SwiftProtobuf */,
 				165CBABD249EF25C009DFB7A /* Grid */,
+				16AA7CE524BBDBF70078EF02 /* Reachability */,
 			);
 			productName = Test1;
 			productReference = 164D16D1246A10D800267376 /* GAEN Explorer.app */;
@@ -336,6 +339,7 @@
 			packageReferences = (
 				164D16ED246A116F00267376 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
 				165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */,
+				16AA7CE424BBDBF70078EF02 /* XCRemoteSwiftPackageReference "Reachability" */,
 			);
 			productRefGroup = 164D16D2246A10D800267376 /* Products */;
 			projectDirPath = "";
@@ -724,6 +728,14 @@
 				minimumVersion = 1.0.4;
 			};
 		};
+		16AA7CE424BBDBF70078EF02 /* XCRemoteSwiftPackageReference "Reachability" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ashleymills/Reachability.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -736,6 +748,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */;
 			productName = Grid;
+		};
+		16AA7CE524BBDBF70078EF02 /* Reachability */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16AA7CE424BBDBF70078EF02 /* XCRemoteSwiftPackageReference "Reachability" */;
+			productName = Reachability;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
