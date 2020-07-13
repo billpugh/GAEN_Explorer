@@ -457,9 +457,7 @@ class ExposureFramework: ObservableObject {
                 semaphore.signal()
                 return
             }
-            if LocalStore.shared.experimentStatus == .analyzing {
-                LocalStore.shared.experimentStatus = .analyzed
-            }
+
             if summary?.matchedKeyCount == 0 {
                 print("No keys matched, skipping getExposureInfo")
                 result = []

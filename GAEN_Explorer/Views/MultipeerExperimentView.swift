@@ -28,7 +28,7 @@ struct MultipeerExperimentView: View {
     @State var showingSheetToShareExposures: Bool = false
     @State var showingAlertToLeaveExperiment: Bool = false
     @State var showingAlertToFinishExperiment: Bool = false
-
+    @State var delayedLaunch: Bool = false
     @State var resultsExported: Bool = false
     @State var showingSheetKeysArentNew: Bool = false
 
@@ -70,7 +70,8 @@ struct MultipeerExperimentView: View {
     func launchExperiment() {
         experimentInitiated = true
         multipeerService.collectKeys()
-        let start = Date(timeIntervalSinceNow: 10)
+        let delay = delayedLaunch ? 120.0 : 10.0
+        let start = Date(timeIntervalSinceNow: delay)
         localStore.experimentStart = start
         localStore.experimentEnd = start.addingTimeInterval(60.0 * Double(localStore.experimentDurationMinutes))
         multipeerService.sendStart()
@@ -101,6 +102,11 @@ struct MultipeerExperimentView: View {
                     Text("Duration \(self.localStore.experimentDurationMinutes) minutes")
                 }
 
+                if multipeerService.mode == .host {
+                    Toggle(isOn: $delayedLaunch) {
+                        Text("2 minute launch delay")
+                    }
+                }
                 HStack(spacing: 10) {
                     Text(framework.observedIsEnabled ? "Scanning" : "Not scanning")
                     Text("\(multipeerService.mode.rawValue)")
@@ -121,6 +127,13 @@ struct MultipeerExperimentView: View {
                     Text("starts at \(timeFormatterLong.string(from: localStore.experimentStart!))")
                     Text("ends at \(timeFormatterLong.string(from: localStore.experimentEnd!))")
 
+                    if self.localStore.observedExperimentStatus == .needsAnalysis {
+                        Button(action: {
+                            self.localStore.analyzeExperiment(self.framework)
+                        }) {
+                            Text(localStore.reachabilityConnection ? "perform analysis" : "analysis needs Internet connection")
+                        }.disabled(!localStore.reachabilityConnection)
+                    }
                     if self.localStore.observedExperimentStatus == .analyzed {
                         Button(action: {
                             self.localStore.exportExposuresToURL()

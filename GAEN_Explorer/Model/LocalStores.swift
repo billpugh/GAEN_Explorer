@@ -8,6 +8,7 @@
 import AVFoundation
 import ExposureNotification
 import Foundation
+import Reachability
 import UIKit
 
 struct PackagedKeys: Codable {
@@ -242,6 +243,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Analysis
 
+    var reachability: Reachability
+    @Published
+    var reachabilityConnection: Bool = false
     @Published
     var positions: [String: Int] = [:]
 
@@ -342,6 +346,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
         DispatchQueue.main.async {
             self.updateAllExposures(combinedExposures)
+            if LocalStore.shared.experimentStatus == .analyzing {
+                LocalStore.shared.experimentStatus = .analyzed
+            }
         }
     }
 
@@ -388,6 +395,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case none
         case launching
         case running
+        case needsAnalysis
         case analyzing
         case analyzed
     }
@@ -415,6 +423,8 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case .none: return nil
         case .running:
             return "Experiment started \(time: experimentStart!)"
+        case .needsAnalysis:
+            return "Scanning ended at \(time: experimentEnd!)), needs analysis"
         case .analyzing:
             return "Scanning ended at \(time: experimentEnd!))"
         case .launching:
@@ -457,7 +467,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     func launchExperiment(host: Bool = false, _ framework: ExposureFramework) {
         trackThread()
-        self.currentTime = Date()
+        currentTime = Date()
         startUpdatingCurrentTime()
         if measureMotions {
             SensorFusion.shared.startAccel()
@@ -487,7 +497,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             experimentStart = Date()
         case .launching:
             print("Experiment moving from launched to started")
-        case .running, .analyzing:
+        default:
             assert(false)
         }
         AudioServicesPlayAlertSound(SystemSoundID(1113))
@@ -531,20 +541,20 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         assert(experimentStatus == .running)
         endExperimentTimer?.cancel()
         endExperimentTimer = nil
-        experimentStatus = .analyzing
+
         addDiaryEntry(.endExperiment)
         if experimentEnd == nil {
             experimentEnd = Date()
         }
         notificationCenter.removeAllPendingNotificationRequests()
-        if haveKeysFromOthers {
-            let duration = experimentEnd!.timeIntervalSince(experimentStart!)
-            print("Experiment duration: \(duration)")
-            let parameters = AnalysisParameters(doMaxAnalysis: true,
-                                                trueDuration: duration,
-                                                wasEnabled: true)
-            LocalStore.shared.analyzeExperiment(parameters) // done asynchronously
-            saveExperimentalResults(framework) // currently no-op
+        print("Asking for connection status")
+
+        if haveKeysFromOthers, reachabilityConnection {
+            analyzeExperiment(framework)
+        } else {
+            print("no connectivity; turning off scanning")
+            experimentStatus = .needsAnalysis
+            framework.isEnabled = false
         }
         if measureMotions {
             SensorFusion.shared.getSensorData(from: experimentStart!, to: experimentEnd!) {
@@ -556,6 +566,19 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                     self.diary.sort(by: { $0.at < $1.at })
                 }
             }
+        }
+    }
+
+    func analyzeExperiment(_ framework: ExposureFramework) {
+        framework.setExposureNotificationEnabled(true) { _ in
+            self.experimentStatus = .analyzing
+            let duration = self.experimentEnd!.timeIntervalSince(self.experimentStart!)
+            print("Experiment duration: \(duration)")
+            let parameters = AnalysisParameters(doMaxAnalysis: true,
+                                                trueDuration: duration,
+                                                wasEnabled: true)
+            LocalStore.shared.analyzeExperiment(parameters) // done asynchronously
+            self.saveExperimentalResults(framework) // currently no-op
         }
     }
 
@@ -728,6 +751,15 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         self.allExposures = testData
 
         self.diary = diary
+        self.reachability = try! Reachability(hostname: "apple.com")
+        try! reachability.startNotifier()
+        super.init()
+        reachability.whenReachable = { _ in
+            self.reachabilityConnection = true
+        }
+        reachability.whenUnreachable = { _ in
+            self.reachabilityConnection = false
+        }
     }
 
     override init() {
@@ -751,7 +783,16 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                 print("mismatched count \(loadedExposures.count) \(loadedExposures.count)")
             }
         }
+        self.reachability = try! Reachability(hostname: "apple.com")
+        try! reachability.startNotifier()
+
         super.init()
+        reachability.whenReachable = { _ in
+            self.reachabilityConnection = true
+        }
+        reachability.whenUnreachable = { _ in
+            self.reachabilityConnection = false
+        }
         registerLocalNotification()
     }
 
