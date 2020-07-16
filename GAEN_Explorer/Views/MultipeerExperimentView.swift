@@ -122,7 +122,7 @@ struct MultipeerExperimentView: View {
             if self.localStore.observedExperimentStatus != .none {
                 Section(header: Text("Experiment: \(String(describing: self.localStore.observedExperimentStatus))").font(.title)) {
                     if self.localStore.observedExperimentStatus == .launching || self.localStore.observedExperimentStatus == .running {
-                        Text("now at \(timeFormatterLong.string(from: localStore.currentTime))")
+                        Text("currently \(timeFormatterLong.string(from: localStore.currentTime))")
                     }
                     Text("starts at \(timeFormatterLong.string(from: localStore.experimentStart!))")
                     Text("ends at \(timeFormatterLong.string(from: localStore.experimentEnd!))")
