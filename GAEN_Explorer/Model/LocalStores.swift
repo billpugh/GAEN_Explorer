@@ -426,9 +426,15 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         case .running:
             return "Experiment started \(time: experimentStart!)"
         case .needsAnalysis:
-            return "Scanning ended at \(time: experimentEnd!)), needs analysis"
+            if let end = experimentEnd {
+                return "Scanning ended at \(time: end)), needs analysis"
+            }
+            return "Needs analysis"
         case .analyzing:
-            return "Scanning ended at \(time: experimentEnd!))"
+            if let end = experimentEnd {
+                return "Scanning ended at \(time: end), analyzing"
+            }
+            return "Analyzing"
         case .launching:
             return "Experiment starts at \(time: experimentStart!)"
         case .analyzed:
