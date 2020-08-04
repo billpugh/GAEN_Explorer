@@ -49,45 +49,48 @@ enum SensorReading {
     case horizontal(HorizontalMode)
 }
 
-
-struct AccumulatingAngle  {
-
+struct AccumulatingAngle {
     var count: Int = 0
 
-    var x : Double = 0.0
-    var y : Double = 0.0
-    var lastAngle : Double
-    
-    init(_ count: Int = 0, _ x : Double = 0.0, _ y : Double = 0.0, last : Double = .nan) {
+    var x: Double = 0.0
+    var y: Double = 0.0
+    var lastAngle: Double
+
+    init(_ count: Int = 0, _ x: Double = 0.0, _ y: Double = 0.0, last: Double = .nan) {
         self.count = count
         self.x = x
         self.y = y
         self.lastAngle = last
     }
-    
+
     func add(_ radians: Double) -> AccumulatingAngle {
-        return AccumulatingAngle(count+1, x+cos(radians), y+sin(radians), last: radians)
+        AccumulatingAngle(count + 1, x + cos(radians), y + sin(radians), last: radians)
     }
-    func add(degrees: Double) -> AccumulatingAngle  {
-        return add(Double.pi*degrees/180.0)
+
+    func add(degrees: Double) -> AccumulatingAngle {
+        add(Double.pi * degrees / 180.0)
     }
+
     var average: Double {
         if count == 0 { return .nan }
-        if x == 0 && y == 0 { return .nan }
-        return atan2(y,x)
+        if x == 0, y == 0 { return .nan }
+        return atan2(y, x)
     }
+
     var degrees: Int {
         let v = average
-        if (v.isNaN) { return 0 }
+        if v.isNaN { return 0 }
         return Int(180 * v / Double.pi)
     }
+
     var lastDegrees: Int {
         let v = lastAngle
-        if (v.isNaN) { return 0 }
+        if v.isNaN { return 0 }
         return Int(180 * v / Double.pi)
     }
+
     var confidence: Double {
-        return sqrt(x*x + y*y)/Double(count)
+        sqrt(x * x + y * y) / Double(count)
     }
 }
 
@@ -159,6 +162,7 @@ enum PhoneOrientation {
     case portraintUpsidedown
     case unknown
 }
+
 struct HoritzontalState {
     let at: Date
     let status: HorizontalMode
@@ -206,22 +210,24 @@ class SensorFusion {
     }
 
     func startMotionCapture() {
-        self.motionManager.deviceMotionUpdateInterval = 1.0
-        self.motionManager.startDeviceMotionUpdates(using: .xMagneticNorthZVertical,
-                                                    to: self.motionQueue)  { (data, error) in
-                                                        // Make sure the data is valid before accessing it.
-                                                        if let validData = data {
-                                                            // Get the attitude relative to the magnetic north reference frame.
-                                                            self.roll = self.roll.add(validData.attitude.roll)
-                                                            self.pitch = self.pitch.add(validData.attitude.pitch)
-                                                            self.yaw = self.yaw.add(validData.attitude.yaw)
-                                                        }
+        motionManager.deviceMotionUpdateInterval = 1.0
+        motionManager.startDeviceMotionUpdates(using: .xMagneticNorthZVertical,
+                                               to: motionQueue) { data, _ in
+            // Make sure the data is valid before accessing it.
+            if let validData = data {
+                // Get the attitude relative to the magnetic north reference frame.
+                self.roll = self.roll.add(validData.attitude.roll)
+                self.pitch = self.pitch.add(validData.attitude.pitch)
+                self.yaw = self.yaw.add(validData.attitude.yaw)
+            }
         }
         startAccel()
     }
+
     func stopMotionCapture() {
-           self.motionManager.stopDeviceMotionUpdates()
-       }
+        motionManager.stopDeviceMotionUpdates()
+    }
+
     func startAccel() {
         if CMSensorRecorder.isAccelerometerRecordingAvailable() {
             print("accelerometerRecordingAvailable")
@@ -241,7 +247,6 @@ class SensorFusion {
     var pitch: AccumulatingAngle = AccumulatingAngle()
     var yaw: AccumulatingAngle = AccumulatingAngle()
 
-    
     private func fuseMotionData(from: Date, to: Date,
                                 _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
@@ -254,7 +259,7 @@ class SensorFusion {
         var scanning = true
         var horizontalMode: HorizontalMode = .unknown
         var fusedData: [FusedData] = []
-      
+
         var activityDurations: [Activity: Int] = [:]
         motionData.sorted { $0.at < $1.at }.forEach { sensorData in
             switch sensorData.sensor {

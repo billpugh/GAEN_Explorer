@@ -334,7 +334,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                 if pass == 1 {
                     combinedExposures[i] = exposuresForThisUser
                     for info in exposuresForThisUser {
-                        print("\(day:info.date)")
+                        print("\(day: info.date)")
                         print("attenuationValue: \(info.attenuationValue)")
                         print("duration: \(info.exposureInfoDuration)")
                         print("totalRiskScore: \(info.totalRiskScore)")
@@ -443,16 +443,14 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             return "Analyzing"
         case .launching:
             if let start = experimentStart {
-                          return "Experiment starts at \(time: start)"
-                       }
+                return "Experiment starts at \(time: start)"
+            }
             return "Experiment starting soon"
         case .analyzed:
             if let end = experimentEnd {
-                  return "Experiment completed at \(time: end))"
-                                
-                                  }
-                       return "Experiment analyzed"
-           
+                return "Experiment completed at \(time: end))"
+            }
+            return "Experiment analyzed"
         }
     }
 
@@ -625,9 +623,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     var significantActivites: [SignificantActivity]?
     var timeSpentInActivity: [Activity: Int]?
-    var pitch : AccumulatingAngle? = nil
-    var roll : AccumulatingAngle? = nil
-    var yaw : AccumulatingAngle? = nil
+    var pitch: AccumulatingAngle?
+    var roll: AccumulatingAngle?
+    var yaw: AccumulatingAngle?
 
     var diary: [DiaryEntry] = []
 

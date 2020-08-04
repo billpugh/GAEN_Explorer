@@ -465,7 +465,7 @@ struct CodableExposureInfo: Codable {
 
     func csvFormat(owner: String, from userName: String, pair: String) -> [String] {
         let timeInBuckets = Dictionary(uniqueKeysWithValues: sortedThresholds.map { ($0, timeInBucket(upperBound: $0).ub) }).sorted { $0.key < $1.key }
-        let timeLeqBuckets = Dictionary(uniqueKeysWithValues: sortedThresholds.map { ($0, cumulativeDuration($0).ub) }).sorted { $0.key < $1.key }.filter { $0.value > 0}
+        let timeLeqBuckets = Dictionary(uniqueKeysWithValues: sortedThresholds.map { ($0, cumulativeDuration($0).ub) }).sorted { $0.key < $1.key }.filter { $0.value > 0 }
 
         let result =
             ["""
