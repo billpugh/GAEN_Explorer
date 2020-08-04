@@ -333,6 +333,12 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                 print("Got \(exposuresForThisUser.count) exposures for \(allExposures[i].userName)")
                 if pass == 1 {
                     combinedExposures[i] = exposuresForThisUser
+                    for info in exposuresForThisUser {
+                        print("\(day:info.date)")
+                        print("attenuationValue: \(info.attenuationValue)")
+                        print("duration: \(info.exposureInfoDuration)")
+                        print("totalRiskScore: \(info.totalRiskScore)")
+                    }
                 } else {
                     EncountersWithUser.merge(existing: &combinedExposures[i], newAnalysis: exposuresForThisUser)
                 }
@@ -404,7 +410,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     let experimentQueue = DispatchQueue(label: "Experiment queue")
 
-    var measureMotions = false
+    var measureMotions = true
 
     @Published
     var observedExperimentStatus: ExperimentStatus = .none
@@ -436,9 +442,17 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             }
             return "Analyzing"
         case .launching:
-            return "Experiment starts at \(time: experimentStart!)"
+            if let start = experimentStart {
+                          return "Experiment starts at \(time: start)"
+                       }
+            return "Experiment starting soon"
         case .analyzed:
-            return "Experiment completed at \(time: experimentEnd!))"
+            if let end = experimentEnd {
+                  return "Experiment completed at \(time: end))"
+                                
+                                  }
+                       return "Experiment analyzed"
+           
         }
     }
 
@@ -516,7 +530,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         significantActivites = nil
         timeSpentInActivity = nil
         if measureMotions {
-            SensorFusion.shared.startAccel()
+            SensorFusion.shared.startMotionCapture()
         }
 
         addDiaryEntry(.startExperiment)
@@ -566,10 +580,13 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
         if measureMotions {
             SensorFusion.shared.getSensorData(from: experimentStart!, to: experimentEnd!) {
-                significantActivities, timeSpentInActivity in
-                self.significantActivites = significantActivities
-                self.timeSpentInActivity = timeSpentInActivity
-                if let sa = significantActivities {
+                motionAnalysis in
+                self.significantActivites = motionAnalysis?.activities
+                self.timeSpentInActivity = motionAnalysis?.activityDurations
+                self.roll = motionAnalysis?.roll
+                self.pitch = motionAnalysis?.pitch
+                self.yaw = motionAnalysis?.yaw
+                if let sa = self.significantActivites {
                     self.diary.append(contentsOf: sa.map { DiaryEntry(significantActivity: $0) })
                     self.diary.sort(by: { $0.at < $1.at })
                 }
@@ -599,12 +616,18 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         diary = []
         significantActivites = nil
         timeSpentInActivity = nil
+        pitch = nil
+        roll = nil
+        yaw = nil
     }
 
     // MARK: Diary
 
     var significantActivites: [SignificantActivity]?
     var timeSpentInActivity: [Activity: Int]?
+    var pitch : AccumulatingAngle? = nil
+    var roll : AccumulatingAngle? = nil
+    var yaw : AccumulatingAngle? = nil
 
     var diary: [DiaryEntry] = []
 
