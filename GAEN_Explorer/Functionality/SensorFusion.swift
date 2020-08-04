@@ -49,6 +49,48 @@ enum SensorReading {
     case horizontal(HorizontalMode)
 }
 
+
+struct AccumulatingAngle  {
+
+    var count: Int = 0
+
+    var x : Double = 0.0
+    var y : Double = 0.0
+    var lastAngle : Double
+    
+    init(_ count: Int = 0, _ x : Double = 0.0, _ y : Double = 0.0, last : Double = .nan) {
+        self.count = count
+        self.x = x
+        self.y = y
+        self.lastAngle = last
+    }
+    
+    func add(_ radians: Double) -> AccumulatingAngle {
+        return AccumulatingAngle(count+1, x+cos(radians), y+sin(radians), last: radians)
+    }
+    func add(degrees: Double) -> AccumulatingAngle  {
+        return add(Double.pi*degrees/180.0)
+    }
+    var average: Double {
+        if count == 0 { return .nan }
+        if x == 0 && y == 0 { return .nan }
+        return atan2(y,x)
+    }
+    var degrees: Int {
+        let v = average
+        if (v.isNaN) { return 0 }
+        return Int(180 * v / Double.pi)
+    }
+    var lastDegrees: Int {
+        let v = lastAngle
+        if (v.isNaN) { return 0 }
+        return Int(180 * v / Double.pi)
+    }
+    var confidence: Double {
+        return sqrt(x*x + y*y)/Double(count)
+    }
+}
+
 struct SensorData {
     let at: Date
     var time: String {
@@ -108,9 +150,26 @@ enum HorizontalMode {
     case invalid
 }
 
+enum PhoneOrientation {
+    case faceup
+    case facedown
+    case landscapeRight
+    case landscapeLeft
+    case portrait
+    case portraintUpsidedown
+    case unknown
+}
 struct HoritzontalState {
     let at: Date
     let status: HorizontalMode
+}
+
+struct MotionAnalysis {
+    let activities: [SignificantActivity]
+    let activityDurations: [Activity: Int]
+    let roll: AccumulatingAngle
+    let pitch: AccumulatingAngle
+    let yaw: AccumulatingAngle
 }
 
 class SensorFusion {
@@ -146,6 +205,23 @@ class SensorFusion {
         CMMotionActivityManager.authorizationStatus()
     }
 
+    func startMotionCapture() {
+        self.motionManager.deviceMotionUpdateInterval = 1.0
+        self.motionManager.startDeviceMotionUpdates(using: .xMagneticNorthZVertical,
+                                                    to: self.motionQueue)  { (data, error) in
+                                                        // Make sure the data is valid before accessing it.
+                                                        if let validData = data {
+                                                            // Get the attitude relative to the magnetic north reference frame.
+                                                            self.roll = self.roll.add(validData.attitude.roll)
+                                                            self.pitch = self.pitch.add(validData.attitude.pitch)
+                                                            self.yaw = self.yaw.add(validData.attitude.yaw)
+                                                        }
+        }
+        startAccel()
+    }
+    func stopMotionCapture() {
+           self.motionManager.stopDeviceMotionUpdates()
+       }
     func startAccel() {
         if CMSensorRecorder.isAccelerometerRecordingAvailable() {
             print("accelerometerRecordingAvailable")
@@ -161,11 +237,15 @@ class SensorFusion {
     }
 
     static let minimumNumberOfSecondsToRecord: TimeInterval = 5
+    var roll: AccumulatingAngle = AccumulatingAngle()
+    var pitch: AccumulatingAngle = AccumulatingAngle()
+    var yaw: AccumulatingAngle = AccumulatingAngle()
 
+    
     private func fuseMotionData(from: Date, to: Date,
                                 _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
-                                _ results: ([SignificantActivity]?, [Activity: Int]?) -> Void) {
+                                _ results: (MotionAnalysis?) -> Void) {
         var motionData: [SensorData] = motions.map { motion in SensorData(at: motion.startDate, sensor: SensorReading.motion(motion)) }
         print("Have \(motionData.count) motion readings")
         motionData.append(contentsOf: sensorData)
@@ -174,7 +254,7 @@ class SensorFusion {
         var scanning = true
         var horizontalMode: HorizontalMode = .unknown
         var fusedData: [FusedData] = []
-
+      
         var activityDurations: [Activity: Int] = [:]
         motionData.sorted { $0.at < $1.at }.forEach { sensorData in
             switch sensorData.sensor {
@@ -249,11 +329,11 @@ class SensorFusion {
         for (key, value) in activityDurations {
             print("  \(key) \(Int(value))")
         }
-        results(significantActivities, activityDurations)
+        results(MotionAnalysis(activities: significantActivities, activityDurations: activityDurations, roll: roll, pitch: pitch, yaw: yaw))
     }
 
     static let secondsNeededToRecognizeHorizontal: TimeInterval = 20
-    func getSensorData(from: Date, to: Date, results: @escaping ([SignificantActivity]?, [Activity: Int]?) -> Void) {
+    func getSensorData(from: Date, to: Date, results: @escaping (MotionAnalysis?) -> Void) {
         analyzeMotionQueue.async {
             if self.sensorRecorder != nil {
                 print("sensor recorded present")
@@ -304,7 +384,7 @@ class SensorFusion {
                                                                  to: to,
                                                                  to: self.motionQueue) { activities, _ in
                     guard let a = activities else {
-                        results(nil, nil)
+                        results(nil)
                         return
                     }
                     self.fuseMotionData(from: from, to: to, horiztonalData, a, results)
@@ -316,7 +396,7 @@ class SensorFusion {
                                                                  to: to,
                                                                  to: self.motionQueue) { activities, _ in
                     guard let a = activities else {
-                        results(nil, nil)
+                        results(nil)
                         return
                     }
                     let horiztonalData: [SensorData] = [SensorData(at: from, sensor: SensorReading.horizontal(.unknown))]
