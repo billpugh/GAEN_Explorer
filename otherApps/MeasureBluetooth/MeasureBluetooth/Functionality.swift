@@ -181,7 +181,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         sr.add(attn)
         attenuation[from] = sr.attenuation
         packets[from] = sr.count
-        if (detailed) {
+        if detailed {
             DataPoint.log(from: from, sr: sr)
         }
     }

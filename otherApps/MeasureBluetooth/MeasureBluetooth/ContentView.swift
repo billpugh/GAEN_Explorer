@@ -57,11 +57,12 @@ var startDate: Date = Date()
 struct DataPoint {
     static var lastDate: Date = Date()
     static var all: [DataPoint] = []
-    
+
     static func log(from: String, sr: ScanRecord) {
         all.append(DataPoint(date: Date(), pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: from, attenuation: sr.lastAttenuation, packets: sr.packets))
         sr.logged()
     }
+
     static func log() {
         let now = Date()
 
@@ -101,7 +102,7 @@ struct DataPoint {
         let dateFormater = DateFormatter()
         dateFormater.dateFormat = "yyyyMMddHHmmss"
         let s1 = dateFormater.string(from: date)
-        let t = (date.timeIntervalSince(startDate)*1000.0).rounded()/1000.0
+        let t = (date.timeIntervalSince(startDate) * 1000.0).rounded() / 1000.0
         return "\(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)), \(packets)"
     }
 
@@ -404,7 +405,7 @@ struct ContentView: View {
                     Text("Yaw \(mInfo.yaw.degrees) \(mInfo.yaw.lastDegrees) \(mInfo.yaw.confidenceInt)")
                 }
                 Text("Compass \(mInfo.compassHeading) ")
-                
+
                 // Text("Orientation \(String(describing: mInfo.computedOrientation))  \(String(describing: mInfo.deviceOrientation))")
             }
             ForEach(scanner.attenuation.sorted(by: >), id: \.key) { key, attn in
