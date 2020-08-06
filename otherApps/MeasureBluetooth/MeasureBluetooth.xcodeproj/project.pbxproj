@@ -26,7 +26,7 @@
 			containerPortal = 16C0FBCB24C5D64F0049D69C /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 16C0FBD224C5D64F0049D69C;
-			remoteInfo = TestOrientation;
+			remoteInfo = MeasureBluetooth;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -143,7 +143,7 @@
 			dependencies = (
 			);
 			name = MeasureBluetooth;
-			productName = TestOrientation;
+			productName = MeasureBluetooth;
 			productReference = 16C0FBD324C5D64F0049D69C /* MeasureBluetooth.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -161,7 +161,7 @@
 				16C0FBEB24C5D6560049D69C /* PBXTargetDependency */,
 			);
 			name = MeasureBluetoothTests;
-			productName = TestOrientationTests;
+			productName = MeasureBluetoothTests;
 			productReference = 16C0FBE924C5D6560049D69C /* MeasureBluetoothTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -172,7 +172,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1160;
-				LastUpgradeCheck = 1160;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = NinjaMonkeyCoders;
 				TargetAttributes = {
 					16C0FBD224C5D64F0049D69C = {
@@ -292,6 +292,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -352,6 +353,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -385,10 +387,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"TestOrientation/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"MeasureBluetooth/Preview Content\"";
 				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
-				INFOPLIST_FILE = TestOrientation/Info.plist;
+				INFOPLIST_FILE = MeasureBluetooth/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -405,10 +407,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"TestOrientation/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"MeasureBluetooth/Preview Content\"";
 				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
-				INFOPLIST_FILE = TestOrientation/Info.plist;
+				INFOPLIST_FILE = MeasureBluetooth/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -427,14 +429,14 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = H2Z73245NN;
-				INFOPLIST_FILE = TestOrientationTests/Info.plist;
+				INFOPLIST_FILE = MeasureBluetoothTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.TestOrientationTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.MeasureBluetoothTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -449,14 +451,14 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = H2Z73245NN;
-				INFOPLIST_FILE = TestOrientationTests/Info.plist;
+				INFOPLIST_FILE = MeasureBluetoothTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.TestOrientationTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.MeasureBluetoothTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
