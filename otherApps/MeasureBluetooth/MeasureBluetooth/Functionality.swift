@@ -17,6 +17,7 @@ class ScanRecord {
     var samples: [Double] = [Double](repeating: 0.0, count: 11)
     var next: Int = 0
     var attenuation: Double = 100.0
+    var lastAttenuation: Double = 100.0
     var attenuationString: String {
         String(format: "%.1f", attenuation)
     }
@@ -47,6 +48,7 @@ class ScanRecord {
         next = (next + 1) % samples.count
         attenuation = samples.reduce(0.0,+) / Double(min(count, samples.count))
         ready = count >= samples.count
+        lastAttenuation = attn
     }
 }
 
@@ -179,5 +181,8 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         sr.add(attn)
         attenuation[from] = sr.attenuation
         packets[from] = sr.count
+        if (detailed) {
+            DataPoint.log(from: from, sr: sr)
+        }
     }
 }
