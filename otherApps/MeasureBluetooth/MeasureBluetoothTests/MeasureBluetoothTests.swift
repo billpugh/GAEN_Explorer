@@ -6,7 +6,7 @@
 //  Copyright © 2020 NinjaMonkeyCoders. All rights reserved.
 //
 
-@testable import TestOrientation
+@testable import MeasureBluetooth
 import XCTest
 
 class TestOrientationTests: XCTestCase {
