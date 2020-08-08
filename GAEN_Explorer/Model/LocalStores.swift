@@ -335,6 +335,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                     combinedExposures[i] = exposuresForThisUser
                     for info in exposuresForThisUser {
                         print("\(day: info.date)")
+                        print("raw date: \(info.date.timeIntervalSince1970)")
                         print("attenuationValue: \(info.attenuationValue)")
                         print("duration: \(info.exposureInfoDuration)")
                         print("totalRiskScore: \(info.totalRiskScore)")

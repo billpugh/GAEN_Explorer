@@ -15,26 +15,26 @@ struct ContentView: View {
             VStack {
                 HStack(spacing: 20) {
                     Text(" id     rssi    cnt     interval     avg").frame(width: 450, alignment: .leading)
-                    Text("first          last   ").frame(width: 270, alignment: .trailing)
+                    Text("first          last   ").frame(width: 290, alignment: .trailing)
                 }
-                
-                ForEach(self.localState.all.filter({ $0.recent}).sorted(by: { $0 < $1 }), id: \.peripheral) { d in
+
+                ForEach(self.localState.all.filter { $0.recent }.sorted(by: { $0 < $1 }), id: \.peripheral) { d in
                     HStack(spacing: 20) {
                         Text("\(d.description)").frame(width: 450, alignment: .leading)
-                        Text("\(d.time) .. \(d.lastTime)").frame(width: 270, alignment: .trailing)
+                        Text("\(d.time) .. \(d.lastTime)").frame(width: 290, alignment: .trailing)
                     }
                 }
                 Divider()
-                ForEach(self.localState.all.filter({ !$0.recent}).sorted(by: { $0 < $1 }), id: \.peripheral) { d in
+                ForEach(self.localState.all.filter { !$0.recent }.sorted(by: { $0 < $1 }), id: \.peripheral) { d in
                     HStack(spacing: 20) {
                         Text("\(d.description)").frame(width: 450, alignment: .leading)
-                        Text("\(d.time) .. \(d.lastTime)").frame(width: 270, alignment: .trailing)
+                        Text("\(d.time) .. \(d.lastTime)").frame(width: 290, alignment: .trailing)
                     }
                 }
 
             }.padding().font(.system(.body, design: .monospaced))
 
-        }.frame(maxWidth: 760)
+        }.frame(maxWidth: 830)
     }
 }
 

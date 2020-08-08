@@ -15,6 +15,7 @@ let nf: NumberFormatter = {
     nf.formatWidth = 5
     return nf
 }()
+
 let nf3: NumberFormatter = {
     let nf = NumberFormatter()
     nf.formatWidth = 3
