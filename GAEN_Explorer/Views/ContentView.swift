@@ -140,6 +140,7 @@ struct StatusView: View {
                         Text(localStore.experimentMessage ?? "Experiment").font(.headline).padding()
                     }.disabled(self.localStore.userName.isEmpty)
 
+                    Button(action: { self.framework.analyzeRandomKeys(numKeys: 3000000)}) { Text("Analyze 3M random keys")}
 //                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
 //                        Text("Show Diary").font(.headline).padding()
 //                    }

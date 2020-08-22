@@ -2,12 +2,30 @@
   "object": {
     "pins": [
       {
+        "package": "Reachability",
+        "repositoryURL": "https://github.com/ashleymills/Reachability.swift",
+        "state": {
+          "branch": null,
+          "revision": "98e968e7b6c1318fb61df23e347bc319761e8acb",
+          "version": "5.0.0"
+        }
+      },
+      {
         "package": "SwiftProtobuf",
         "repositoryURL": "https://github.com/apple/swift-protobuf",
         "state": {
           "branch": null,
           "revision": "7790acf0a81d08429cb20375bf42a8c7d279c5fe",
           "version": "1.8.0"
+        }
+      },
+      {
+        "package": "Grid",
+        "repositoryURL": "https://github.com/spacenation/swiftui-grid",
+        "state": {
+          "branch": null,
+          "revision": "a3441f80bd01029507bc19e463e7c7208ffcf3f9",
+          "version": "1.0.4"
         }
       }
     ]

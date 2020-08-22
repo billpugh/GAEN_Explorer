@@ -45,7 +45,9 @@ class ExposureFramework: ObservableObject {
                 print("isEnabled is already \(newValue)")
                 return
             }
+            
             print("changing isEnabled \(manager.exposureNotificationEnabled) to \(newValue)")
+           
             setExposureNotificationEnabled(newValue) { changed in
                 guard changed else {
                     print("isEnabled didn't need to be changed")
@@ -57,7 +59,7 @@ class ExposureFramework: ObservableObject {
                         print("Marking exposureLogs erased to false")
                     }
                     print("Changing observedIsEnabled to \(newValue)")
-                    self.observedIsEnabled = newValue
+                    //self.observedIsEnabled = newValue
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
             }
@@ -191,12 +193,13 @@ class ExposureFramework: ObservableObject {
 
         manager.activate { _ in
             print("ENManager activiated")
+            print("Authorized: \(ENManager.authorizationStatus)")
 
-//            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
-//                self.manager.setExposureNotificationEnabled(true) { _ in
-//                    print("turned on \(self.manager.exposureNotificationEnabled)")
-//                }
-//            }
+            if ENManager.authorizationStatus == .authorized, !self.manager.exposureNotificationEnabled {
+                self.manager.setExposureNotificationEnabled(true) { _ in
+                    print("turned on \(self.manager.exposureNotificationEnabled)")
+                }
+            }
         }
         self.observedIsEnabled = isEnabled
         let center = NotificationCenter.default
@@ -293,7 +296,7 @@ class ExposureFramework: ObservableObject {
     }
 
     func updateKeys(_ keys: PackagedKeys) {
-        assert(keysCurrent(keys) || !callGetTestDiagnosisKeys)
+        // assert(keysCurrent(keys) || !callGetTestDiagnosisKeys)
         objectWillChange.send()
         self.keys = keys
         if let encoded = try? JSONEncoder().encode(keys) {
@@ -491,10 +494,12 @@ class ExposureFramework: ObservableObject {
     func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration, block: @escaping ([CodableExposureInfo]?, Error?) -> Void) throws {
         let URLs = try getURLs(diagnosisKeys: keys)
         print("Calling  detect exposures with \(keys.count) keys")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        keys.forEach { key in
-            print("\(String(data: try! encoder.encode(key), encoding: .utf8)!)")
+        if (false) {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            keys.forEach { key in
+                print("\(String(data: try! encoder.encode(key), encoding: .utf8)!)")
+            }
         }
 
         os_signpost(.begin, log: pointsOfInterest, name: "detectExposures")
@@ -540,7 +545,7 @@ class ExposureFramework: ObservableObject {
             print("have \(keys.count) random keys")
             os_signpost(.end, log: pointsOfInterest, name: "generateRandomKeys")
             try! self.getExposureInfo(keys: keys, userExplanation: "Analyzing random keys", configuration: CodableExposureConfiguration.getCodableExposureConfiguration(pass: 1)) { exposures, _ in
-                print("Found \(exposures!.count) exposures")
+                print("Found \(exposures?.count ?? 0) exposures")
             }
         }
     }
