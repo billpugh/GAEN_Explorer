@@ -59,7 +59,7 @@ struct DataPoint {
     static var all: [DataPoint] = []
 
     static func log(from: String, sr: ScanRecord) {
-        all.append(DataPoint(date: Date(), pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: from, attenuation: sr.lastAttenuation, packets: sr.packets))
+        all.append(DataPoint(date: Date(), pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: from, attenuation: sr.attenuation, lastAttenuation: sr.lastAttenuation, packets: sr.packets))
         sr.logged()
     }
 
@@ -68,7 +68,7 @@ struct DataPoint {
 
         for (k, sr) in Scanner.shared.scans {
             if sr.ready {
-                all.append(DataPoint(date: now, pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: k, attenuation: sr.attenuation, packets: sr.packets))
+                all.append(DataPoint(date: now, pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: k, attenuation: sr.attenuation, lastAttenuation: sr.lastAttenuation, packets: sr.packets))
                 sr.logged()
             }
         }
@@ -103,7 +103,7 @@ struct DataPoint {
         dateFormater.dateFormat = "yyyyMMddHHmmss"
         let s1 = dateFormater.string(from: date)
         let t = (date.timeIntervalSince(startDate) * 1000.0).rounded() / 1000.0
-        return "\(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)), \(packets)"
+        return "\(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)),  \(String(format: "%.0f", lastAttenuation)),\(packets)"
     }
 
     let date: Date
@@ -115,6 +115,7 @@ struct DataPoint {
     let deviceOrientation: UIDeviceOrientation
     let from: String
     let attenuation: Double
+    let lastAttenuation: Double
     let packets: Int
 }
 
