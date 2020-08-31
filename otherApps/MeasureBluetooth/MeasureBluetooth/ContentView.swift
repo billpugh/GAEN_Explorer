@@ -76,7 +76,9 @@ struct DataPoint {
     }
 
     static func export() -> URL? {
-        let csv = all.map { $0.csv() }.joined(separator: "\n")
+        let header = "Timestamp, seconds,compass, o1, o2, From, attn, lastAttn, packets\n"
+
+        let csv = header + all.map { $0.csv() }.joined(separator: "\n")
         let documents = FileManager.default.urls(
             for: .documentDirectory,
             in: .userDomainMask
@@ -373,14 +375,16 @@ struct ContentView: View {
     @ObservedObject var scanner = Scanner.shared
     @State private var exporting = false
     @State var exportURL: URL? = nil
+    @State var locked: Bool = false
 
     var body: some View {
         VStack(spacing: 10) {
+            Spacer()
             Group {
                 HStack {
                     Text("User name: ")
                     TextField("User name", text: self.$localStore.userName)
-                }
+                }.padding()
                 HStack(spacing: 10) {
                     Text("\(dateFormater.string(from: startDate))")
                     Button(action: { DataPoint.all = []
@@ -388,17 +392,17 @@ struct ContentView: View {
                         Scanner.shared.scans = [:]
                         Scanner.shared.attenuation = [:]
                         Scanner.shared.packets = [:]
-                }) { Text("reset") }
+                }) { Text("reset") }.disabled(locked)
                 }
                 Toggle(isOn: self.$scanner.logging) {
                     Text("Logging")
-                }.padding()
+                }.disabled(locked).padding()
                 Toggle(isOn: self.$scanner.detailed) {
                     Text("Detailed")
-                }.padding()
+                }.disabled(locked).padding()
                 Toggle(isOn: self.$scanner.advertise) {
                     Text("Advertising")
-                }.padding()
+                }.disabled(locked).padding()
 
                 if false {
                     Text("Pitch \(mInfo.pitch.degrees)  \(mInfo.pitch.lastDegrees) \(mInfo.pitch.confidenceInt)")
@@ -420,6 +424,10 @@ struct ContentView: View {
                     self.exporting = true
                 }
             }) { Text("Export") }
+            Spacer()
+            Toggle(isOn: self.$locked) {
+                Text("locked")
+            }.padding()
         }.font(.headline).onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
         }.onDisappear {
