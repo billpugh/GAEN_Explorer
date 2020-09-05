@@ -297,6 +297,7 @@ struct ActivityView: UIViewControllerRepresentable {
     let activityItems: [Any]
     let applicationActivities: [UIActivity]?
     @Binding var isPresented: Bool
+    @Binding var lastExport: Date?
 
     func makeUIViewController(context _: UIViewControllerRepresentableContext<ActivityView>) -> UIActivityViewController {
         let result = UIActivityViewController(activityItems: activityItems,
@@ -323,6 +324,7 @@ struct ActivityView: UIViewControllerRepresentable {
         if completed {
             print("share completed")
             self.isPresented = false
+            self.lastExport = Date()
             return
         } else {
             print("cancel")
@@ -369,6 +371,12 @@ class ExportItem: NSObject, UIActivityItemSource {
     }
 }
 
+ let dateFormat: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MMM d, h:mm a"
+    return formatter
+}()
+
 struct ContentView: View {
     @ObservedObject var localStore = LocalStore.shared
     @ObservedObject var mInfo = MotionInfo.shared
@@ -376,6 +384,7 @@ struct ContentView: View {
     @State private var exporting = false
     @State var exportURL: URL? = nil
     @State var locked: Bool = false
+    @State var lastExport: Date? = nil
 
     var body: some View {
         VStack(spacing: 10) {
@@ -389,6 +398,7 @@ struct ContentView: View {
                     Text("\(dateFormater.string(from: startDate))")
                     Button(action: { DataPoint.all = []
                         startDate = Date()
+                        self.lastExport = nil
                         Scanner.shared.scans = [:]
                         Scanner.shared.attenuation = [:]
                         Scanner.shared.packets = [:]
@@ -424,6 +434,9 @@ struct ContentView: View {
                     self.exporting = true
                 }
             }) { Text("Export") }
+            if let d = lastExport {
+                Text("Exported \(dateFormat.string(from: d)))")
+            }
             Spacer()
             Toggle(isOn: self.$locked) {
                 Text("locked")
@@ -438,7 +451,7 @@ struct ContentView: View {
                     ActivityView(activityItems: [
                         ExportItem(url: self.exportURL,
                                    title: "Export from attenuation logging"),
-                    ] as [Any], applicationActivities: nil, isPresented: self.$exporting)
+                    ] as [Any], applicationActivities: nil, isPresented: self.$exporting, lastExport: self.$lastExport)
         })
     }
 }
