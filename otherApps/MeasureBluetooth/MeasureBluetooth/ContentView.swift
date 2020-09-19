@@ -51,11 +51,18 @@ class LocalStore: ObservableObject {
             UserDefaults.standard.set(userName, forKey: "userName")
         }
     }
+
+    @Published
+    var memo: String = UserDefaults.standard.string(forKey: "memo") ?? "" {
+        didSet {
+            UserDefaults.standard.set(memo, forKey: "memo")
+        }
+    }
 }
 
-var startDate: Date = Date()
+var startDate = Date()
 struct DataPoint {
-    static var lastDate: Date = Date()
+    static var lastDate = Date()
     static var all: [DataPoint] = []
 
     static func log(from: String, sr: ScanRecord) {
@@ -76,7 +83,8 @@ struct DataPoint {
     }
 
     static func export() -> URL? {
-        let header = "Timestamp, seconds,compass, o1, o2, From, attn, lastAttn, packets\n"
+        let header = "memo,\(LocalStore.shared.memo)\n"
+            + "to, Timestamp, seconds,compass, o1, o2, From, attn, lastAttn, packets\n"
 
         let csv = header + all.map { $0.csv() }.joined(separator: "\n")
         let documents = FileManager.default.urls(
@@ -105,7 +113,7 @@ struct DataPoint {
         dateFormater.dateFormat = "yyyyMMddHHmmss"
         let s1 = dateFormater.string(from: date)
         let t = (date.timeIntervalSince(startDate) * 1000.0).rounded() / 1000.0
-        return "\(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)),  \(String(format: "%.0f", lastAttenuation)),\(packets)"
+        return "\(LocalStore.shared.userName), \(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)),  \(String(format: "%.0f", lastAttenuation)),\(packets)"
     }
 
     let date: Date
@@ -171,16 +179,16 @@ struct AccumulatingAngle {
 }
 
 class MotionInfo: NSObject, ObservableObject, CLLocationManagerDelegate {
-    static var shared: MotionInfo = MotionInfo()
+    static var shared = MotionInfo()
 
     var motion = CMMotionManager()
-    let locationManager: CLLocationManager = CLLocationManager()
+    let locationManager = CLLocationManager()
 
     var timer: Timer?
     @Published var started: Bool = false
-    @Published var pitch: AccumulatingAngle = AccumulatingAngle()
-    @Published var roll: AccumulatingAngle = AccumulatingAngle()
-    @Published var yaw: AccumulatingAngle = AccumulatingAngle()
+    @Published var pitch = AccumulatingAngle()
+    @Published var roll = AccumulatingAngle()
+    @Published var yaw = AccumulatingAngle()
     @Published var computedOrientation: UIDeviceOrientation = .unknown
     @Published var deviceOrientation: UIDeviceOrientation = .unknown
     @Published var compassHeading: Int = 0
@@ -285,7 +293,7 @@ class MotionInfo: NSObject, ObservableObject, CLLocationManagerDelegate {
                                   self.deviceOrientation = UIDevice.current.orientation
                                   // Use the motion data in your app.
                               }
-            })
+                          })
 
             // Add the timer to the current run loop.
             RunLoop.current.add(timer!, forMode: RunLoop.Mode.default)
@@ -357,7 +365,8 @@ class ExportItem: NSObject, UIActivityItemSource {
     }
 
     func activityViewController(_: UIActivityViewController,
-                                subjectForActivityType _: UIActivity.ActivityType?) -> String {
+                                subjectForActivityType _: UIActivity.ActivityType?) -> String
+    {
         title
     }
 
@@ -371,7 +380,7 @@ class ExportItem: NSObject, UIActivityItemSource {
     }
 }
 
- let dateFormat: DateFormatter = {
+let dateFormat: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateFormat = "MMM d, h:mm a"
     return formatter
@@ -387,72 +396,78 @@ struct ContentView: View {
     @State var lastExport: Date? = nil
 
     var body: some View {
-        VStack(spacing: 10) {
-            Spacer()
-            Group {
-                HStack {
-                    Text("User name: ")
-                    TextField("User name", text: self.$localStore.userName)
-                }.padding()
-                HStack(spacing: 10) {
-                    Text("\(dateFormater.string(from: startDate))")
-                    Button(action: { DataPoint.all = []
-                        startDate = Date()
-                        self.lastExport = nil
-                        Scanner.shared.scans = [:]
-                        Scanner.shared.attenuation = [:]
-                        Scanner.shared.packets = [:]
-                }) { Text("reset") }.disabled(locked)
+        ScrollView {
+            VStack(spacing: 5) {
+                Group {
+                    HStack {
+                        Text("User name: ")
+                        TextField("User name", text: self.$localStore.userName)
+                    }.padding()
+                    HStack {
+                        Text("Memo: ")
+                        TextField("Memo", text: self.$localStore.memo)
+                    }.padding()
+                    HStack(spacing: 10) {
+                        Text("\(dateFormater.string(from: startDate))")
+                        Button(action: { DataPoint.all = []
+                            startDate = Date()
+                            self.lastExport = nil
+                            Scanner.shared.scans = [:]
+                            Scanner.shared.attenuation = [:]
+                            Scanner.shared.packets = [:]
+                        }) { Text("reset") }.disabled(locked)
+                    }
+                    Toggle(isOn: self.$scanner.logging) {
+                        Text("Logging")
+                    }.disabled(locked).padding()
+                    Toggle(isOn: self.$scanner.detailed) {
+                        Text("Detailed")
+                    }.disabled(locked).padding()
+                    Toggle(isOn: self.$scanner.advertise) {
+                        Text("Advertising")
+                    }.disabled(locked).padding()
+
+                    if false {
+                        Text("Pitch \(mInfo.pitch.degrees)  \(mInfo.pitch.lastDegrees) \(mInfo.pitch.confidenceInt)")
+                        Text("Roll \(mInfo.roll.degrees) \(mInfo.roll.lastDegrees)  \(mInfo.roll.confidenceInt)")
+                        Text("Yaw \(mInfo.yaw.degrees) \(mInfo.yaw.lastDegrees) \(mInfo.yaw.confidenceInt)")
+                    }
+                    Text("Compass \(mInfo.compassHeading) ")
+
+                    // Text("Orientation \(String(describing: mInfo.computedOrientation))  \(String(describing: mInfo.deviceOrientation))")
                 }
-                Toggle(isOn: self.$scanner.logging) {
-                    Text("Logging")
-                }.disabled(locked).padding()
-                Toggle(isOn: self.$scanner.detailed) {
-                    Text("Detailed")
-                }.disabled(locked).padding()
-                Toggle(isOn: self.$scanner.advertise) {
-                    Text("Advertising")
-                }.disabled(locked).padding()
-
-                if false {
-                    Text("Pitch \(mInfo.pitch.degrees)  \(mInfo.pitch.lastDegrees) \(mInfo.pitch.confidenceInt)")
-                    Text("Roll \(mInfo.roll.degrees) \(mInfo.roll.lastDegrees)  \(mInfo.roll.confidenceInt)")
-                    Text("Yaw \(mInfo.yaw.degrees) \(mInfo.yaw.lastDegrees) \(mInfo.yaw.confidenceInt)")
+                ForEach(scanner.attenuation.sorted(by: >), id: \.key) { key, attn in
+                    Text("\(key) \(String(format: "%.1f", attn)) \(self.scanner.packets[key]!)")
                 }
-                Text("Compass \(mInfo.compassHeading) ")
 
-                // Text("Orientation \(String(describing: mInfo.computedOrientation))  \(String(describing: mInfo.deviceOrientation))")
-            }
-            ForEach(scanner.attenuation.sorted(by: >), id: \.key) { key, attn in
-                Text("\(key) \(String(format: "%.1f", attn)) \(self.scanner.packets[key]!)")
-            }
-
-            Text("Advertising \(scanner.advertise ? "Y" : "N") \(scanner.saysAdvertising ? "Y" : "N")")
-            Text("Data \(DataPoint.all.count)")
-            Button(action: { self.exportURL = DataPoint.export()
-                if self.exportURL != nil {
-                    self.exporting = true
+                Text("Advertising \(scanner.advertise ? "Y" : "N") \(scanner.saysAdvertising ? "Y" : "N")")
+                Text("Data \(DataPoint.all.count)")
+                Button(action: { self.exportURL = DataPoint.export()
+                    if self.exportURL != nil {
+                        self.exporting = true
+                    }
+                }) { Text("Export") }
+                Text("Started \(dateFormat.string(from: startDate))")
+                if lastExport != nil {
+                    Text("Exported \(dateFormat.string(from: lastExport!))")
                 }
-            }) { Text("Export") }
-            if let d = lastExport {
-                Text("Exported \(dateFormat.string(from: d)))")
-            }
-            Spacer()
-            Toggle(isOn: self.$locked) {
-                Text("locked")
-            }.padding()
-        }.font(.headline).onAppear {
-            UIApplication.shared.isIdleTimerDisabled = true
-        }.onDisappear {
-            UIApplication.shared.isIdleTimerDisabled = false
 
-        }.sheet(isPresented: self.$exporting, onDismiss: { print("share sheet dismissed") },
-                content: {
-                    ActivityView(activityItems: [
-                        ExportItem(url: self.exportURL,
-                                   title: "Export from attenuation logging"),
-                    ] as [Any], applicationActivities: nil, isPresented: self.$exporting, lastExport: self.$lastExport)
-        })
+                Toggle(isOn: self.$locked) {
+                    Text("locked")
+                }.disabled(!scanner.logging || !scanner.advertise).padding()
+            }.font(.headline).onAppear {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }.onDisappear {
+                UIApplication.shared.isIdleTimerDisabled = false
+
+            }.sheet(isPresented: self.$exporting, onDismiss: { print("share sheet dismissed") },
+                    content: {
+                        ActivityView(activityItems: [
+                            ExportItem(url: self.exportURL,
+                                       title: "Export from attenuation logging"),
+                        ] as [Any], applicationActivities: nil, isPresented: self.$exporting, lastExport: self.$lastExport)
+                    })
+        }
     }
 }
 

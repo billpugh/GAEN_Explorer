@@ -12,9 +12,9 @@ import SwiftUI
 
 class ScanRecord {
     var packets: Int = 0
-    var lastUpdate: Date = Date()
+    var lastUpdate = Date()
     var count: Int = 0
-    var samples: [Double] = [Double](repeating: 0.0, count: 11)
+    var samples = [Double](repeating: 0.0, count: 11)
     var next: Int = 0
     var attenuation: Double = 100.0
     var lastAttenuation: Double = 100.0
@@ -53,7 +53,7 @@ class ScanRecord {
 }
 
 class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralManagerDelegate {
-    static var shared: Scanner = Scanner()
+    static var shared = Scanner()
 
     @Published var scans: [String: ScanRecord] = [:]
     @Published var attenuation: [String: Double] = [:]

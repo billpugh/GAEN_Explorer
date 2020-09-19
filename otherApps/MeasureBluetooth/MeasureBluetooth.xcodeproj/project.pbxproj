@@ -386,14 +386,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"MeasureBluetooth/Preview Content\"";
-				DEVELOPMENT_TEAM = 2LASNFA998;
+				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MeasureBluetooth/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjamonkeycoders.MeasureBluetooth;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.MeasureBluetooth";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -406,14 +406,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"MeasureBluetooth/Preview Content\"";
-				DEVELOPMENT_TEAM = 2LASNFA998;
+				DEVELOPMENT_TEAM = H2Z73245NN;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MeasureBluetooth/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjamonkeycoders.MeasureBluetooth;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ninjamonkeycoders.-.MeasureBluetooth";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
