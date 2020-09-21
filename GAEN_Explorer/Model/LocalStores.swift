@@ -200,7 +200,8 @@ struct AnalysisParameters {
     let trueDuration: TimeInterval?
     let wasEnabled: Bool
     init(trueDuration: TimeInterval? = nil,
-         wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled) {
+         wasEnabled: Bool = ExposureFramework.shared.manager.exposureNotificationEnabled)
+    {
         self.trueDuration = trueDuration
         self.wasEnabled = wasEnabled
     }
@@ -319,7 +320,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     func analyzeExperimentOffMainThread(_ parameters: AnalysisParameters) {
         assert(!Thread.current.isMainThread)
         assert(ExposureFramework.shared.manager.exposureNotificationEnabled)
-        let allKeys = allExposures.filter { !$0.analyzed }.flatMap { $0.keys }
+        let allKeys = allExposures.filter { !$0.analyzed }.flatMap(\.keys)
         print("AnalyzeExperiment at \(time: Date()) over \(allExposures.count) users, \(allKeys.count) keys")
         var combinedExposures: [[CodableExposureInfo]] = Array(repeating: [], count: allExposures.count)
 
@@ -478,7 +479,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true,
                                      block: { _ in
                                          self.currentTime = Date()
-                                  })
+                                     })
     }
 
     func endUpdatingCurrentTime() {
@@ -545,7 +546,8 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     var experimentSummary: ExperimentSummary? {
         if let started = experimentStart,
-            let ended = experimentEnd {
+            let ended = experimentEnd
+        {
             return ExperimentSummary(started: started, ended: ended, description: experimentDescription)
         }
         return nil
@@ -740,7 +742,8 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_: UNUserNotificationCenter,
                                 didReceive _: UNNotificationResponse,
                                 withCompletionHandler completionHandler:
-                                @escaping () -> Void) {
+                                @escaping () -> Void)
+    {
         print("Got local notification, ending scanning")
         endScanningForExperiment(ExposureFramework.shared)
         // Always call the completion handler when done.
@@ -788,13 +791,15 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         self.deviceId = UserDefaults.standard.integer(forKey: Self.deviceIdKey)
 
         if let diaryData = UserDefaults.standard.object(forKey: Self.diaryKey) as? Data,
-            let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData) {
+            let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData)
+        {
             self.diary = loadedDiary
         }
         if let exposureData = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
             let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: exposureData),
             let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
-            let positions = try? JSONDecoder().decode([String: Int].self, from: data) {
+            let positions = try? JSONDecoder().decode([String: Int].self, from: data)
+        {
             if loadedExposures.count == loadedExposures.count {
                 self.allExposures = loadedExposures
                 self.positions = positions
@@ -830,7 +835,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     var shareExposuresURL: URL?
 
     func getAndPackageKeys(_ result: @escaping (URL?) -> Void) {
-        let keys: [PackagedKeys] = allExposures.map { $0.packagedKeys }
+        let keys: [PackagedKeys] = allExposures.map(\.packagedKeys)
         ExposureFramework.shared.exportAllKeys(userName: userName, otherKeys: keys, result)
     }
 
@@ -860,6 +865,10 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    func getTransmissionRisk(_ i: Int) -> ENRiskLevel {
+        ENRiskLevel(i % 8)
+    }
+
     func addKeysFromUser(_ e: PackagedKeys) {
         if e.userName == userName {
             print("Got my own keys back, ignoring")
@@ -868,7 +877,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         addDiaryEntry(DiaryKind.keysReceived, e.userName)
         if let i = positions[e.userName] {
             if allExposures[i].dateKeysSent < e.dateKeysSent {
-                let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(i), experiment: experimentSummary)
+                let extractedExpr = EncountersWithUser(packedKeys: e, transmissionRiskLevel: getTransmissionRisk(i), experiment: experimentSummary)
                 allExposures[i] = extractedExpr
                 print("Updated \(extractedExpr.keys.count) keys from \(e.userName)")
             } else {
@@ -876,7 +885,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             }
         } else {
             let lastIndex = allExposures.count
-            let extractedExpr: EncountersWithUser = EncountersWithUser(packedKeys: e, transmissionRiskLevel: ENRiskLevel(lastIndex), experiment: experimentSummary)
+            let extractedExpr = EncountersWithUser(packedKeys: e, transmissionRiskLevel: getTransmissionRisk(lastIndex), experiment: experimentSummary)
 
             positions[e.userName] = lastIndex
             print("positions = \(positions)")
@@ -916,7 +925,8 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         result += "version, \(userName), \(version), \(build), \(UIDevice.current.systemVersion)\n"
         result += myKeysCSV()
         if let start = experimentStart,
-            let ended = experimentEnd {
+            let ended = experimentEnd
+        {
             result += """
             experiment, \(userName), description, \(fullDate: start), \(csvSafe(experimentDescription))
             experiment, \(userName), duration, \(fullDate: ended), \(Int(ended.timeIntervalSince(start) / 60))\n
