@@ -36,7 +36,7 @@ struct MyAboutView: View {
                             """)
                             Button(action: {
                                 UIApplication.shared.open(URL(string: "https://www.google.com/covid19/exposurenotifications/")!)
-                        }) { Text("Exposure Notification framework").font(.footnote) }
+                            }) { Text("Exposure Notification framework").font(.footnote) }
                         }
                         Text("""
                         This app, GAEN Explorer, allows evaluation of the ability of the framework to accurately detect close encounters, and assists in defining the parameters used by a GAEN app to which encounters should be reported, and compare that with the encounters should be reported, which might be defined by a public health authority as 15 or more minutes within 6 feet.

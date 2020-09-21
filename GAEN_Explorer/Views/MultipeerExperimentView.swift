@@ -155,15 +155,15 @@ struct MultipeerExperimentView: View {
                     if self.localStore.observedExperimentStatus == .analyzed {
                         Button(action: { if self.resultsExported {
                             self.finishExperiment()
-                            } else {
-                                self.showingAlertToFinishExperiment = true
-                            }
+                        } else {
+                            self.showingAlertToFinishExperiment = true
+                        }
                         }) {
                             Text("finish experiment")
                         }.alert(isPresented: $showingAlertToFinishExperiment) {
                             Alert(title: Text("Finish without exporting experiment?"), message: Text("Do you wish to finish this experiment without exporting the results?"), primaryButton: .destructive(Text("Yes")) {
                                 self.finishExperiment()
-                                }, secondaryButton: .cancel())
+                            }, secondaryButton: .cancel())
                         }
                     }
                     if self.localStore.observedExperimentStatus != .analyzed {
@@ -222,7 +222,7 @@ struct MultipeerExperimentView: View {
                         Button(action: { withAnimation {
                             hideKeyboard()
                             self.launchExperiment()
-                            } }) {
+                        } }) {
                             Text("Start experiment")
                         }.disabled(multipeerService.peers.isEmpty)
                     } else if multipeerService.mode == .joiner {
@@ -235,8 +235,7 @@ struct MultipeerExperimentView: View {
                         HStack {
                             Text("\(1 + multipeerService.peers.count) Participants").font(.title)
                             Spacer()
-                            Button(action: { self.showingAlertToLeaveExperiment = true })
-                            {
+                            Button(action: { self.showingAlertToLeaveExperiment = true }) {
                                 Text("Abandon")
                             }.disabled(self.multipeerService.mode == .host)
                         }
@@ -250,7 +249,7 @@ struct MultipeerExperimentView: View {
                             self.multipeerService.leaveExperiment()
                             self.framework.keys = nil
                             self.localStore.viewShown = nil
-                            }, secondaryButton: .cancel())
+                        }, secondaryButton: .cancel())
                     }
                 }
             }
@@ -260,14 +259,14 @@ struct MultipeerExperimentView: View {
                    content: {
                        ActivityView(activityItems: [ExposuresItem(url: self.localStore.shareExposuresURL!,
                                                                   title: "Encounters for \(self.localStore.userName) from GAEN Explorer")],
-                                    applicationActivities: nil, isPresented: self.$showingSheetToShareExposures)
-            })
+                       applicationActivities: nil, isPresented: self.$showingSheetToShareExposures)
+                   })
             .alert(isPresented: $multipeerService.askToBecomeHost) {
                 Alert(title: Text("There is no host"), message: Text("Do you wish to become host?"), primaryButton: .default(Text("Yes")) {
                     print("Becoming host")
                     self.tryBecomingHost()
 
-                    }, secondaryButton: .cancel { self.declinedHost = true })
+                }, secondaryButton: .cancel { self.declinedHost = true })
             }
 
             .onAppear {

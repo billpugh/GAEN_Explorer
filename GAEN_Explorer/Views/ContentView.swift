@@ -130,7 +130,7 @@ struct StatusView: View {
                     }.padding().disabled(localStore.userName.isEmpty).sheet(isPresented: $showingSheet, onDismiss: { print("share sheet dismissed") },
                                                                             content: {
                                                                                 ActivityView(activityItems: DiagnosisKeyItem(self.framework.keyCount, self.localStore.userName, self.framework.keyURL!).itemsToShare() as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
-                                           })
+                                                                            })
 
                     // Show exposures
                     NavigationLink(destination: ExposuresView(), tag: "exposures", selection: $localStore.viewShown) {
@@ -140,7 +140,7 @@ struct StatusView: View {
                         Text(localStore.experimentMessage ?? "Experiment").font(.headline).padding()
                     }.disabled(self.localStore.userName.isEmpty)
 
-                    Button(action: { self.framework.analyzeRandomKeys(numKeys: 3000000)}) { Text("Analyze 3M random keys")}
+                    Button(action: { self.framework.analyzeRandomKeys(numKeys: 3_000_000) }) { Text("Analyze 3M random keys") }
 //                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
 //                        Text("Show Diary").font(.headline).padding()
 //                    }
