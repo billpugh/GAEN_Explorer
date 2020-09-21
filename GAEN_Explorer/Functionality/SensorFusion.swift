@@ -243,14 +243,15 @@ class SensorFusion {
     }
 
     static let minimumNumberOfSecondsToRecord: TimeInterval = 5
-    var roll: AccumulatingAngle = AccumulatingAngle()
-    var pitch: AccumulatingAngle = AccumulatingAngle()
-    var yaw: AccumulatingAngle = AccumulatingAngle()
+    var roll = AccumulatingAngle()
+    var pitch = AccumulatingAngle()
+    var yaw = AccumulatingAngle()
 
     private func fuseMotionData(from: Date, to: Date,
                                 _ sensorData: [SensorData],
                                 _ motions: [CMMotionActivity],
-                                _ results: (MotionAnalysis?) -> Void) {
+                                _ results: (MotionAnalysis?) -> Void)
+    {
         var motionData: [SensorData] = motions.map { motion in SensorData(at: motion.startDate, sensor: SensorReading.motion(motion)) }
         print("Have \(motionData.count) motion readings")
         motionData.append(contentsOf: sensorData)
@@ -345,7 +346,8 @@ class SensorFusion {
             }
 
             if let sensor = self.sensorRecorder,
-                let data = sensor.accelerometerData(from: from, to: to) {
+                let data = sensor.accelerometerData(from: from, to: to)
+            {
                 print("Got accel")
                 var horiztonalData: [SensorData] = []
 

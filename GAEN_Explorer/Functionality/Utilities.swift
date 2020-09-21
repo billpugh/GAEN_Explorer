@@ -45,7 +45,8 @@ class ExposuresItem: NSObject, UIActivityItemSource {
     }
 
     func activityViewController(_: UIActivityViewController,
-                                subjectForActivityType _: UIActivity.ActivityType?) -> String {
+                                subjectForActivityType _: UIActivity.ActivityType?) -> String
+    {
         title
     }
 

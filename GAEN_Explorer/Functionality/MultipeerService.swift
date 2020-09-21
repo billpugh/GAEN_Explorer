@@ -129,7 +129,8 @@ class PeerState: Identifiable {
 
     var label: String {
         guard keys != nil,
-            let p = participantsSeen else {
+            let p = participantsSeen
+        else {
             return id.displayName
         }
 
@@ -229,7 +230,7 @@ class MultipeerService: NSObject, ObservableObject {
                 return true
             }
             let encoded = try JSONEncoder().encode(message)
-            print("sending \(message.kind.rawValue) to \(sendTo.map { $0.displayName })")
+            print("sending \(message.kind.rawValue) to \(sendTo.map(\.displayName))")
             try session!.send(encoded, toPeers: sendTo, with: .reliable)
             print("sent")
             return true
@@ -266,7 +267,8 @@ class MultipeerService: NSObject, ObservableObject {
     @discardableResult func sendStart() -> Bool {
         guard mode == .host,
             let starts = LocalStore.shared.experimentStart,
-            let ends = LocalStore.shared.experimentEnd else {
+            let ends = LocalStore.shared.experimentEnd
+        else {
             return false
         }
         let message = MultipeerExperimentMessage(startAt: starts, endAt: ends)
