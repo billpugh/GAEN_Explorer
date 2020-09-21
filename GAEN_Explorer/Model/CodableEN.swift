@@ -232,8 +232,13 @@ struct CodableExposureInfo: Codable {
         self.id = UUID()
         self.date = info.date
 
+        print("ExposureInfo.time since 1970 = \(info.date.timeIntervalSince1970)")
         print("ExposureInfo.duration = \(info.duration)")
         print("ExposureInfo.attenuationDurations = \(info.attenuationDurations)")
+        print("ExposureInfo.totalRiskScore = \(info.totalRiskScore)")
+        print("ExposureInfo.totalRiskScoreFullRange = \(info.totalRiskScoreFullRange)")
+        print("ExposureInfo.attenuationValue = \(info.attenuationValue)")
+        print("ExposureInfo.transmissionRiskLevel = \(info.transmissionRiskLevel)")
 
         self.duration = trueDuration == nil ? BoundedInt(Int(info.duration / 60)) :
             BoundedInt(Int((trueDuration!) / 60), Int((trueDuration! + 120 + 59) / 60))
