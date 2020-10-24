@@ -115,7 +115,7 @@ struct GAEN_device: Identifiable, Comparable {
         return result
     }
 
-    static let scanWidth = 8
+    static let scanWidth = 11
 
     static let samplePositions = [5, 25, 40, 50, 60, 75, 95]
 
@@ -127,6 +127,10 @@ struct GAEN_device: Identifiable, Comparable {
         "\(id, nf3)  \(RSSI)  \(count, nf3)  \(period)  \(duration, nf)"
     }
 
+    func dump() {
+        let sorted = allValues.sorted()
+        print ("\(time), \(Int(lastSeen - firstSeen)), \(sorted.count), \(sample(sorted))")
+    }
     mutating func analyze() {
         analyzed = true
         if allValues.count < 100 {
@@ -181,6 +185,11 @@ class LocalState: ObservableObject {
     @Published
     var all: [GAEN_device] = []
 
+    func dump() {
+        for d in all {
+            d.dump()
+        }
+    }
     func saw(didDiscover peripheral: CBPeripheral, rssi: Int) {
         for i in 0 ..< all.count {
             if all[i].peripheral == peripheral {
@@ -220,11 +229,19 @@ class Scanner: NSObject, CBCentralManagerDelegate {
 
     var central: CBCentralManager
 
-    func hello() {
-        print("hello")
-    }
+    func hello() {}
 
-    func centralManager(_: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData _: [String: Any], rssi RSSI: NSNumber) {
-        LocalState.shared.saw(didDiscover: peripheral, rssi: 7 - RSSI.intValue)
+    func centralManager(_: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        LocalState.shared.saw(didDiscover: peripheral, rssi: 3 - RSSI.intValue)
+        if false { print("Saw packet, RSSI \(RSSI) ")
+        if true {
+            for (k, v) in advertisementData {
+                print(" \(k): \(v)")
+            }
+        }
+        print()
+        print("-------")
+        print()
+        }
     }
 }
