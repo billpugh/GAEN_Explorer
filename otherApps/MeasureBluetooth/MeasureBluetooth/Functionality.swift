@@ -57,6 +57,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
 
     @Published var scans: [String: ScanRecord] = [:]
     @Published var attenuation: [String: Double] = [:]
+    @Published var lastScan: [String: Date] = [:]
     @Published var packets: [String: Int] = [:]
 
     @Published var detailed: Bool = false
@@ -126,7 +127,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
     var timer: Timer?
     var counter: Int = 0
     override init() {
-        print("init'd")
+        print("initializing scanner")
         central = CBCentralManager(delegate: nil, queue: nil)
         peripheral = CBPeripheralManager(delegate: nil, queue: nil)
 
@@ -135,11 +136,13 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         central.delegate = self
         peripheral.delegate = self
 
-        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification,
+        if (false) {
+            NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification,
                                                object: nil, queue: nil) { _ in
             if self.advertise {
                 self.toggleAdvertising()
             }
+        }
         }
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             self.counter += 1
@@ -168,8 +171,9 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         let attn = (tx?.doubleValue ?? 7.0) - RSSI.doubleValue
 
         let from = advertisementData["kCBAdvDataLocalName"] as? String ?? ""
-        print("\(formatter.string(from: Date())) attenuation \(attn) from \(from)")
-        if false {
+         if false {
+            print("\(formatter.string(from: Date())) attenuation \(attn) from \(from)")
+           
             for (k, v) in advertisementData {
                 print(" \(k): \(v)")
             }
@@ -180,6 +184,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         let sr = scans[from]!
         sr.add(attn)
         attenuation[from] = sr.attenuation
+        lastScan[from] = Date()
         packets[from] = sr.count
         if detailed {
             DataPoint.log(from: from, sr: sr)
