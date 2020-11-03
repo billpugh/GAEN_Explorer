@@ -11,6 +11,7 @@
 		160660EC248D5DDF0045D08C /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EB248D5DDF0045D08C /* DiaryView.swift */; };
 		160660F0248EEA2F0045D08C /* SensorFusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160660EF248EEA2E0045D08C /* SensorFusion.swift */; };
 		1627E16E2498653E003BE502 /* ExhaustiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1627E16D2498653E003BE502 /* ExhaustiveTests.swift */; };
+		1634D944251ACADC0038A30E /* Reachability in Frameworks */ = {isa = PBXBuildFile; productRef = 1634D943251ACADC0038A30E /* Reachability */; };
 		163E752B247166A3000B41B6 /* ExposureFramework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F0246A118200267376 /* ExposureFramework.swift */; };
 		164D16D5246A10D800267376 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D4246A10D800267376 /* AppDelegate.swift */; };
 		164D16D7246A10D800267376 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16D6246A10D800267376 /* SceneDelegate.swift */; };
@@ -24,7 +25,6 @@
 		164D16FA246AD19500267376 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164D16F9246AD19500267376 /* Utilities.swift */; };
 		164D1722246B357900267376 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 164D1721246B357900267376 /* Localizable.strings */; };
 		165CBABB249ED9C0009DFB7A /* MultipeerExperimentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165CBABA249ED9B6009DFB7A /* MultipeerExperimentView.swift */; };
-		165CBABE249EF25C009DFB7A /* Grid in Frameworks */ = {isa = PBXBuildFile; productRef = 165CBABD249EF25C009DFB7A /* Grid */; };
 		1662C0B424ABA5670037F2DD /* Playground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1662C0B324ABA5670037F2DD /* Playground.swift */; };
 		1674A84224A8D8A900607950 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1674A84124A8D8A900607950 /* OnboardingView.swift */; };
 		167BBC1C24926010007A7819 /* GAEN_ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167BBC1B24926010007A7819 /* GAEN_ExplorerTests.swift */; };
@@ -33,7 +33,6 @@
 		16A4D83C246C902800A081EF /* keys_44.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D838246C902800A081EF /* keys_44.png */; };
 		16A4D83D246C902800A081EF /* keys_22.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D839246C902800A081EF /* keys_22.png */; };
 		16A4D83E246C902800A081EF /* keys_320.png in Resources */ = {isa = PBXBuildFile; fileRef = 16A4D83A246C902800A081EF /* keys_320.png */; };
-		16AA7CE624BBDBF70078EF02 /* Reachability in Frameworks */ = {isa = PBXBuildFile; productRef = 16AA7CE524BBDBF70078EF02 /* Reachability */; };
 		16AB372C24A18B520095E568 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AB372B24A18B520095E568 /* MultipeerService.swift */; };
 		16B4184F24773C670054D622 /* GAEN_Explorer.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 164D16E8246A111700267376 /* GAEN_Explorer.entitlements */; };
 		16BBDB9F247323A200BA18D5 /* TemporaryExposureKeyExport.proto in Sources */ = {isa = PBXBuildFile; fileRef = 16BBDB9E247323A200BA18D5 /* TemporaryExposureKeyExport.proto */; };
@@ -119,8 +118,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				164D16EB246A112600267376 /* ExposureNotification.framework in Frameworks */,
-				16AA7CE624BBDBF70078EF02 /* Reachability in Frameworks */,
-				165CBABE249EF25C009DFB7A /* Grid in Frameworks */,
+				1634D944251ACADC0038A30E /* Reachability in Frameworks */,
 				164D16EF246A116F00267376 /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -283,8 +281,7 @@
 			name = GAEN_Explorer;
 			packageProductDependencies = (
 				164D16EE246A116F00267376 /* SwiftProtobuf */,
-				165CBABD249EF25C009DFB7A /* Grid */,
-				16AA7CE524BBDBF70078EF02 /* Reachability */,
+				1634D943251ACADC0038A30E /* Reachability */,
 			);
 			productName = Test1;
 			productReference = 164D16D1246A10D800267376 /* GAEN Explorer.app */;
@@ -315,7 +312,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1160;
-				LastUpgradeCheck = 1150;
+				LastUpgradeCheck = 1220;
 				ORGANIZATIONNAME = "Ninja Monkey Coders";
 				TargetAttributes = {
 					164D16D0246A10D800267376 = {
@@ -496,6 +493,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -520,7 +518,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -556,6 +554,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -575,7 +574,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -597,6 +596,7 @@
 				DEVELOPMENT_TEAM = 96F42VF23T;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -621,6 +621,7 @@
 				DEVELOPMENT_TEAM = 96F42VF23T;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GAEN_Explorer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -638,10 +639,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 96F42VF23T;
 				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -665,7 +667,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = "GAEN ExplorerTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -741,20 +743,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1634D943251ACADC0038A30E /* Reachability */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16AA7CE424BBDBF70078EF02 /* XCRemoteSwiftPackageReference "Reachability" */;
+			productName = Reachability;
+		};
 		164D16EE246A116F00267376 /* SwiftProtobuf */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 164D16ED246A116F00267376 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
-		};
-		165CBABD249EF25C009DFB7A /* Grid */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 165CBABC249EF25C009DFB7A /* XCRemoteSwiftPackageReference "swiftui-grid" */;
-			productName = Grid;
-		};
-		16AA7CE524BBDBF70078EF02 /* Reachability */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 16AA7CE424BBDBF70078EF02 /* XCRemoteSwiftPackageReference "Reachability" */;
-			productName = Reachability;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -43,6 +43,9 @@ let multipassThresholds2 = [[58, 66],
                             [66, 70],
                             [68, 72]]
 
+let multipassThresholds3 = [[10, 15, 27], [27, 33, 51], [51, 63, 72]]
+// 10, 15, 27, 33, 51, 63, 73, UINT8_MAX};
+
 let multipassThresholds = [[58, 66, 70],
                            [64, 68, 72],
                            [56, 64, 70],
@@ -59,20 +62,6 @@ let multipassThresholds = [[58, 66, 70],
 let lowerThresholdMeaningful = 58
 let upperThresholdMeaningful = 64
 let numberAnalysisPasses = multipassThresholds.count
-
-let phoneAttenuationHandicapValues = [
-    "iPhone SE": 4,
-    "iPhone 11 Pro": 0,
-    "iPhone XS": 0,
-    "iPhone SE (2nd generation)": 2,
-]
-
-var phoneAttenuationHandicap: Int {
-    if true {
-        return 0
-    }
-    return phoneAttenuationHandicapValues[deviceModelName(), default: 0]
-}
 
 func getAttenuationDurationThresholds(pass: Int) -> [Int] {
     multipassThresholds[pass - 1]

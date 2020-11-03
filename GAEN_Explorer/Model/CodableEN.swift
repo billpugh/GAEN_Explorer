@@ -527,7 +527,7 @@ struct CodableDiagnosisKey: Codable, Equatable {
         return String(data: encoded, encoding: .utf8)!
     }
 
-    static let rollingPeriod: ENIntervalNumber = 144
+    static let rollingPeriodForOneDay: ENIntervalNumber = 144
     init(randomFromDaysAgo daysAgo: UInt32) {
         let dNumber = UInt32(Date().timeIntervalSince1970 / 24 / 60 / 60)
         var keyData = Data(count: 16)
@@ -539,8 +539,8 @@ struct CodableDiagnosisKey: Codable, Equatable {
             print("random failed \(result)")
         }
 
-        self.rollingPeriod = Self.rollingPeriod
-        self.rollingStartNumber = (dNumber - daysAgo) * Self.rollingPeriod
+        self.rollingPeriod = Self.rollingPeriodForOneDay
+        self.rollingStartNumber = (dNumber - daysAgo) * Self.rollingPeriodForOneDay
         self.transmissionRiskLevel = 0
     }
 
@@ -590,7 +590,7 @@ struct CodableExposureConfiguration: Codable {
     static func getExposureConfigurationString() -> String {
         """
         {"minimumRiskScore":0,
-        "attenuationLevelValues":[1,1,8,8,8,8,8,8],
+        "attenuationLevelValues":[7,7,7,7,7,7,7,7],
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[0,0,0,0,4,5,8,8],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
@@ -622,7 +622,40 @@ struct CodableExposureConfiguration: Codable {
 
         exposureConfiguration.durationLevelValues = durationLevelValues as [NSNumber]
         exposureConfiguration.transmissionRiskLevelValues = transmissionRiskLevelValues as [NSNumber]
-        exposureConfiguration.metadata = ["attenuationDurationThresholds": attenuationDurationThresholds.map { $0 - phoneAttenuationHandicap }]
+        exposureConfiguration.attenuationDurationThresholds = attenuationDurationThresholds as [NSNumber]
+
+        var infectiousnessForDaysSinceOnsetOfSymptoms = [Int: Int]()
+
+        infectiousnessForDaysSinceOnsetOfSymptoms[13] = Int(ENInfectiousness.standard.rawValue)
+        infectiousnessForDaysSinceOnsetOfSymptoms[-1] = Int(ENInfectiousness.high.rawValue)
+        for day in -3 ... 10 {
+            infectiousnessForDaysSinceOnsetOfSymptoms[day] = Int(ENInfectiousness.standard.rawValue)
+        }
+        for day in -1 ... 3 {
+            infectiousnessForDaysSinceOnsetOfSymptoms[day] = Int(ENInfectiousness.high.rawValue)
+        }
+        infectiousnessForDaysSinceOnsetOfSymptoms[ENDaysSinceOnsetOfSymptomsUnknown] = Int(ENInfectiousness.standard.rawValue)
+
+        print("ENDaysSinceOnsetOfSymptomsUnknown \(ENDaysSinceOnsetOfSymptomsUnknown)")
+        print ("infectiousnessForDaysSinceOnsetOfSymptoms \(infectiousnessForDaysSinceOnsetOfSymptoms)")
+        
+        exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms = infectiousnessForDaysSinceOnsetOfSymptoms as [NSNumber: NSNumber]
+
+        print("exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms = \(exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms)")
+        exposureConfiguration.immediateDurationWeight = 100
+        exposureConfiguration.nearDurationWeight = 100
+        exposureConfiguration.mediumDurationWeight = 100
+        exposureConfiguration.otherDurationWeight = 100
+        exposureConfiguration.daysSinceLastExposureThreshold = 14
+
+        exposureConfiguration.infectiousnessStandardWeight = 100
+        exposureConfiguration.infectiousnessHighWeight = 100
+        exposureConfiguration.reportTypeConfirmedTestWeight = 100
+        exposureConfiguration.reportTypeConfirmedClinicalDiagnosisWeight = 47
+        exposureConfiguration.reportTypeSelfReportedWeight = 37
+        exposureConfiguration.reportTypeRecursiveWeight = 23
+        exposureConfiguration.reportTypeNoneMap = .confirmedClinicalDiagnosis
+        print("exposureConfiguration.description: \(exposureConfiguration.description)")
         return exposureConfiguration
     }
 }

@@ -281,7 +281,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
             msg.append("\(analyzed - exposures) not matched")
         }
         if notAnalyzed > 0 {
-            msg.append("\(notAnalyzed) keys")
+            msg.append("\(notAnalyzed) key sets")
         }
         return msg.joined(separator: ", ")
     }
@@ -291,6 +291,8 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
                                             wasEnabled: ExposureFramework.shared.isEnabled)
         ExposureFramework.shared.setExposureNotificationEnabled(true) { _ in
             self.experimentStatus = .analyzing
+            print(ExposureFramework.shared.manager.exposureNotificationEnabled)
+            
             analysisQueue.async {
                 self.analyzeExperimentOffMainThread(parameters)
             }
@@ -325,6 +327,9 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         var combinedExposures: [[CodableExposureInfo]] = Array(repeating: [], count: allExposures.count)
 
         for pass in 1 ... numberAnalysisPasses {
+            if ExposureFramework.isV2(), pass > 1 {
+                break
+            }
             print("Performing analysis pass \(pass)")
             let config = CodableExposureConfiguration.getCodableExposureConfiguration(pass: pass)
             let exposures = try! ExposureFramework.shared.getExposureInfoSync(keys: allKeys, userExplanation: "Analyzing \(allKeys.count) keys, pass # \(pass)", parameters, configuration: config)
@@ -921,7 +926,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         var result = EncountersWithUser.csvHeader(thresholds)
             + allExposures.flatMap { exposure in exposure.csvFormat(owner: userName) }.joined(separator: "\n") + "\n"
 
-        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName())), handicap:, \(phoneAttenuationHandicap)\n"
+        result += "device, \(userName), export, \(fullDate: Date()), \(csvSafe(deviceModelName()))\n"
         result += "version, \(userName), \(version), \(build), \(UIDevice.current.systemVersion)\n"
         result += myKeysCSV()
         if let start = experimentStart,

@@ -20,6 +20,11 @@ class ExposureFramework: ObservableObject {
 
     static let shared = ExposureFramework()
 
+    static func isV2() -> Bool {
+        let version = Bundle.main.object(forInfoDictionaryKey: "ENAPIVersion") as! String
+        return version == "2"
+    }
+
     var manager = ENManager()
 
     var permission: ENAuthorizationStatus {
@@ -45,9 +50,9 @@ class ExposureFramework: ObservableObject {
                 print("isEnabled is already \(newValue)")
                 return
             }
-            
+
             print("changing isEnabled \(manager.exposureNotificationEnabled) to \(newValue)")
-           
+
             setExposureNotificationEnabled(newValue) { changed in
                 guard changed else {
                     print("isEnabled didn't need to be changed")
@@ -59,7 +64,7 @@ class ExposureFramework: ObservableObject {
                         print("Marking exposureLogs erased to false")
                     }
                     print("Changing observedIsEnabled to \(newValue)")
-                    //self.observedIsEnabled = newValue
+                    // self.observedIsEnabled = newValue
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
             }
@@ -165,15 +170,20 @@ class ExposureFramework: ObservableObject {
         print("ENManager init'd")
         if let path = Bundle.main.path(forResource: "GAEN_Explorer", ofType: ".entitlements"),
             let nsDictionary = NSDictionary(contentsOfFile: path),
-            let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool {
+            let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool
+        {
             if value {
                 print("using getTestDiagnosisKeys")
                 self.callGetTestDiagnosisKeys = true
             }
         }
 
+        if ExposureFramework.isV2() {
+            print("Using v2 API")
+        } else {
+            print("Using v1 API")
+        }
         self.signatureInfo = SignatureInfo.with { signatureInfo in
-            signatureInfo.appBundleID = Bundle.main.bundleIdentifier!
             signatureInfo.verificationKeyVersion = "v1"
             signatureInfo.verificationKeyID = "310"
             signatureInfo.signatureAlgorithm = "SHA256withECDSA"
@@ -238,7 +248,8 @@ class ExposureFramework: ObservableObject {
 
     func verifyKeysAreNew() -> Bool {
         if let k = keys,
-            let prev = prevKeys {
+            let prev = prevKeys
+        {
             for pKey in prev.keys {
                 let matchingKeys = k.keys.filter { $0.keyData == pKey.keyData && $0.rollingStartNumber == pKey.rollingStartNumber }
                 if !matchingKeys.isEmpty {
@@ -254,7 +265,8 @@ class ExposureFramework: ObservableObject {
 
     func currentKeys(_ userName: String, result: @escaping (PackagedKeys) -> Void) {
         if let p = keys,
-            keysCurrent(p) {
+            keysCurrent(p)
+        {
             result(p)
             return
         }
@@ -278,7 +290,8 @@ class ExposureFramework: ObservableObject {
     func packageKeys(_ userName: String, _ temporaryExposureKeys: [ENTemporaryExposureKey]?,
                      wasEnabled: Bool,
                      _ error: Error?,
-                     _ result: @escaping (PackagedKeys) -> Void) {
+                     _ result: @escaping (PackagedKeys) -> Void)
+    {
         isEnabled = wasEnabled
         DispatchQueue.main.async {
             if let e = error {
@@ -355,10 +368,16 @@ class ExposureFramework: ObservableObject {
             export.signatureInfos = [self.signatureInfo]
             export.keys = diagnosisKeys.shuffled().map { diagnosisKey in
                 TemporaryExposureKey.with { temporaryExposureKey in
+                    print("TEK: Rolling start \(diagnosisKey.rollingStartNumber), period \(diagnosisKey.rollingPeriod)")
                     temporaryExposureKey.keyData = diagnosisKey.keyData
                     temporaryExposureKey.transmissionRiskLevel = Int32(diagnosisKey.transmissionRiskLevel)
+                    if (true || diagnosisKey.transmissionRiskLevel > 0) {
+                    temporaryExposureKey.reportType = .confirmedTest
+//                    temporaryExposureKey.daysSinceOnsetOfSymptoms = 0
+                    }
                     temporaryExposureKey.rollingStartIntervalNumber = Int32(diagnosisKey.rollingStartNumber)
                     temporaryExposureKey.rollingPeriod = Int32(diagnosisKey.rollingPeriod)
+                    print(temporaryExposureKey.debugDescription)
                 }
             }
         }
@@ -388,7 +407,7 @@ class ExposureFramework: ObservableObject {
                 tekSignature.signature = signedHash
                 tekSignature.batchNum = 1
                 tekSignature.batchSize = 1
-                }]
+            }]
         }
     }
 
@@ -436,11 +455,69 @@ class ExposureFramework: ObservableObject {
     //        }
     //    }
 
+    fileprivate func printSummaries(_ summary: ENExposureDetectionSummary) {
+        print("\(summary.daySummaries.count) day summaries")
+        for day in summary.daySummaries {
+            print("Day \(day: day.date)")
+            print("time since 1970 = \(day.date.timeIntervalSince1970)")
+
+            let item = day.daySummary
+            print(" maxScore: \(item.maximumScore)")
+            print(" sumScore: \(item.scoreSum)")
+            print(" weightedDurationSum: \(item.weightedDurationSum)")
+        }
+    }
+
+    func getBucket(attn: ENAttenuation, thresholds: [NSNumber]) -> Int {
+        for b in 0 ..< thresholds.count {
+            if attn <= thresholds[b].intValue {
+                return b
+            }
+        }
+        return thresholds.count
+    }
+
+    fileprivate func printWindows(_ summary: ENExposureDetectionSummary, _ windows: [ENExposureWindow], thresholds: [NSNumber]) {
+        var totalSeconds = 0
+        print("total of \(windows.count) exposure windows")
+        for day in summary.daySummaries {
+            var dayDurations = [0, 0, 0, 0]
+            print("\n\nDay \(day: day.date)")
+            print("time since 1970 = \(day.date.timeIntervalSince1970)")
+            for i in 0 ..< windows.count {
+                let w = windows[i]
+                if w.date != day.date {
+                    continue
+                }
+                var durations = [0, 0, 0, 0]
+
+                print("\nWindow # \(i)")
+                print("Day \(day: w.date)")
+                print("time since 1970 = \(w.date.timeIntervalSince1970)")
+                var windowSeconds = 0
+                for scan in w.scanInstances {
+                    windowSeconds += scan.secondsSinceLastScan
+                    print(" \(scan.minimumAttenuation) - \(scan.typicalAttenuation) dB for \(scan.secondsSinceLastScan) seconds")
+                    durations[getBucket(attn: scan.typicalAttenuation, thresholds: thresholds)] += scan.secondsSinceLastScan
+                    dayDurations[getBucket(attn: scan.typicalAttenuation, thresholds: thresholds)] += scan.secondsSinceLastScan
+                }
+                totalSeconds += windowSeconds
+                print("window seconds \(windowSeconds)")
+                print("durations: \(durations)")
+            } // for w
+            print("day seconds \(totalSeconds)")
+            print("day durations: \(dayDurations)")
+        }
+        print()
+    }
+    
+
     func getExposureInfoSync(keys: [CodableDiagnosisKey],
                              userExplanation: String,
                              _ parameters: AnalysisParameters,
                              configuration: CodableExposureConfiguration) throws
-        -> [CodableExposureInfo] {
+        -> [CodableExposureInfo]
+    {
         assert(!Thread.current.isMainThread)
         var result: [CodableExposureInfo]?
         var resultError: Error?
@@ -450,7 +527,67 @@ class ExposureFramework: ObservableObject {
 
         os_signpost(.begin, log: pointsOfInterest, name: "detectExposures")
 
-        ExposureFramework.shared.manager.detectExposures(configuration: configuration.asExposureConfiguration(), diagnosisKeyURLs: URLs) {
+        let config = configuration.asExposureConfiguration()
+        print("attenuationLevelValues \(config.attenuationLevelValues)")
+        print("attenuationDurationThresholds \(config.attenuationDurationThresholds)")
+        if ExposureFramework.isV2() {
+            print("\n\nCached exposures")
+            ExposureFramework.shared.manager.detectExposures(configuration: config) {
+                summary, error in
+                if let error = error {
+                    print("error description \(error.localizedDescription)")
+
+                    resultError = error
+                    semaphore.signal()
+                    return
+                }
+                self.printSummaries(summary!)
+                ExposureFramework.shared.manager.getExposureWindows(summary: summary!) { windows, error in
+                    if let error = error {
+                        print("error description \(error.localizedDescription)")
+
+                        resultError = error
+                        semaphore.signal()
+                        return
+                    }
+                    self.printWindows(summary!, windows!, thresholds: config.attenuationDurationThresholds)
+                    print("\n\nWith new keys")
+                    ExposureFramework.shared.manager.detectExposures(configuration: config, diagnosisKeyURLs: URLs) {
+                        summary, error in
+                        os_signpost(.end, log: pointsOfInterest, name: "detectExposures")
+                        if let error = error {
+                            print("error description \(error.localizedDescription)")
+
+                            resultError = error
+                            semaphore.signal()
+                            return
+                        }
+
+                        self.printSummaries(summary!)
+                        ExposureFramework.shared.manager.getExposureWindows(summary: summary!) { windows, error in
+                            if let error = error {
+                                print("error description \(error.localizedDescription)")
+
+                                resultError = error
+                                semaphore.signal()
+                                return
+                            }
+                            self.printWindows(summary!, windows!, thresholds: config.attenuationDurationThresholds)
+                            result = []
+                            semaphore.signal()
+                        }
+                        return
+                    }
+                }
+            }
+            semaphore.wait()
+            if let result = result {
+                return result
+            }
+            throw resultError!
+        }
+
+        ExposureFramework.shared.manager.detectExposures(configuration: config, diagnosisKeyURLs: URLs) {
             summary, error in
             os_signpost(.end, log: pointsOfInterest, name: "detectExposures")
             if let error = error {
@@ -461,6 +598,11 @@ class ExposureFramework: ObservableObject {
                 return
             }
 
+            print("maximum risk score \(summary!.maximumRiskScore), \(summary!.maximumRiskScoreFullRange)")
+            print("sum risk score \(summary!.riskScoreSumFullRange)")
+            print("matched key count is \(summary!.matchedKeyCount)")
+            print("atteunation durations is \(summary!.attenuationDurations)")
+            print("Days since last exposure is \(summary!.daysSinceLastExposure)")
             if summary?.matchedKeyCount == 0 {
                 print("No keys matched, skipping getExposureInfo")
                 result = []
@@ -494,7 +636,7 @@ class ExposureFramework: ObservableObject {
     func getExposureInfo(keys: [CodableDiagnosisKey], userExplanation: String, parameters: AnalysisParameters = AnalysisParameters(), configuration: CodableExposureConfiguration, block: @escaping ([CodableExposureInfo]?, Error?) -> Void) throws {
         let URLs = try getURLs(diagnosisKeys: keys)
         print("Calling  detect exposures with \(keys.count) keys")
-        if (false) {
+        if false {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             keys.forEach { key in
@@ -645,7 +787,8 @@ class DiagnosisKeyItem: NSObject, UIActivityItemSource {
     }
 
     func activityViewController(_: UIActivityViewController,
-                                subjectForActivityType _: UIActivity.ActivityType?) -> String {
+                                subjectForActivityType _: UIActivity.ActivityType?) -> String
+    {
         title
     }
 

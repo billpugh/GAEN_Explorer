@@ -35,7 +35,7 @@ protocol AttenuationGenerator {
     func next() -> Double
 }
     
-class MyGenerator {
+class MyGenerator : AttenuationGenerator{
     let persistentDev = 3.0
     let alwaysDev = 1.5
     let chancePersistentChange = 0.1
@@ -98,7 +98,9 @@ class Measurements {
         counts[min(attnBoost, counts.count-1)][min(scans, Measurements.maxScans)][min(weightedDuration, Measurements.maxWeight)] += 1
     }
 }
-let generatorAvg = 50
+
+let minimumGeneratorAvg = 50
+// We can model attenuations with an average anywhere from minimumGeneratorAvg ... (minimumGeneratorAvg + maxAttnBoost)
 
 class Config {
     let threshold: [Int]
@@ -161,13 +163,7 @@ class Config {
 }
 
 let iterations = 50000
-//let c = Config(thresholds: [54, 60, 66], weights: [1.4, 1, 0.65])
-//let c = Config(thresholds: [56, 62, 68], weights: [2.0, 1.5, 1])
-// let c = Config(thresholds: [57, 63, 69], weights: [2.0, 1.5, 1]) // score 89.28
-//let c = Config(thresholds: [57, 63, 68], weights: [2.0, 1.5, 1]) // 87.6
-//let c = Config(thresholds: [57, 63, 67], weights: [2.0, 1.5, 1]) // 83
-//let c = Config(thresholds: [57, 63, 66], weights: [2.0, 1.5, 1]) // 81.85799999999998
-//let c = Config(thresholds: [59, 65, 68], weights: [2.0, 1.5, 1]) // 80.392, 81.971
+
 let c = Config(thresholds: [58, 65, 68], weights: [2.0, 1.5, 1]) // 80.392, 81.971
 
 //let c = Config(thresholds: [55, 63, 66], weights: [1, 0.5, 0]) // 82
@@ -175,7 +171,7 @@ let c = Config(thresholds: [58, 65, 68], weights: [2.0, 1.5, 1]) // 80.392, 81.9
 
 print("Generating \(iterations) runs")
 
-let gen = MyGenerator(avg: Double(generatorAvg))
+let gen = MyGenerator(avg: Double(minimumGeneratorAvg))
 for _ in 1 ... iterations {
     c.reset()
     gen.reset()
@@ -189,7 +185,7 @@ print("Generated\n")
 func percentDetected(scans: Int, threshold: Int, avgAttn: Int) -> Double {
     var total = 0
     for d in threshold ... Measurements.maxWeight {
-        total = total + c.measurements.counts[avgAttn-generatorAvg][scans][d]
+        total = total + c.measurements.counts[avgAttn-minimumGeneratorAvg][scans][d]
     }
     return Double(100 * total) / Double(iterations)
 }
@@ -322,7 +318,7 @@ for scan in 3...12 {
 }
 print()
 for boost in 0 ..< Measurements.attnBoostCount {
-    let attn = generatorAvg+boost+betterConfigurationChange
+    let attn = minimumGeneratorAvg+boost+betterConfigurationChange
     print("\(f3d(attn))", terminator: " ")
     for scan in 3...12 {
         let p =  percentDetected(scans: scan, threshold: betterThreshold, avgAttn: attn-betterConfigurationChange)

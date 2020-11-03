@@ -7,13 +7,17 @@
 import Foundation
 import SwiftUI
 
-let thresholdDebug = false
+let thresholdDebug = true
 struct ThresholdDataDebugView: View {
     let t: ThresholdData
     let width: CGFloat
     var body: some View {
         Text(t.description)
     }
+}
+
+func boundDetailDuration(_ maxDuration: Int) -> Int {
+    min(45, max(30, maxDuration))
 }
 
 struct ThresholdDataView: View {
@@ -45,14 +49,14 @@ struct ExposureDurationViewLarge: View {
                 }
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.ub) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(min(maxDuration, thresholdData.totalTime.ub)) * ExposureDurationViewLarge.scale).foregroundColor(.primary)
 
                 //                Capsule()
                 //                    .frame(width: ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.cumulativeDuration.value - thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale)
                 //                    .offset(x: 0, y: CGFloat(-thresholdData.prevCumulativeDuration.value) * ExposureDurationViewLarge.scale).foregroundColor(.green).opacity(0.75)
 
                 Capsule()
-                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(thresholdData.totalTime.ub - thresholdData.prevTotalTime.ub) * ExposureDurationViewLarge.scale)
+                    .frame(width: 5 * ExposureDurationViewLarge.scale, height: CGFloat(min(maxDuration, thresholdData.totalTime.ub) - min(maxDuration, thresholdData.prevTotalTime.ub)) * ExposureDurationViewLarge.scale)
                     .offset(x: 0, y: CGFloat(-thresholdData.prevTotalTime.ub) * ExposureDurationViewLarge.scale).foregroundColor(.green)
 
                 //                Capsule()
@@ -86,12 +90,12 @@ struct ExposureDurationsViewLarge: View {
     let maxDuration: Int
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .center, vertical: .top)) {
-            BarView(height: CGFloat(max(30, self.maxDuration)) * ExposureDurationViewLarge.scale,
+            BarView(height: CGFloat(boundDetailDuration(self.maxDuration)) * ExposureDurationViewLarge.scale,
                     width: ExposureDurationViewLarge.scale * 7 * CGFloat(thresholdData.count),
                     step: 10 * ExposureDurationViewLarge.scale)
             HStack(alignment: .bottom, spacing: 2 * ExposureDurationViewLarge.scale) {
                 ForEach(thresholdData, id: \.attenuation) {
-                    ExposureDurationViewLarge(thresholdData: $0, maxDuration: max(30, self.maxDuration))
+                    ExposureDurationViewLarge(thresholdData: $0, maxDuration: boundDetailDuration(self.maxDuration))
                 }
             }
         }
@@ -143,7 +147,7 @@ struct ExposureDetailViewDetail: View {
     var body: some View {
         ForEach(self.info.thresholdData
             .filter { $0.prevTotalTime.ub < $0.totalTime.ub },
-                
+
             id: \.attenuation) { t in
             ThresholdDataView(t: t, width: self.width)
         }
@@ -156,8 +160,9 @@ struct ExposureDetailViewDebugDetail: View {
     @EnvironmentObject var localStore: LocalStore
     var body: some View {
         VStack {
+            Text("attenuation value: \(info.attenuationValue)")
             Text("minimum durations:")
-            ForEach(self.info.thresholdData.filter { !($0.timeInBucket == 0) }, id: \.attenuation) { t in
+            ForEach(self.info.thresholdData.filter { !($0.timeInBucket == 0 || $0.totalTime.ub == BoundedInt.infinity) }, id: \.attenuation) { t in
                 ThresholdDataView(t: t, width: self.width)
             }
 
@@ -325,7 +330,7 @@ struct ExposuresView: View {
 
                                     }.font(.subheadline).padding(.bottom, 8)
 
-                            }) {
+                                }) {
                                 ForEach(d.exposures, id: \.id) { info in
                                     ExposureInfoView(day: d, info: info, width: geometry.size.width)
                                 }
@@ -339,14 +344,14 @@ struct ExposuresView: View {
                                    ExposuresItem(url: self.localStore.shareExposuresURL!,
                                                  title: "Encounters for \(self.localStore.userName) from GAEN Explorer"),
                                ] as [Any], applicationActivities: nil, isPresented: self.$showingSheet)
-                        })
+                           })
 
                     HStack {
                         // Erase Analysis
                         Button(action: { self.localStore.eraseAnalysis()
 
                         })
-                        { ExposureButton(systemName: "backward.end.alt", label: "reset", width: geometry.size.width * 0.23) }
+                            { ExposureButton(systemName: "backward.end.alt", label: "reset", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.canResetAnalysis).opacity(self.localStore.canResetAnalysis ? 1 : 0.5)
 
                         // Analyze
@@ -357,7 +362,7 @@ struct ExposuresView: View {
                         Button(action: {
                             self.showingDeleteAlert = true
                         })
-                        { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
+                            { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
                             .disabled(!self.localStore.haveKeysFromOthers).opacity(self.localStore.haveKeysFromOthers ? 1 : 0.5)
                             .alert(isPresented: self.$showingDeleteAlert) {
                                 self.makeAlert(title: "Really Erase all?",
@@ -379,7 +384,7 @@ struct ExposuresView: View {
                             self.exportingExposures = false
                             print("showingSheet set to true")
                         })
-                        { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
+                            { ExposureButton(systemName: "square.and.arrow.up", label: "export", width: geometry.size.width * 0.23) }
                     }
                 }
             }
