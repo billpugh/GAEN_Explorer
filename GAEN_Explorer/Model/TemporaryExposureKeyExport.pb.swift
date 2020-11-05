@@ -46,7 +46,7 @@ struct TemporaryExposureKeyExport {
     /// Clears the value of `endTimestamp`. Subsequent reads from it will return its default value.
     mutating func clearEndTimestamp() { _endTimestamp = nil }
 
-    /// Region from which these keys came (for example, MCC).
+    /// The region from which these keys came
     var region: String {
         get { _region ?? String() }
         set { _region = newValue }
@@ -79,11 +79,15 @@ struct TemporaryExposureKeyExport {
     /// Clears the value of `batchSize`. Subsequent reads from it will return its default value.
     mutating func clearBatchSize() { _batchSize = nil }
 
-    /// Information about associated signatures.
+    /// Information about associated signatures
     var signatureInfos: [SignatureInfo] = []
 
-    /// The temporary exposure keys themselves.
+    /// Exposure keys that are new.
     var keys: [TemporaryExposureKey] = []
+
+    /// Keys that have changed status from previous key archives,
+    /// including keys that are being revoked.
+    var revisedKeys: [TemporaryExposureKey] = []
 
     var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -101,29 +105,9 @@ struct SignatureInfo {
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
-    /// App Store app bundle ID.
-    var appBundleID: String {
-        get { _appBundleID ?? String() }
-        set { _appBundleID = newValue }
-    }
-
-    /// Returns true if `appBundleID` has been explicitly set.
-    var hasAppBundleID: Bool { self._appBundleID != nil }
-    /// Clears the value of `appBundleID`. Subsequent reads from it will return its default value.
-    mutating func clearAppBundleID() { _appBundleID = nil }
-
-    /// Android app package name.
-    var androidPackage: String {
-        get { _androidPackage ?? String() }
-        set { _androidPackage = newValue }
-    }
-
-    /// Returns true if `androidPackage` has been explicitly set.
-    var hasAndroidPackage: Bool { self._androidPackage != nil }
-    /// Clears the value of `androidPackage`. Subsequent reads from it will return its default value.
-    mutating func clearAndroidPackage() { _androidPackage = nil }
-
-    /// Key version in case the EN server signing key is rotated.
+    /// Key version in case the key server signing key is rotated. (e.g. "v1")
+    /// A PHA can only have one active public key at a time, so they must rotate
+    /// keys on all devices and servers at the same time to avoid problems.
     var verificationKeyVersion: String {
         get { _verificationKeyVersion ?? String() }
         set { _verificationKeyVersion = newValue }
@@ -134,10 +118,9 @@ struct SignatureInfo {
     /// Clears the value of `verificationKeyVersion`. Subsequent reads from it will return its default value.
     mutating func clearVerificationKeyVersion() { _verificationKeyVersion = nil }
 
-    /// Additional information to uniquely identify the public
-    /// key associated with the EN server's signing key
-    /// (for example, the EN server might serve the app
-    /// from different countries with different keys).
+    /// Implementation-specific string that can be used in key verification.
+    /// Valid character in this string are all alphanumeric characters,
+    /// underscores, and periods.
     var verificationKeyID: String {
         get { _verificationKeyID ?? String() }
         set { _verificationKeyID = newValue }
@@ -149,7 +132,7 @@ struct SignatureInfo {
     mutating func clearVerificationKeyID() { _verificationKeyID = nil }
 
     /// All keys must be signed using the SHA-256 with ECDSA algorithm.
-    /// This field must contain the string "ecdsa-with-SHA256".
+    /// This field must contain the string "1.2.840.10045.4.3.2".
     var signatureAlgorithm: String {
         get { _signatureAlgorithm ?? String() }
         set { _signatureAlgorithm = newValue }
@@ -164,8 +147,6 @@ struct SignatureInfo {
 
     init() {}
 
-    fileprivate var _appBundleID: String?
-    fileprivate var _androidPackage: String?
     fileprivate var _verificationKeyVersion: String?
     fileprivate var _verificationKeyID: String?
     fileprivate var _signatureAlgorithm: String?
@@ -176,7 +157,7 @@ struct TemporaryExposureKey {
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
-    /// Temporary exposure key.
+    /// Temporary exposure key for an infected user.
     var keyData: Data {
         get { _keyData ?? SwiftProtobuf.Internal.emptyData }
         set { _keyData = newValue }
@@ -187,7 +168,8 @@ struct TemporaryExposureKey {
     /// Clears the value of `keyData`. Subsequent reads from it will return its default value.
     mutating func clearKeyData() { _keyData = nil }
 
-    /// Varying risk associated with a key depending on the diagnosis method.
+    /// Varying risk associated with a key depending on diagnosis method.
+    /// Deprecated and no longer used.
     var transmissionRiskLevel: Int32 {
         get { _transmissionRiskLevel ?? 0 }
         set { _transmissionRiskLevel = newValue }
@@ -198,8 +180,7 @@ struct TemporaryExposureKey {
     /// Clears the value of `transmissionRiskLevel`. Subsequent reads from it will return its default value.
     mutating func clearTransmissionRiskLevel() { _transmissionRiskLevel = nil }
 
-    /// Number representing the beginning interval for temporary exposure
-    /// key validity (ENIntervalNumber).
+    /// The interval number since epoch for which a key starts
     var rollingStartIntervalNumber: Int32 {
         get { _rollingStartIntervalNumber ?? 0 }
         set { _rollingStartIntervalNumber = newValue }
@@ -210,7 +191,7 @@ struct TemporaryExposureKey {
     /// Clears the value of `rollingStartIntervalNumber`. Subsequent reads from it will return its default value.
     mutating func clearRollingStartIntervalNumber() { _rollingStartIntervalNumber = nil }
 
-    /// Number of intervals in a period.
+    /// How long this key is valid, specified in increments of 10 minutes
     var rollingPeriod: Int32 {
         get { _rollingPeriod ?? 144 }
         set { _rollingPeriod = newValue }
@@ -221,7 +202,75 @@ struct TemporaryExposureKey {
     /// Clears the value of `rollingPeriod`. Subsequent reads from it will return its default value.
     mutating func clearRollingPeriod() { _rollingPeriod = nil }
 
+    /// Type of diagnosis associated with a key.
+    var reportType: TemporaryExposureKey.ReportType {
+        get { _reportType ?? .unknown }
+        set { _reportType = newValue }
+    }
+
+    /// Returns true if `reportType` has been explicitly set.
+    var hasReportType: Bool { self._reportType != nil }
+    /// Clears the value of `reportType`. Subsequent reads from it will return its default value.
+    mutating func clearReportType() { _reportType = nil }
+
+    /// Number of days elapsed between symptom onset and the TEK being used.
+    /// E.g. 2 means TEK is from 2 days after onset of symptoms.
+    /// Valid values range is from -14 to 14.
+    var daysSinceOnsetOfSymptoms: Int32 {
+        get { _daysSinceOnsetOfSymptoms ?? 0 }
+        set { _daysSinceOnsetOfSymptoms = newValue }
+    }
+
+    /// Returns true if `daysSinceOnsetOfSymptoms` has been explicitly set.
+    var hasDaysSinceOnsetOfSymptoms: Bool { self._daysSinceOnsetOfSymptoms != nil }
+    /// Clears the value of `daysSinceOnsetOfSymptoms`. Subsequent reads from it will return its default value.
+    mutating func clearDaysSinceOnsetOfSymptoms() { _daysSinceOnsetOfSymptoms = nil }
+
     var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    /// Data type that represents why this key was published.
+    enum ReportType: SwiftProtobuf.Enum {
+        typealias RawValue = Int
+
+        /// Never returned by the client API.
+        case unknown // = 0
+        case confirmedTest // = 1
+        case confirmedClinicalDiagnosis // = 2
+        case selfReport // = 3
+
+        /// Reserved for future use.
+        case recursive // = 4
+
+        /// Used to revoke a key, never returned by client API.
+        case revoked // = 5
+
+        init() {
+            self = .unknown
+        }
+
+        init?(rawValue: Int) {
+            switch rawValue {
+            case 0: self = .unknown
+            case 1: self = .confirmedTest
+            case 2: self = .confirmedClinicalDiagnosis
+            case 3: self = .selfReport
+            case 4: self = .recursive
+            case 5: self = .revoked
+            default: return nil
+            }
+        }
+
+        var rawValue: Int {
+            switch self {
+            case .unknown: return 0
+            case .confirmedTest: return 1
+            case .confirmedClinicalDiagnosis: return 2
+            case .selfReport: return 3
+            case .recursive: return 4
+            case .revoked: return 5
+            }
+        }
+    }
 
     init() {}
 
@@ -229,14 +278,24 @@ struct TemporaryExposureKey {
     fileprivate var _transmissionRiskLevel: Int32?
     fileprivate var _rollingStartIntervalNumber: Int32?
     fileprivate var _rollingPeriod: Int32?
+    fileprivate var _reportType: TemporaryExposureKey.ReportType?
+    fileprivate var _daysSinceOnsetOfSymptoms: Int32?
 }
+
+#if swift(>=4.2)
+
+    extension TemporaryExposureKey.ReportType: CaseIterable {
+        // Support synthesized by the compiler.
+    }
+
+#endif // swift(>=4.2)
 
 struct TEKSignatureList {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
-    /// Information about associated signatures.
+    /// Information about associated signatures
     var signatures: [TEKSignature] = []
 
     var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -250,7 +309,7 @@ struct TEKSignature {
     // methods supported on all messages.
 
     /// Information to uniquely identify the public key associated
-    /// with the EN server's signing key.
+    /// with the key server's signing key.
     var signatureInfo: SignatureInfo {
         get { _signatureInfo ?? SignatureInfo() }
         set { _signatureInfo = newValue }
@@ -316,6 +375,7 @@ extension TemporaryExposureKeyExport: SwiftProtobuf.Message, SwiftProtobuf._Mess
         5: .standard(proto: "batch_size"),
         6: .standard(proto: "signature_infos"),
         7: .same(proto: "keys"),
+        8: .standard(proto: "revised_keys"),
     ]
 
     mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -328,6 +388,7 @@ extension TemporaryExposureKeyExport: SwiftProtobuf.Message, SwiftProtobuf._Mess
             case 5: try decoder.decodeSingularInt32Field(value: &_batchSize)
             case 6: try decoder.decodeRepeatedMessageField(value: &signatureInfos)
             case 7: try decoder.decodeRepeatedMessageField(value: &keys)
+            case 8: try decoder.decodeRepeatedMessageField(value: &revisedKeys)
             default: break
             }
         }
@@ -355,6 +416,9 @@ extension TemporaryExposureKeyExport: SwiftProtobuf.Message, SwiftProtobuf._Mess
         if !keys.isEmpty {
             try visitor.visitRepeatedMessageField(value: keys, fieldNumber: 7)
         }
+        if !revisedKeys.isEmpty {
+            try visitor.visitRepeatedMessageField(value: revisedKeys, fieldNumber: 8)
+        }
         try unknownFields.traverse(visitor: &visitor)
     }
 
@@ -366,6 +430,7 @@ extension TemporaryExposureKeyExport: SwiftProtobuf.Message, SwiftProtobuf._Mess
         if lhs._batchSize != rhs._batchSize { return false }
         if lhs.signatureInfos != rhs.signatureInfos { return false }
         if lhs.keys != rhs.keys { return false }
+        if lhs.revisedKeys != rhs.revisedKeys { return false }
         if lhs.unknownFields != rhs.unknownFields { return false }
         return true
     }
@@ -374,8 +439,6 @@ extension TemporaryExposureKeyExport: SwiftProtobuf.Message, SwiftProtobuf._Mess
 extension SignatureInfo: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
     static let protoMessageName: String = "SignatureInfo"
     static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-        1: .standard(proto: "app_bundle_id"),
-        2: .standard(proto: "android_package"),
         3: .standard(proto: "verification_key_version"),
         4: .standard(proto: "verification_key_id"),
         5: .standard(proto: "signature_algorithm"),
@@ -384,8 +447,6 @@ extension SignatureInfo: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementa
     mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
         while let fieldNumber = try decoder.nextFieldNumber() {
             switch fieldNumber {
-            case 1: try decoder.decodeSingularStringField(value: &_appBundleID)
-            case 2: try decoder.decodeSingularStringField(value: &_androidPackage)
             case 3: try decoder.decodeSingularStringField(value: &_verificationKeyVersion)
             case 4: try decoder.decodeSingularStringField(value: &_verificationKeyID)
             case 5: try decoder.decodeSingularStringField(value: &_signatureAlgorithm)
@@ -395,12 +456,6 @@ extension SignatureInfo: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementa
     }
 
     func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-        if let v = _appBundleID {
-            try visitor.visitSingularStringField(value: v, fieldNumber: 1)
-        }
-        if let v = _androidPackage {
-            try visitor.visitSingularStringField(value: v, fieldNumber: 2)
-        }
         if let v = _verificationKeyVersion {
             try visitor.visitSingularStringField(value: v, fieldNumber: 3)
         }
@@ -414,8 +469,6 @@ extension SignatureInfo: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementa
     }
 
     static func == (lhs: SignatureInfo, rhs: SignatureInfo) -> Bool {
-        if lhs._appBundleID != rhs._appBundleID { return false }
-        if lhs._androidPackage != rhs._androidPackage { return false }
         if lhs._verificationKeyVersion != rhs._verificationKeyVersion { return false }
         if lhs._verificationKeyID != rhs._verificationKeyID { return false }
         if lhs._signatureAlgorithm != rhs._signatureAlgorithm { return false }
@@ -431,6 +484,8 @@ extension TemporaryExposureKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
         2: .standard(proto: "transmission_risk_level"),
         3: .standard(proto: "rolling_start_interval_number"),
         4: .standard(proto: "rolling_period"),
+        5: .standard(proto: "report_type"),
+        6: .standard(proto: "days_since_onset_of_symptoms"),
     ]
 
     mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -440,6 +495,8 @@ extension TemporaryExposureKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
             case 2: try decoder.decodeSingularInt32Field(value: &_transmissionRiskLevel)
             case 3: try decoder.decodeSingularInt32Field(value: &_rollingStartIntervalNumber)
             case 4: try decoder.decodeSingularInt32Field(value: &_rollingPeriod)
+            case 5: try decoder.decodeSingularEnumField(value: &_reportType)
+            case 6: try decoder.decodeSingularSInt32Field(value: &_daysSinceOnsetOfSymptoms)
             default: break
             }
         }
@@ -458,6 +515,12 @@ extension TemporaryExposureKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
         if let v = _rollingPeriod {
             try visitor.visitSingularInt32Field(value: v, fieldNumber: 4)
         }
+        if let v = _reportType {
+            try visitor.visitSingularEnumField(value: v, fieldNumber: 5)
+        }
+        if let v = _daysSinceOnsetOfSymptoms {
+            try visitor.visitSingularSInt32Field(value: v, fieldNumber: 6)
+        }
         try unknownFields.traverse(visitor: &visitor)
     }
 
@@ -466,9 +529,22 @@ extension TemporaryExposureKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
         if lhs._transmissionRiskLevel != rhs._transmissionRiskLevel { return false }
         if lhs._rollingStartIntervalNumber != rhs._rollingStartIntervalNumber { return false }
         if lhs._rollingPeriod != rhs._rollingPeriod { return false }
+        if lhs._reportType != rhs._reportType { return false }
+        if lhs._daysSinceOnsetOfSymptoms != rhs._daysSinceOnsetOfSymptoms { return false }
         if lhs.unknownFields != rhs.unknownFields { return false }
         return true
     }
+}
+
+extension TemporaryExposureKey.ReportType: SwiftProtobuf._ProtoNameProviding {
+    static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+        0: .same(proto: "UNKNOWN"),
+        1: .same(proto: "CONFIRMED_TEST"),
+        2: .same(proto: "CONFIRMED_CLINICAL_DIAGNOSIS"),
+        3: .same(proto: "SELF_REPORT"),
+        4: .same(proto: "RECURSIVE"),
+        5: .same(proto: "REVOKED"),
+    ]
 }
 
 extension TEKSignatureList: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {

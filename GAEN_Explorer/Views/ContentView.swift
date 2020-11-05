@@ -88,7 +88,7 @@ struct StatusView: View {
             Form {
                 // MARK: Status
 
-                Section(header: Text("Status").font(.title)) {
+                Section(header: Text(ExposureFramework.isV2() ? "V2 Status" : "Status").font(.title)) {
                     HStack {
                         Text("User name: ")
                         TextField("User name", text: self.$localStore.userName)
@@ -140,10 +140,12 @@ struct StatusView: View {
                         Text(localStore.experimentMessage ?? "Experiment").font(.headline).padding()
                     }.disabled(self.localStore.userName.isEmpty)
 
-                    Button(action: { self.framework.analyzeRandomKeys(numKeys: 3_000_000) }) { Text("Analyze 3M random keys") }
-//                    NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
-//                        Text("Show Diary").font(.headline).padding()
-//                    }
+                    if false {
+                        Button(action: { self.framework.analyzeRandomKeys(numKeys: 3_000_000) }) { Text("Analyze 3M random keys") }
+                        NavigationLink(destination: DiaryView(), tag: "diary", selection: $localStore.viewShown) {
+                            Text("Show Diary").font(.headline).padding()
+                        }
+                    }
                 } // Section
             } // Form
         } // VStack

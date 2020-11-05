@@ -394,6 +394,10 @@ struct ContentView: View {
     @State var exportURL: URL? = nil
     @State var locked: Bool = false
     @State var lastExport: Date? = nil
+    
+    func scanString(_ key : String, _ attn: Double) -> String {
+       return "\(key) \(String(format: "%.1f", attn)) \(self.scanner.packets[key]!)"
+    }
 
     var body: some View {
         ScrollView {
@@ -419,13 +423,13 @@ struct ContentView: View {
                     }
                     Toggle(isOn: self.$scanner.logging) {
                         Text("Logging")
-                    }.disabled(locked).padding()
+                    }.disabled(locked && self.scanner.logging).padding()
                     Toggle(isOn: self.$scanner.detailed) {
                         Text("Detailed")
                     }.disabled(locked).padding()
                     Toggle(isOn: self.$scanner.advertise) {
                         Text("Advertising")
-                    }.disabled(locked).padding()
+                    }.disabled(locked && self.scanner.advertise).padding()
 
                     if false {
                         Text("Pitch \(mInfo.pitch.degrees)  \(mInfo.pitch.lastDegrees) \(mInfo.pitch.confidenceInt)")
@@ -437,7 +441,7 @@ struct ContentView: View {
                     // Text("Orientation \(String(describing: mInfo.computedOrientation))  \(String(describing: mInfo.deviceOrientation))")
                 }
                 ForEach(scanner.attenuation.sorted(by: >), id: \.key) { key, attn in
-                    Text("\(key) \(String(format: "%.1f", attn)) \(self.scanner.packets[key]!)")
+                    Text(scanString(key,attn))
                 }
 
                 Text("Advertising \(scanner.advertise ? "Y" : "N") \(scanner.saysAdvertising ? "Y" : "N")")
@@ -454,7 +458,7 @@ struct ContentView: View {
 
                 Toggle(isOn: self.$locked) {
                     Text("locked")
-                }.disabled(!scanner.logging || !scanner.advertise).padding()
+                }.padding()
             }.font(.headline).onAppear {
                 UIApplication.shared.isIdleTimerDisabled = true
             }.onDisappear {

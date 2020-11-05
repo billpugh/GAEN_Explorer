@@ -50,7 +50,7 @@ class GAEN_ExplorerTests: XCTestCase {
         let x: BoundedInt = 5
         let y: BoundedInt = 10
         let z: BoundedInt = 30
-        let a: BoundedInt = BoundedInt(7, 20)
+        let a = BoundedInt(7, 20)
         XCTAssertEqual(z.isNearlyExact, false)
         let xy = x + y
         XCTAssertMatches(xy, 15)
@@ -86,6 +86,26 @@ class GAEN_ExplorerTests: XCTestCase {
         print(info.durationsCSV)
         print(info.durationsExceedingCSV)
         print(info.timeInBucketCSV)
+    }
+
+    func testCodableExposureInfo2() throws {
+        var info = CodableExposureInfo(date: daysAgo(3), transmissionRiskLevel: 5)
+
+        info.updateAndDump(thresholds: [10, 15, 27], buckets: [0, 0, 0, 30])
+        info.updateAndDump(thresholds: [27, 33, 51], buckets: [0, 18, 30, 0])
+        info.updateAndDump(thresholds: [51, 63, 72], buckets: [30, 0, 0, 0])
+
+        print(info.sortedThresholds)
+        print(info.totalDuration)
+        print(info.durationsCSV)
+        print(info.durationsExceedingCSV)
+        print(info.timeInBucketCSV)
+        print()
+        let thresholds = info.thresholdData
+        for t in thresholds {
+            print(t)
+        }
+        print("done")
     }
 
     func testCodableExposureInfo17() throws {

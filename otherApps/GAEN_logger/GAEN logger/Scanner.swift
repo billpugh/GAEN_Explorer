@@ -83,13 +83,13 @@ struct GAEN_device: Identifiable, Comparable {
     var count = 1
     var allValues: [Int]
     var allPeriods: [Int] = []
-    var minRSSI: Int
-    var maxRSSI: Int
-    init(peripheral: CBPeripheral, RSSI: Int) {
+    var minAttn: Int
+    var maxAttn: Int
+    init(peripheral: CBPeripheral, attn: Int) {
         self.peripheral = peripheral
-        minRSSI = RSSI
-        maxRSSI = RSSI
-        allValues = [RSSI]
+        minAttn = attn
+        maxAttn = attn
+        allValues = [attn]
     }
 
     var age: TimeInterval {
@@ -150,23 +150,24 @@ struct GAEN_device: Identifiable, Comparable {
     }
 
     var RSSI: String {
-        "\(minRSSI, nf3) ..\(maxRSSI, nf3)"
+        "\(minAttn, nf3) ..\(maxAttn, nf3)"
     }
 
     var period: String {
         "\(minPeriod, nf)..\(maxPeriod, nf)"
     }
 
-    mutating func update(RSSI: Int) {
+    mutating func update(attn: Int) {
+        
         let now = Self.timeStamp()
         let thisPeriod = now - lastSeen
         if thisPeriod < 200 {
             return
         }
         allPeriods.append(thisPeriod)
-        minRSSI = min(minRSSI, RSSI)
-        maxRSSI = max(maxRSSI, RSSI)
-        allValues.append(RSSI)
+        minAttn = min(minAttn, attn)
+        maxAttn = max(maxAttn, attn)
+        allValues.append(attn)
         lastDate = Date()
         if count == 1 {
             minPeriod = thisPeriod
@@ -191,10 +192,10 @@ class LocalState: ObservableObject {
             d.dump()
         }
     }
-    func saw(didDiscover peripheral: CBPeripheral, rssi: Int) {
+    func saw(didDiscover peripheral: CBPeripheral, attn: Int) {
         for i in 0 ..< all.count {
             if all[i].peripheral == peripheral {
-                all[i].update(RSSI: rssi)
+                all[i].update(attn: attn)
                 return
             }
         }
@@ -203,7 +204,7 @@ class LocalState: ObservableObject {
                 all[i].analyze()
             }
         }
-        all.append(GAEN_device(peripheral: peripheral, RSSI: rssi))
+        all.append(GAEN_device(peripheral: peripheral, attn: attn))
     }
 }
 
@@ -233,7 +234,12 @@ class Scanner: NSObject, CBCentralManagerDelegate {
     func hello() {}
 
     func centralManager(_: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        LocalState.shared.saw(didDiscover: peripheral, rssi: 3 - RSSI.intValue)
+        let attn = 3 - RSSI.intValue
+        if (attn < 35) {
+            print("saw attn of \(attn), skipping")
+            return
+        }
+        LocalState.shared.saw(didDiscover: peripheral, attn: attn)
         if false { print("Saw packet, RSSI \(RSSI) ")
         if true {
             for (k, v) in advertisementData {
