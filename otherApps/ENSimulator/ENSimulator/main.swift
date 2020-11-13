@@ -9,12 +9,7 @@
 import Foundation
 
 func randomDouble() -> Double {
-    while true {
-        let r = arc4random()
-        if r > 0 {
-            return Double(r) / 0xFFFF_FFFF
-        }
-    }
+     return 1.0 - Double( arc4random()) / 0xFFFF_FFFF
 }
 
 func randomNormal() -> Double {
