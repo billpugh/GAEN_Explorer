@@ -19,7 +19,7 @@ struct ContentView: View {
                     Button(action: { self.localState.dump() }) {
                         Text("Export")
                     }
-                    Text("Active advertisers").frame(width: 450, alignment: .center)
+                    Text("\(self.localState.all.filter { $0.recent }.count) Active advertisers").frame(width: 450, alignment: .center)
                     HStack(spacing: 20) {
                         Text("        rssi          interval btwn pcks  ").frame(width: 450, alignment: .leading)
                         Text("    packet seen       ").frame(width: 290, alignment: .trailing)

@@ -129,19 +129,20 @@ struct GAEN_device: Identifiable, Comparable {
 
     func dump() {
         let sorted = allValues.sorted()
-        print ("\(time), \(Int(lastSeen - firstSeen)), \(sorted.count), \(sample(sorted))")
+        print ("\(time), \(Int((lastSeen - firstSeen)/60000)), \(sorted.count), \(sample(sorted))")
     }
     mutating func analyze() {
         analyzed = true
         if allValues.count < 100 {
             return
         }
+        return
         // print("First 30 raw values \(allValues[0..<30].map { String($0) }.joined(separator: ", "))")
         let shuffled = allValues.shuffled()
         let scanValues = stride(from: 0, to: allValues.count - Self.scanWidth, by: 1).map { median(allValues[$0 ..< $0 + Self.scanWidth]) }.sorted()
         let shuffledMedians = stride(from: 0, to: allValues.count - Self.scanWidth, by: 1).map { median(shuffled[$0 ..< $0 + Self.scanWidth]) }.sorted()
         let sorted = allValues.sorted()
-        print(" \(allValues.count),  \(sample(scanValues)),  \(sample(shuffledMedians)),  \(sample(sorted)),  \(sample(allPeriods.sorted()))")
+        print("A \(allValues.count),  \(sample(scanValues)),  \(sample(shuffledMedians)),  \(sample(sorted)),  \(sample(allPeriods.sorted()))")
     }
 
     var duration: Int {
