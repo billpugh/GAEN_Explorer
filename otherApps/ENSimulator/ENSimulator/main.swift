@@ -8,6 +8,8 @@
 
 import Foundation
 
+let attnFix = 10
+let avgAttnAtOneMeter = 60
 func randomDouble() -> Double {
     while true {
         let r = arc4random()
@@ -22,13 +24,6 @@ func randomNormal() -> Double {
     let u2 = sin(2 * 3.14159265358979 * randomDouble())
     return u1 * u2
 }
-
-func randomAttenuation(avg: Double) -> Double {
-    let r = randomNormal()
-
-    return avg + 7 * r
-}
-
 
 protocol AttenuationGenerator {
     func reset()
@@ -71,7 +66,7 @@ class MyGenerator : AttenuationGenerator{
 class Measurements {
    
    
-    static let maxAttnBoost = 30
+    static let maxAttnBoost = 40
     static let attnBoostCount = maxAttnBoost+1
     static let maxScans = 15
     static let scanCap = 12
@@ -99,7 +94,7 @@ class Measurements {
     }
 }
 
-let minimumGeneratorAvg = 50
+let minimumGeneratorAvg = 50-attnFix
 // We can model attenuations with an average anywhere from minimumGeneratorAvg ... (minimumGeneratorAvg + maxAttnBoost)
 
 class Config {
@@ -164,9 +159,13 @@ class Config {
 
 let iterations = 50000
 
-let c = Config(thresholds: [58, 65, 68], weights: [2.0, 1.5, 1]) // 80.392, 81.971
+//let c = Config(thresholds: [60-attnFix, 67-attnFix, 70-attnFix], weights: [2.0, 1.5, 1]) // 98.91
+//let c = Config(thresholds: [58, 67, 75] , weights: [2.0, 1.5, 1]) // penalty 137.375
+//let c = Config(thresholds: [58, 62, 70] , weights: [1.2, 1.0, 0.4]) // penalty 111
+let c = Config(thresholds: [53, 62, 70] , weights: [1.5, 1.0, 0.4]) // threshold 12, penalty 172
 
-//let c = Config(thresholds: [55, 63, 66], weights: [1, 0.5, 0]) // 82
+//let c = Config(thresholds: [55, 70, 80] , weights: [2.0, 1.0, 0.25])
+
 
 
 print("Generating \(iterations) runs")
@@ -182,9 +181,10 @@ for _ in 1 ... iterations {
 print("Generated\n")
 
 
-func percentDetected(scans: Int, threshold: Int, avgAttn: Int) -> Double {
+func percentDetected(scans: Int, threshold: Int, avgAttn: Int, weight:Double = 1.0) -> Double {
     var total = 0
-    for d in threshold ... Measurements.maxWeight {
+    let adjustedThreshold = Int(Double(threshold)/weight)
+    for d in adjustedThreshold ... Measurements.maxWeight {
         total = total + c.measurements.counts[avgAttn-minimumGeneratorAvg][scans][d]
     }
     return Double(100 * total) / Double(iterations)
@@ -217,7 +217,7 @@ func printAll() {
 
 
 
-struct Goal {
+struct Goal : CustomStringConvertible {
     let name:String
     let scans: Int
     let attn: Int
@@ -230,23 +230,34 @@ struct Goal {
         }
         return (detected, detected * weight)
     }
+    var description: String {
+        return "  \(f3d(scans*5/2)) min, \(f3d(attn)) dB, \(f3f1(meters(avgAttn: attn)))m, \(f3f1(positive ? weight : -weight))    \(name)"
+    }
 }
 
 
-let shortScans = 3
+let shortScans = 4
 let mediumScans = 6
 let longScans = 12
-let veryNearAttn = 55
-let nearAttn = 60
+let veryNearAttn = 50
+let nearAttn = 55
 let medAttn = 65
 let farAttn = 70
 let veryFarAttn = farAttn + 4
+
+func printParameters() {
+    print()
+    print("parameters")
 print("target scans: \(mediumScans), \(5*mediumScans/2) minutes")
 print("long scans: \(longScans), \(5*longScans/2) minutes")
 
-
-print("far attn boost: \(farAttn)")
-print("very far attn boost: \(veryFarAttn)")
+print("very near attn : \(veryNearAttn) dB, \(f3f1(meters(avgAttn: veryNearAttn)))m")
+print("near attn : \(nearAttn) dB, \(f3f1(meters(avgAttn: nearAttn)))m")
+print("med attn : \(medAttn) dB, \(f3f1(meters(avgAttn: medAttn)))m")
+print("far attn : \(farAttn) dB, \(f3f1(meters(avgAttn: farAttn)))m")
+print("very far attn : \(veryFarAttn) dB, \(f3f1(meters(avgAttn: veryFarAttn)))m")
+    print()
+}
 
 func f3d(_ i: Int) -> String {
     String(format: "%3d", i)
@@ -254,6 +265,9 @@ func f3d(_ i: Int) -> String {
 
 func fpercent(_ i: Double) -> String {
     String(format: "%7d", Int(i+0.5))
+}
+func f3f1(_ f: Double) -> String {
+    String(format: "%4.1f", f)
 }
 
 func analyzeThresholdHeader() {
@@ -263,12 +277,19 @@ func analyzeThresholdHeader() {
 
 let goals = [ Goal(name: "Long near", scans: longScans, attn: nearAttn, weight: 3, positive: true),
               Goal(name: "med near", scans: mediumScans, attn: nearAttn, weight: 2, positive: true),
-              Goal(name: "Long near", scans: longScans, attn: medAttn, weight: 1, positive: true),
-              Goal(name: "med near", scans: mediumScans, attn: medAttn, weight: 0.5, positive: true),
-              Goal(name: "short immd", scans: shortScans, attn: veryNearAttn, weight: 1, positive: false),
-              Goal(name: "long far", scans: longScans, attn: farAttn, weight: 1, positive: false),
-              Goal(name: "Long vfar", scans: longScans, attn: veryFarAttn, weight: 2, positive: false)
+              Goal(name: "Long med", scans: longScans, attn: medAttn, weight: 1, positive: true),
+              Goal(name: "med med", scans: mediumScans, attn: medAttn, weight: 0.5, positive: true),
+              
+              Goal(name: "short immd", scans: shortScans, attn: veryNearAttn, weight: 0.5, positive: false),
+              Goal(name: "short near", scans: shortScans, attn: nearAttn, weight: 1, positive: false),
+              
+              Goal(name: "medium far", scans: mediumScans, attn: farAttn, weight: 1, positive: false),
+              Goal(name: "long far", scans: longScans, attn: farAttn, weight: 0.75, positive: false),
+              
+              Goal(name: "medium vfar", scans: mediumScans, attn: veryFarAttn, weight: 2, positive: false),
+              Goal(name: "Long vfar", scans: longScans, attn: veryFarAttn, weight: 1, positive: false)
 ]
+
 
 
 func analyzeThreshold(threshold: Int, configurationChange: Int) -> Double {
@@ -283,12 +304,16 @@ func analyzeThreshold(threshold: Int, configurationChange: Int) -> Double {
    return penalty
 }
 
+func meters(avgAttn: Int) -> Double {
+    return pow(10.0, Double(avgAttn-(avgAttnAtOneMeter-attnFix))/20.0)
+}
 
+printParameters()
 var betterThreshold:Int = 0
 var betterScore: Double = 1000000
 var betterConfigurationChange: Int = -1
 
-for c in -2 ... 2 {
+for c in 0 ... 0 {
     print("Configuration change \(c)")
     analyzeThresholdHeader()
 for t in 1 ... 25 {
@@ -304,26 +329,91 @@ for t in 1 ... 25 {
     print()
 }
 
-print()
- betterThreshold  = 15
-betterConfigurationChange = 0
-print()
- print("Better threshold: \(betterThreshold) minutes, configuration change \(betterConfigurationChange)")
 
+betterConfigurationChange = 0
+betterThreshold = 15
 print()
-print("Thresholds \(c.threshold.map { $0+betterConfigurationChange }), Weights \(c.weight)")
-print("Attn ", terminator: " ")
+print()
+print("Better threshold: \(betterThreshold) minutes, configuration change \(betterConfigurationChange)")
+print("attn fix: \(attnFix)")
+print()
+printParameters()
+print()
+
+print("Thresholds \(c.threshold.map { $0+betterConfigurationChange }), Weights \(c.weight), weighted attenuation duration \(betterThreshold)")
+print()
+print("Goals:")
+print("                         avg")
+print("    recall  duration    attn   dist weight   Description")
+for g in goals {
+    let attn = g.attn
+    let scans = g.scans
+    let p =  percentDetected(scans: scans, threshold: betterThreshold, avgAttn: attn-betterConfigurationChange)
+    print("  \(fpercent(p))% \(g)")
+}
+print()
+
+print("Recall% table")
+print("                     minutes")
+print("   m Attn ", terminator: " ")
 for scan in 3...12 {
     print("   \(f3d(Int(Double(scan)*2.5+0.5)))", terminator: "   ")
 }
 print()
 for boost in 0 ..< Measurements.attnBoostCount {
     let attn = minimumGeneratorAvg+boost+betterConfigurationChange
-    print("\(f3d(attn))", terminator: " ")
+    if attn < 45 {
+        continue
+    }
+    if attn > veryFarAttn {
+        break
+    }
+    let m = meters(avgAttn: attn)
+    print("\(f3f1(m)) \(f3d(attn))", terminator: " ")
     for scan in 3...12 {
         let p =  percentDetected(scans: scan, threshold: betterThreshold, avgAttn: attn-betterConfigurationChange)
         print(" \(fpercent(p))",  terminator: " ")
     }
     print()
 }
+
+print()
+let infectiousnessWeight = 2.0
+print("Infectiousness Weight \(infectiousnessWeight)")
+
+
+print("Goals:")
+print("                         avg")
+print("    recall  duration    attn   dist weight   Description")
+for g in goals {
+    let attn = g.attn
+    let scans = g.scans
+    let p =  percentDetected(scans: scans, threshold: betterThreshold, avgAttn: attn-betterConfigurationChange, weight: infectiousnessWeight)
+    print("  \(fpercent(p))% \(g)")
+}
+print()
+
+print("                     minutes")
+print("   m Attn ", terminator: " ")
+for scan in 3...12 {
+    print("   \(f3d(Int(Double(scan)*2.5+0.5)))", terminator: "   ")
+}
+print()
+for boost in 0 ..< Measurements.attnBoostCount {
+    let attn = minimumGeneratorAvg+boost+betterConfigurationChange
+    if attn < 45 {
+        continue
+    }
+    if attn > veryFarAttn {
+        break
+    }
+    let m = meters(avgAttn: attn)
+    print("\(f3f1(m)) \(f3d(attn))", terminator: " ")
+    for scan in 3...12 {
+        let p =  percentDetected(scans: scan, threshold: betterThreshold, avgAttn: attn-betterConfigurationChange, weight: infectiousnessWeight)
+        print(" \(fpercent(p))",  terminator: " ")
+    }
+    print()
+}
+
 // printAll()
