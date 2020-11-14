@@ -38,7 +38,10 @@ class AttnWindow {
     static let minAttn: Int = 60
     var startedAt: Date = Date()
     var currentCount: Int = 0
-    var periodsOccuped: Int = 0
+    var periodsOccuped: Int {
+        return periodsKnownOccuped + (currentCount >= AttnWindow.minPerPeriod ? 1 : 0)
+    }
+    var periodsKnownOccuped: Int = 0
     static func window(attn: Int)  -> Int {
         return max(0, (attn - AttnWindow.minAttn) / AttnWindow.width)
     }
@@ -52,8 +55,8 @@ class AttnWindow {
         let timeSinceLast = now.timeIntervalSince(startedAt)
         if (timeSinceLast > AttnWindow.period || currentCount == 0) {
             // new interval
-            if currentCount > AttnWindow.minPerPeriod {
-                periodsOccuped += 1
+            if currentCount >= AttnWindow.minPerPeriod {
+                periodsKnownOccuped += 1
             }
             currentCount = 1
             startedAt = now
@@ -113,7 +116,7 @@ struct GAEN_device: Identifiable {
     var lastSeen = Self.timeStamp()
     var minPeriod: intervalType = 0
     var maxPeriod: intervalType = 0
-    var count = 1
+    var count = 0
     var allValues: [Int]
     var allPeriods: [Int] = []
     var minAttn: Int
@@ -168,21 +171,33 @@ struct GAEN_device: Identifiable {
     
     
     var minutesAt: [Int] {
-    return windows.map { $0.periodsOccuped }
+        return windows.map { $0.periodsOccuped }
+    }
+    static var minutesAtHeader: String {
+        return (0 ... AttnWindow.window(attn: AttnWindow.maxAttn)).map {"\(AttnWindow.lastAttn(window: $0), nf3)" }.joined()
+        
+    }
+    static var minutesAtExportHeader: String {
+        return (0 ... AttnWindow.window(attn: AttnWindow.maxAttn)).map {"\(AttnWindow.lastAttn(window: $0), nf3)" }.joined(separator: ",")
+        
+    }
+    
+    var minutesAtExport: String {
+        return minutesAt.map { "\($0, nf3)" }.joined(separator: ",")
     }
     var minutesAtString: String {
-        return minutesAt.map { "\($0, nf3)" }.joined(separator: ",")
+        return minutesAt.map { "\($0, nf3)" }.joined()
     }
     
     var description: String {
-        "\(id, nf3)  \(RSSI)   \(count, nf3)  \(packetsPerMinute, nf)     \((lastSeen - firstSeen)/1000, nf),  \(minutesAtString)"
+        "\(id, nf3)  \(RSSI)   \(count, nf3)  \(packetsPerMinute, nf)     \((lastSeen - firstSeen)/1000, nf)  \(minutesAtString)"
     }
     
-                                      //11:24:06 AM,     0,     3,        59,     42,  42,  42,  42,  42,  42,  42
-    static let exportHeader : String = "    started,  mins, count, pckts/min,    \(samplePositions.map{ "\($0, nf3)" }.joined(separator: ", "))"
+    //11:24:06 AM,     0,     3,        59,     42,  42,  42,  42,  42,  42,  42
+    static let exportHeader : String = "    started,  mins, count, pckts/min,\(minutesAtExportHeader),   \(samplePositions.map{ "\($0, nf3)" }.joined(separator: ", "))"
     var export : String {
         let sorted = allValues.sorted()
-        return "\(time), \(Int((lastSeen - firstSeen)/60000), nf), \(sorted.count,nf),       \(packetsPerMinute,nf3),    \(sample(sorted))"
+        return "\(time), \(Int((lastSeen - firstSeen)/60000), nf), \(sorted.count,nf),       \(packetsPerMinute,nf3), \(minutesAtExport),   \(sample(sorted))"
     }
     
     
@@ -211,7 +226,7 @@ struct GAEN_device: Identifiable {
         let now = Self.timeStamp()
         let nowDate = Date()
         let thisPeriod = now - lastSeen
-        if thisPeriod < 200 {
+        if count > 0 && thisPeriod < 200 {
             return
         }
         if (attn <= AttnWindow.maxAttn) {
@@ -219,13 +234,13 @@ struct GAEN_device: Identifiable {
                 windows[w].count(nowDate)
             }
         }
-       
+        
         allPeriods.append(thisPeriod)
         minAttn = min(minAttn, attn)
         maxAttn = max(maxAttn, attn)
         allValues.append(attn)
         lastDate = Date()
-        if count == 1 {
+        if count == 0 {
             minPeriod = thisPeriod
             maxPeriod = thisPeriod
         } else {
