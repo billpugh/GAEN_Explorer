@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var document: ExportDocument = ExportDocument(content: ["Hello, World!"])
     let leftWidth: CGFloat = 500
     
-    let rightWidth: CGFloat = 200
+    let rightWidth: CGFloat = 250
     @State private var isExporting: Bool = false
     var body: some View {
         ScrollView(.vertical) {
@@ -28,11 +28,11 @@ struct ContentView: View {
                     }
                     Text("\(self.localState.all.filter { $0.recent }.count) Active advertisers").frame(width: leftWidth + rightWidth, alignment: .center)
                     HStack(spacing: 20) {
-                        Text("        rssi     pkt   pkts  seen for  mins seen at attn <=").frame(width: leftWidth, alignment: .leading)
+                        Text("        rssi     pkt   pkts   seconds   mins seen at attn <").frame(width: leftWidth, alignment: .leading)
                         Text("    packet seen       ").frame(width: rightWidth, alignment: .trailing)
                     }
                     HStack(spacing: 20) {
-                        Text(" id  min .. max  cnt   /min   seconds  \(GAEN_device.minutesAtHeader)").frame(width: leftWidth, alignment: .leading)
+                        Text(" id  min .. max  cnt   /min  seen for  \(GAEN_device.minutesAtHeader)").frame(width: leftWidth, alignment: .leading)
                         Text("first          last   ").frame(width: rightWidth, alignment: .trailing)
                     }
 
@@ -46,11 +46,11 @@ struct ContentView: View {
                         Divider()
                         Text("\(self.localState.all.filter { !$0.recent }.count) Inactive advertisers").frame(width: leftWidth + rightWidth, alignment: .center)
                         HStack(spacing: 20) {
-                            Text("        rssi     pkt   pkts  seen for").frame(width: leftWidth, alignment: .leading)
+                            Text("        rssi     pkt   pkts   seconds   mins seen at attn <").frame(width: leftWidth, alignment: .leading)
                             Text("    packet seen       ").frame(width: rightWidth, alignment: .trailing)
                         }
                         HStack(spacing: 20) {
-                            Text(" id  min .. max  cnt   /min   seconds").frame(width: leftWidth, alignment: .leading)
+                            Text(" id  min .. max  cnt   /min  seen for  \(GAEN_device.minutesAtHeader)").frame(width: leftWidth, alignment: .leading)
                             Text("first          last   ").frame(width: rightWidth, alignment: .trailing)
                         }
 

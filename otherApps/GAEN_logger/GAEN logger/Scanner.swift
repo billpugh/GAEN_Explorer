@@ -174,7 +174,7 @@ struct GAEN_device: Identifiable {
         return windows.map { $0.periodsOccuped }
     }
     static var minutesAtHeader: String {
-        return (0 ... AttnWindow.window(attn: AttnWindow.maxAttn)).map {"\(AttnWindow.lastAttn(window: $0), nf3)" }.joined()
+        return (0 ... AttnWindow.window(attn: AttnWindow.maxAttn)).map {"\(AttnWindow.lastAttn(window: $0)+1, nf3)" }.joined()
         
     }
     static var minutesAtExportHeader: String {
