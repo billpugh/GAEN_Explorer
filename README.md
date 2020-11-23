@@ -1,5 +1,7 @@
 # GAEN Explorer
 
+Note: this is way out of date
+
 This README is a week or two out of date; things move fast. I will try to get it updated in the next week. The screen shots are out of date.  GAEN Explorer has been refocused so that
 rather than being a tool used to explore how the framework works, it is now  a research tool designed to allow detailed examination of the encounters detected by the GAEN framework. This allows GAEN Explorer to be used for determining appropriate attenuation thresholds, and estimating false positives and false negatives for detections of epidemiologically significant exposures.
 
