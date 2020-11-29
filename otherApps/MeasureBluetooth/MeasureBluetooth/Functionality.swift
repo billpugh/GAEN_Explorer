@@ -168,7 +168,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
 
     func centralManager(_: CBCentralManager, didDiscover _: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let tx = advertisementData["kCBAdvDataTxPowerLevel"] as? NSNumber
-        let attn = (tx?.doubleValue ?? 7.0) - RSSI.doubleValue
+        let attn =  -RSSI.doubleValue
 
         let from = advertisementData["kCBAdvDataLocalName"] as? String ?? ""
          if false {
