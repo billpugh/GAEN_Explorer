@@ -346,7 +346,7 @@ class SensorFusion {
             }
 
             if let sensor = self.sensorRecorder,
-                let data = sensor.accelerometerData(from: from, to: to)
+               let data = sensor.accelerometerData(from: from, to: to)
             {
                 print("Got accel")
                 var horiztonalData: [SensorData] = []

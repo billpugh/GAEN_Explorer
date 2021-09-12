@@ -292,7 +292,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         ExposureFramework.shared.setExposureNotificationEnabled(true) { _ in
             self.experimentStatus = .analyzing
             print(ExposureFramework.shared.manager.exposureNotificationEnabled)
-            
+
             analysisQueue.async {
                 self.analyzeExperimentOffMainThread(parameters)
             }
@@ -551,7 +551,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     var experimentSummary: ExperimentSummary? {
         if let started = experimentStart,
-            let ended = experimentEnd
+           let ended = experimentEnd
         {
             return ExperimentSummary(started: started, ended: ended, description: experimentDescription)
         }
@@ -796,14 +796,14 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         self.deviceId = UserDefaults.standard.integer(forKey: Self.deviceIdKey)
 
         if let diaryData = UserDefaults.standard.object(forKey: Self.diaryKey) as? Data,
-            let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData)
+           let loadedDiary = try? JSONDecoder().decode([DiaryEntry].self, from: diaryData)
         {
             self.diary = loadedDiary
         }
         if let exposureData = UserDefaults.standard.object(forKey: Self.allExposuresKey) as? Data,
-            let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: exposureData),
-            let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
-            let positions = try? JSONDecoder().decode([String: Int].self, from: data)
+           let loadedExposures = try? JSONDecoder().decode([EncountersWithUser].self, from: exposureData),
+           let data = UserDefaults.standard.object(forKey: Self.positionsKey) as? Data,
+           let positions = try? JSONDecoder().decode([String: Int].self, from: data)
         {
             if loadedExposures.count == loadedExposures.count {
                 self.allExposures = loadedExposures
@@ -930,7 +930,7 @@ class LocalStore: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
         result += "version, \(userName), \(version), \(build), \(UIDevice.current.systemVersion)\n"
         result += myKeysCSV()
         if let start = experimentStart,
-            let ended = experimentEnd
+           let ended = experimentEnd
         {
             result += """
             experiment, \(userName), description, \(fullDate: start), \(csvSafe(experimentDescription))

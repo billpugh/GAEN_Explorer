@@ -17,6 +17,7 @@ class ScanRecord {
     var samples = [Double](repeating: 0.0, count: 11)
     var next: Int = 0
     var attenuation: Double = 100.0
+    var attenuationP: Double = 100.0
     var lastAttenuation: Double = 100.0
     var attenuationString: String {
         String(format: "%.1f", attenuation)
@@ -35,6 +36,9 @@ class ScanRecord {
         ready = false
     }
 
+    func average(_ values: [Double]) -> Double {
+        return values.reduce(0.0,+) / Double(values.count)
+    }
     func add(_ attn: Double) {
         packets += 1
         let now = Date()
@@ -46,7 +50,11 @@ class ScanRecord {
         count += 1
         samples[next] = attn
         next = (next + 1) % samples.count
-        attenuation = samples.reduce(0.0,+) / Double(min(count, samples.count))
+        let validSamples = samples.filter {$0 != 0.0}
+        
+        attenuation = average(validSamples)
+        let powers =  validSamples.map { pow(10.0, $0 / -10.0 )}
+        attenuationP = -10 * log10(average(powers))
         ready = count >= samples.count
         lastAttenuation = attn
     }
@@ -96,7 +104,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         print("toggle advertising \(advertise) \(peripheralState.rawValue)")
     }
 
-    let serviceCBUUID = CBUUID(string: "0xF30D")
+    let serviceCBUUID = CBUUID(string: "0xF30D") // CBUUID(string: "0x180D") //
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
             print("central Powered on")
@@ -136,13 +144,13 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
         central.delegate = self
         peripheral.delegate = self
 
-        if (false) {
+        if false {
             NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification,
-                                               object: nil, queue: nil) { _ in
-            if self.advertise {
-                self.toggleAdvertising()
+                                                   object: nil, queue: nil) { _ in
+                if self.advertise {
+                    self.toggleAdvertising()
+                }
             }
-        }
         }
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             self.counter += 1
@@ -157,7 +165,7 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
 
     func updateScanner() {
         saysAdvertising = peripheral.isAdvertising
-        print("Updating advertising \(peripheral.state.rawValue) \(advertise) \(saysAdvertising)")
+        //print("Updating advertising \(peripheral.state.rawValue) \(advertise) \(saysAdvertising)")
     }
 
     var central: CBCentralManager
@@ -167,13 +175,16 @@ class Scanner: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriphera
     }
 
     func centralManager(_: CBCentralManager, didDiscover _: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        let tx = advertisementData["kCBAdvDataTxPowerLevel"] as? NSNumber
-        let attn =  -RSSI.doubleValue
+        let attn = -RSSI.doubleValue
+        
+        if attn < 20 || attn > 110 {
+            return
+        }
 
         let from = advertisementData["kCBAdvDataLocalName"] as? String ?? ""
-         if false {
+        if false {
             print("\(formatter.string(from: Date())) attenuation \(attn) from \(from)")
-           
+
             for (k, v) in advertisementData {
                 print(" \(k): \(v)")
             }

@@ -53,6 +53,15 @@ class LocalStore: ObservableObject {
     }
 
     @Published
+    var phase: Int = 0
+    
+    func incrementPhase() {
+        phase += 1
+        for sr in Scanner.shared.scans.values {
+            sr.reset()
+        }
+    }
+    @Published
     var memo: String = UserDefaults.standard.string(forKey: "memo") ?? "" {
         didSet {
             UserDefaults.standard.set(memo, forKey: "memo")
@@ -66,7 +75,9 @@ struct DataPoint {
     static var all: [DataPoint] = []
 
     static func log(from: String, sr: ScanRecord) {
-        all.append(DataPoint(date: Date(), pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: from, attenuation: sr.attenuation, lastAttenuation: sr.lastAttenuation, packets: sr.packets))
+        all.append(DataPoint(date: Date(), pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: from, attenuation: sr.attenuation,
+                             attenuationP: sr.attenuationP,
+                             lastAttenuation: sr.lastAttenuation, packets: sr.packets))
         sr.logged()
     }
 
@@ -75,7 +86,7 @@ struct DataPoint {
 
         for (k, sr) in Scanner.shared.scans {
             if sr.ready {
-                all.append(DataPoint(date: now, pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: k, attenuation: sr.attenuation, lastAttenuation: sr.lastAttenuation, packets: sr.packets))
+                all.append(DataPoint(date: now, pitch: MotionInfo.shared.pitch.degrees, roll: MotionInfo.shared.roll.degrees, yaw: MotionInfo.shared.yaw.degrees, compass: MotionInfo.shared.compassHeading, computedOrientation: MotionInfo.shared.computedOrientation, deviceOrientation: MotionInfo.shared.deviceOrientation, from: k, attenuation: sr.attenuation, attenuationP: sr.attenuationP, lastAttenuation: sr.lastAttenuation, packets: sr.packets))
                 sr.logged()
             }
         }
@@ -84,7 +95,7 @@ struct DataPoint {
 
     static func export() -> URL? {
         let header = "memo,\(LocalStore.shared.memo)\n"
-            + "to, Timestamp, seconds,compass, o1, o2, From, attn, lastAttn, packets\n"
+            + "to, Timestamp, seconds, phase, compass, o1, o2, From, attn, attnP, lastAttn, packets, power\n"
 
         let csv = header + all.map { $0.csv() }.joined(separator: "\n")
         let documents = FileManager.default.urls(
@@ -113,9 +124,14 @@ struct DataPoint {
         dateFormater.dateFormat = "yyyyMMddHHmmss"
         let s1 = dateFormater.string(from: date)
         let t = (date.timeIntervalSince(startDate) * 1000.0).rounded() / 1000.0
-        return "\(LocalStore.shared.userName), \(s1), \(t), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)),  \(String(format: "%.0f", lastAttenuation)),\(packets)"
+        return "\(LocalStore.shared.userName), \(s1), \(t), \(phase), \(compass), \(computedOrientation), \(deviceOrientation),  \(from), \(String(format: "%.3f", attenuation)), \(String(format: "%.3f", attenuationP)), \(String(format: "%.0f", lastAttenuation)),\(packets),\(power)"
+    }
+    
+    var power: Double {
+        pow(10, -attenuationP/10)
     }
 
+    let phase: Int = LocalStore.shared.phase
     let date: Date
     let pitch: Int
     let roll: Int
@@ -125,6 +141,7 @@ struct DataPoint {
     let deviceOrientation: UIDeviceOrientation
     let from: String
     let attenuation: Double
+    let attenuationP: Double
     let lastAttenuation: Double
     let packets: Int
 }
@@ -327,19 +344,19 @@ struct ActivityView: UIViewControllerRepresentable {
                                         UIActivity.ActivityType(rawValue: "com.apple.mobilenotes.SharingExtension")]
         result.completionWithItemsHandler = { (activityType: UIActivity.ActivityType?, completed:
             Bool, _: [Any]?, error: Error?) in
-        print("activity: \(String(describing: activityType))")
+            print("activity: \(String(describing: activityType))")
 
-        if completed {
-            print("share completed")
-            self.isPresented = false
-            self.lastExport = Date()
-            return
-        } else {
-            print("cancel")
-        }
-        if let shareError = error {
-            print("error while sharing: \(shareError.localizedDescription)")
-        }
+            if completed {
+                print("share completed")
+                self.isPresented = false
+                self.lastExport = Date()
+                return
+            } else {
+                print("cancel")
+            }
+            if let shareError = error {
+                print("error while sharing: \(shareError.localizedDescription)")
+            }
         }
         return result
     }
@@ -394,15 +411,22 @@ struct ContentView: View {
     @State var exportURL: URL? = nil
     @State var locked: Bool = false
     @State var lastExport: Date? = nil
-    
-    func scanString(_ key : String, _ attn: Double) -> String {
-       return "\(key) \(String(format: "%.1f", attn)) \(self.scanner.packets[key]!)"
+
+    func scanString(_ key: String, _ attn: Double) -> String {
+        "\(key) \(String(format: "%.1f", attn)) \(scanner.packets[key]!)"
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 5) {
                 Group {
+                    HStack {
+                        Text("Phase: \(self.localStore.phase) ")
+                        Spacer()
+                        Button(action: { self.localStore.incrementPhase()}) {
+                            Text("+")
+                        }
+                    }.padding()
                     HStack {
                         Text("User name: ")
                         TextField("User name", text: self.$localStore.userName)
@@ -411,6 +435,7 @@ struct ContentView: View {
                         Text("Memo: ")
                         TextField("Memo", text: self.$localStore.memo)
                     }.padding()
+                    
                     HStack(spacing: 10) {
                         Text("\(dateFormater.string(from: startDate))")
                         Button(action: { DataPoint.all = []
@@ -419,6 +444,7 @@ struct ContentView: View {
                             Scanner.shared.scans = [:]
                             Scanner.shared.attenuation = [:]
                             Scanner.shared.packets = [:]
+                            self.localStore.phase = 0
                         }) { Text("reset") }.disabled(locked)
                     }
                     Toggle(isOn: self.$scanner.logging) {
@@ -441,7 +467,7 @@ struct ContentView: View {
                     // Text("Orientation \(String(describing: mInfo.computedOrientation))  \(String(describing: mInfo.deviceOrientation))")
                 }
                 ForEach(scanner.attenuation.sorted(by: >), id: \.key) { key, attn in
-                    Text(scanString(key,attn))
+                    Text(scanString(key, attn))
                 }
 
                 Text("Advertising \(scanner.advertise ? "Y" : "N") \(scanner.saysAdvertising ? "Y" : "N")")

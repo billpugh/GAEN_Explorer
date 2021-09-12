@@ -589,8 +589,8 @@ struct CodableExposureConfiguration: Codable {
 
     static func getExposureConfigurationString() -> String {
         """
-        {"minimumRiskScore":0,
-        "attenuationLevelValues":[7,7,7,7,7,7,7,7],
+        {"minimumRiskScore":255,
+        "attenuationLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "daysSinceLastExposureLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
         "durationLevelValues":[0,0,0,0,4,5,8,8],
         "transmissionRiskLevelValues":[1, 1, 1, 1, 1, 1, 1, 1],
@@ -637,8 +637,8 @@ struct CodableExposureConfiguration: Codable {
         infectiousnessForDaysSinceOnsetOfSymptoms[ENDaysSinceOnsetOfSymptomsUnknown] = Int(ENInfectiousness.standard.rawValue)
 
         print("ENDaysSinceOnsetOfSymptomsUnknown \(ENDaysSinceOnsetOfSymptomsUnknown)")
-        print ("infectiousnessForDaysSinceOnsetOfSymptoms \(infectiousnessForDaysSinceOnsetOfSymptoms)")
-        
+        print("infectiousnessForDaysSinceOnsetOfSymptoms \(infectiousnessForDaysSinceOnsetOfSymptoms)")
+
         exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms = infectiousnessForDaysSinceOnsetOfSymptoms as [NSNumber: NSNumber]
 
         print("exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms = \(exposureConfiguration.infectiousnessForDaysSinceOnsetOfSymptoms)")

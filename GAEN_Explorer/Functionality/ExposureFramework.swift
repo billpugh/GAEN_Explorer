@@ -56,6 +56,7 @@ class ExposureFramework: ObservableObject {
             setExposureNotificationEnabled(newValue) { changed in
                 guard changed else {
                     print("isEnabled didn't need to be changed")
+                    print("no need to change observedIsEnabled to \(newValue) -- \(self.manager.exposureNotificationEnabled)")
                     return
                 }
                 DispatchQueue.main.async {
@@ -63,7 +64,7 @@ class ExposureFramework: ObservableObject {
                         self.exposureLogsErased = false
                         print("Marking exposureLogs erased to false")
                     }
-                    print("Changing observedIsEnabled to \(newValue)")
+                    print("Changing observedIsEnabled to \(newValue) -- \(self.manager.exposureNotificationEnabled)")
                     // self.observedIsEnabled = newValue
                     LocalStore.shared.addDiaryEntry(.scanningChanged, "\(newValue)")
                 }
@@ -169,8 +170,8 @@ class ExposureFramework: ObservableObject {
     init() {
         print("ENManager init'd")
         if let path = Bundle.main.path(forResource: "GAEN_Explorer", ofType: ".entitlements"),
-            let nsDictionary = NSDictionary(contentsOfFile: path),
-            let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool
+           let nsDictionary = NSDictionary(contentsOfFile: path),
+           let value = nsDictionary["com.apple.developer.exposure-notification-test"] as? Bool
         {
             if value {
                 print("using getTestDiagnosisKeys")
@@ -248,7 +249,7 @@ class ExposureFramework: ObservableObject {
 
     func verifyKeysAreNew() -> Bool {
         if let k = keys,
-            let prev = prevKeys
+           let prev = prevKeys
         {
             for pKey in prev.keys {
                 let matchingKeys = k.keys.filter { $0.keyData == pKey.keyData && $0.rollingStartNumber == pKey.rollingStartNumber }
@@ -265,7 +266,7 @@ class ExposureFramework: ObservableObject {
 
     func currentKeys(_ userName: String, result: @escaping (PackagedKeys) -> Void) {
         if let p = keys,
-            keysCurrent(p)
+           keysCurrent(p)
         {
             result(p)
             return
@@ -371,9 +372,9 @@ class ExposureFramework: ObservableObject {
                     print("TEK: Rolling start \(diagnosisKey.rollingStartNumber), period \(diagnosisKey.rollingPeriod)")
                     temporaryExposureKey.keyData = diagnosisKey.keyData
                     temporaryExposureKey.transmissionRiskLevel = Int32(diagnosisKey.transmissionRiskLevel)
-                    if (true || diagnosisKey.transmissionRiskLevel > 0) {
-                    temporaryExposureKey.reportType = .confirmedTest
-//                    temporaryExposureKey.daysSinceOnsetOfSymptoms = 0
+                    if true || diagnosisKey.transmissionRiskLevel > 0 {
+                        temporaryExposureKey.reportType = .confirmedTest
+                        temporaryExposureKey.daysSinceOnsetOfSymptoms = 0
                     }
                     temporaryExposureKey.rollingStartIntervalNumber = Int32(diagnosisKey.rollingStartNumber)
                     temporaryExposureKey.rollingPeriod = Int32(diagnosisKey.rollingPeriod)
@@ -510,7 +511,6 @@ class ExposureFramework: ObservableObject {
         }
         print()
     }
-    
 
     func getExposureInfoSync(keys: [CodableDiagnosisKey],
                              userExplanation: String,

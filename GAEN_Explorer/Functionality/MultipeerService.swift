@@ -123,13 +123,13 @@ class PeerState: Identifiable {
 
     func isReady(expected: Int) -> Bool {
         guard keys != nil,
-            let p = participantsSeen else { return false }
+              let p = participantsSeen else { return false }
         return expected == p
     }
 
     var label: String {
         guard keys != nil,
-            let p = participantsSeen
+              let p = participantsSeen
         else {
             return id.displayName
         }
@@ -266,8 +266,8 @@ class MultipeerService: NSObject, ObservableObject {
 
     @discardableResult func sendStart() -> Bool {
         guard mode == .host,
-            let starts = LocalStore.shared.experimentStart,
-            let ends = LocalStore.shared.experimentEnd
+              let starts = LocalStore.shared.experimentStart,
+              let ends = LocalStore.shared.experimentEnd
         else {
             return false
         }

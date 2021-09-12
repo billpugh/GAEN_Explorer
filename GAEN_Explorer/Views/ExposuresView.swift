@@ -363,7 +363,7 @@ struct ExposuresView: View {
                             self.showingDeleteAlert = true
                         })
                             { ExposureButton(systemName: "trash", label: "erase", width: geometry.size.width * 0.23) }
-                            .disabled(!self.localStore.haveKeysFromOthers).opacity(self.localStore.haveKeysFromOthers ? 1 : 0.5)
+                            .disabled(!self.localStore.haveKeysFromOthers && self.framework.keys == nil).opacity(self.localStore.haveKeysFromOthers || self.framework.keys != nil ? 1 : 0.5)
                             .alert(isPresented: self.$showingDeleteAlert) {
                                 self.makeAlert(title: "Really Erase all?",
                                                message: "Are you sure you want to delete all keys and analysis?",

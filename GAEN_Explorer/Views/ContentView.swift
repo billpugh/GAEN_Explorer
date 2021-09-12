@@ -51,18 +51,18 @@ struct ActivityView: UIViewControllerRepresentable {
                                         UIActivity.ActivityType(rawValue: "com.apple.mobilenotes.SharingExtension")]
         result.completionWithItemsHandler = { (activityType: UIActivity.ActivityType?, completed:
             Bool, _: [Any]?, error: Error?) in
-        print("activity: \(String(describing: activityType))")
+            print("activity: \(String(describing: activityType))")
 
-        if completed {
-            print("share completed")
-            self.isPresented = false
-            return
-        } else {
-            print("cancel")
-        }
-        if let shareError = error {
-            print("error while sharing: \(shareError.localizedDescription)")
-        }
+            if completed {
+                print("share completed")
+                self.isPresented = false
+                return
+            } else {
+                print("cancel")
+            }
+            if let shareError = error {
+                print("error while sharing: \(shareError.localizedDescription)")
+            }
         }
         return result
     }

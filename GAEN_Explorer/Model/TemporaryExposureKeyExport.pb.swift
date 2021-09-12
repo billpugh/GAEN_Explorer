@@ -93,9 +93,9 @@ struct TemporaryExposureKeyExport {
 
     init() {}
 
-    fileprivate var _startTimestamp: UInt64?
-    fileprivate var _endTimestamp: UInt64?
-    fileprivate var _region: String?
+    private var _startTimestamp: UInt64?
+    private var _endTimestamp: UInt64?
+    private var _region: String?
     fileprivate var _batchNum: Int32?
     fileprivate var _batchSize: Int32?
 }
@@ -274,12 +274,12 @@ struct TemporaryExposureKey {
 
     init() {}
 
-    fileprivate var _keyData: Data?
-    fileprivate var _transmissionRiskLevel: Int32?
-    fileprivate var _rollingStartIntervalNumber: Int32?
-    fileprivate var _rollingPeriod: Int32?
-    fileprivate var _reportType: TemporaryExposureKey.ReportType?
-    fileprivate var _daysSinceOnsetOfSymptoms: Int32?
+    private var _keyData: Data?
+    private var _transmissionRiskLevel: Int32?
+    private var _rollingStartIntervalNumber: Int32?
+    private var _rollingPeriod: Int32?
+    private var _reportType: TemporaryExposureKey.ReportType?
+    private var _daysSinceOnsetOfSymptoms: Int32?
 }
 
 #if swift(>=4.2)
@@ -357,10 +357,10 @@ struct TEKSignature {
 
     init() {}
 
-    fileprivate var _signatureInfo: SignatureInfo?
+    private var _signatureInfo: SignatureInfo?
     fileprivate var _batchNum: Int32?
     fileprivate var _batchSize: Int32?
-    fileprivate var _signature: Data?
+    private var _signature: Data?
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.

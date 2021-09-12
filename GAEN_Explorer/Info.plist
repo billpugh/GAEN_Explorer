@@ -47,11 +47,11 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>163</string>
+	<string>179</string>
 	<key>ENAPIVersion</key>
-	<string>2</string>
+	<string>1</string>
 	<key>ENDeveloperRegion</key>
-	<string>US-MD</string>
+	<string>US-NY</string>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
 	<key>LSRequiresIPhoneOS</key>
